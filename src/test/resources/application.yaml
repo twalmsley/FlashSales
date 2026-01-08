@@ -2,12 +2,6 @@ spring:
   application:
     name: Flash Sales Demo App
 
-  datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
-    password: password
-    driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: none
