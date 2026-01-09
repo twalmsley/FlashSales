@@ -1,3 +1,9 @@
 spring:
   profiles:
     active: api-service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
