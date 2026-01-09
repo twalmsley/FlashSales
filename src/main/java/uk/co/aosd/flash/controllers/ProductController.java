@@ -3,6 +3,7 @@ package uk.co.aosd.flash.controllers;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import uk.co.aosd.flash.dto.ProductDto;
 
 import java.math.BigDecimal;
@@ -14,7 +15,7 @@ public class ProductController {
 
     // CREATE
     @PostMapping
-    public ResponseEntity<String> createProduct(@RequestBody ProductDto product) {
+    public ResponseEntity<String> createProduct(@Valid @RequestBody ProductDto product) {
         // Logic to save product
         return ResponseEntity.ok("Successfully created the product: " + product.id());
     }
@@ -48,7 +49,7 @@ public class ProductController {
 
     // UPDATE
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateProduct(@PathVariable String id, @RequestBody ProductDto product) {
+    public ResponseEntity<String> updateProduct(@PathVariable String id, @Valid @RequestBody ProductDto product) {
         // Logic to update existing product
         return ResponseEntity.ok("Successfully updated the product: " + id);
     }
