@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/products")
-public class ProductController {
+public class ProductRestApi {
 
     // CREATE
     @PostMapping
