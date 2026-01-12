@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: api-service
+    active: api-service, admin-service
 
   datasource:
     hikari:
@@ -17,6 +17,12 @@ management:
     web:
       exposure:
         include: '*'
+  health:
+    probes:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always # Optional: helpful for debugging
 
 logging:
   level: 

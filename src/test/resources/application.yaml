@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: test
+    active: test, admin-service, api-service
   application:
     name: Flash Sales Demo App
 
