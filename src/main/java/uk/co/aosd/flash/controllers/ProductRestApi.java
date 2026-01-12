@@ -1,5 +1,7 @@
 package uk.co.aosd.flash.controllers;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,9 +15,12 @@ import java.util.List;
 @RequestMapping("/api/v1/products")
 public class ProductRestApi {
 
+    private static Logger log = LoggerFactory.getLogger(ProductRestApi.class.getName());
+
     // CREATE
     @PostMapping
     public ResponseEntity<String> createProduct(@Valid @RequestBody ProductDto product) {
+        log.trace("createProduct():" + product.toString());
         // Logic to save product
         return ResponseEntity.ok("Successfully created the product: " + product.id());
     }
@@ -23,6 +28,7 @@ public class ProductRestApi {
     // READ (All)
     @GetMapping
     public ResponseEntity<List<ProductDto>> getAllProducts() {
+        log.trace("getAllProducts()");
         // Logic to return all products
         return ResponseEntity.ok(
             List.of(
@@ -37,6 +43,7 @@ public class ProductRestApi {
     // READ (Single)
     @GetMapping("/{id}")
     public ResponseEntity<ProductDto> getProductById(@PathVariable String id) {
+        log.trace("getProductById(): " + id);
         // Logic to return a single product by ID
         return ResponseEntity.ok(
             new ProductDto(
@@ -50,6 +57,7 @@ public class ProductRestApi {
     // UPDATE
     @PutMapping("/{id}")
     public ResponseEntity<String> updateProduct(@PathVariable String id, @Valid @RequestBody ProductDto product) {
+        log.trace("updateProduct():" + product.toString());
         // Logic to update existing product
         return ResponseEntity.ok("Successfully updated the product: " + id);
     }
@@ -57,6 +65,7 @@ public class ProductRestApi {
     // DELETE
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteProduct(@PathVariable String id) {
+        log.trace("deleteProduct(): " + id);
         // Logic to delete product
         return ResponseEntity.ok("Successfully deleted the product: " + id);
     }
