@@ -14,6 +14,7 @@ import uk.co.aosd.flash.exc.DuplicateProductException;
 import uk.co.aosd.flash.exc.ProductNotFoundException;
 import uk.co.aosd.flash.services.ProductsService;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,45 +30,48 @@ public class ProductRestApi {
 
     // CREATE
     @PostMapping
-    public ResponseEntity<String> createProduct(@Valid @RequestBody ProductDto product) {
-        log.trace("createProduct():" + product.toString());
+    public ResponseEntity<String> createProduct(@Valid @RequestBody final ProductDto product) {
         // Logic to save product
         try {
             service.createProduct(product);
-        } catch (DuplicateProductException e) {
+            log.info("Created Product: " + product.toString());
+        } catch (final DuplicateProductException e) {
+            log.info("Failed to created Product due to duplicate entity: " + product.toString());
             return ResponseEntity.status(HttpStatus.CONFLICT).body(product.id());
         }
-        return ResponseEntity.ok("Successfully created the product: " + product.id());
+        return ResponseEntity.created(URI.create("/" + product.id())).build();
     }
 
     // READ (All)
     @GetMapping
     public ResponseEntity<List<ProductDto>> getAllProducts() {
-        log.trace("getAllProducts()");
+        log.info("Returned a list of all products.");
         // Logic to return all products
         return ResponseEntity.ok(service.getAllProducts());
     }
 
     // READ (Single)
     @GetMapping("/{id}")
-    public ResponseEntity<Optional<ProductDto>> getProductById(@PathVariable String id) {
-        log.trace("getProductById(): " + id);
+    public ResponseEntity<Optional<ProductDto>> getProductById(@PathVariable final String id) {
         // Logic to return a single product by ID
         final Optional<ProductDto> productById = service.getProductById(id);
         if (productById.isEmpty()) {
+            log.info("Failed to fetch product with id: " + id);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(productById);
         }
+        log.info("Fetched product with id: " + id);
         return ResponseEntity.ok(productById);
     }
 
     // UPDATE
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateProduct(@PathVariable String id, @Valid @RequestBody ProductDto product) {
-        log.trace("updateProduct():" + product.toString());
+    public ResponseEntity<String> updateProduct(@PathVariable final String id, @Valid @RequestBody final ProductDto product) {
         // Logic to update existing product
         try {
             service.updateProduct(id, product);
+            log.info("Updated product to: " + product.toString());
         } catch (final ProductNotFoundException e) {
+            log.info("Failed to update product with id: " + product.toString() + " NOT FOUND");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(id);
         }
         return ResponseEntity.ok("Successfully updated the product: " + id);
@@ -75,12 +79,14 @@ public class ProductRestApi {
 
     // DELETE
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteProduct(@PathVariable String id) {
-        log.trace("deleteProduct(): " + id);
+    public ResponseEntity<String> deleteProduct(@PathVariable final String id) {
         // Logic to delete product
         try {
             service.deleteProduct(id);
+            log.info("Deleted product with id: " + id);
         } catch (final ProductNotFoundException e) {
+
+            log.info("Failed to delete product with id: " + id + " NOT FOUND");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(id);
         }
         return ResponseEntity.ok("Successfully deleted the product: " + id);

@@ -23,13 +23,13 @@ public class GlobalExceptionHandler {
             try {
                 fieldName = ((FieldError) error).getField();
 
-            } catch (ClassCastException ex) {
+            } catch (final ClassCastException ex) {
                 fieldName = error.getObjectName();
             }
             final String message = error.getDefaultMessage();
             strBuilder.append(String.format("%s: %s\n", fieldName, message));
         });
 
-        return new ResponseEntity<>(errorMapper.createErrorMap(strBuilder.toString()), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(errorMapper.createErrorMap(strBuilder.toString()), HttpStatus.UNPROCESSABLE_CONTENT);
     }
 }

@@ -13,15 +13,15 @@ public class ErrorMapper {
      * @param e - the thrown exception
      * @return the created map
      */
-    public Map<String, String> createErrorMap(Throwable e) {
-        Map<String, String> errorMsg = new HashMap<>();
+    public Map<String, String> createErrorMap(final Throwable e) {
+        final Map<String, String> errorMsg = new HashMap<>();
         errorMsg.put("message", e.getMessage());
 
         return errorMsg;
     }
 
-    public Map<String, String> createErrorMap(String message) {
-        Map<String, String> errorMsg = new HashMap<>();
+    public Map<String, String> createErrorMap(final String message) {
+        final Map<String, String> errorMsg = new HashMap<>();
         errorMsg.put("message", message);
 
         return errorMsg;
