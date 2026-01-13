@@ -39,7 +39,7 @@ public class ProductRestApi {
             log.info("Failed to created Product due to duplicate entity: " + product.toString());
             return ResponseEntity.status(HttpStatus.CONFLICT).body(product.id());
         }
-        return ResponseEntity.created(URI.create("/" + product.id())).build();
+        return ResponseEntity.created(URI.create("/api/v1/products/" + product.id())).build();
     }
 
     // READ (All)
