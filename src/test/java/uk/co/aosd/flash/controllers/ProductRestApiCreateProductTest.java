@@ -30,7 +30,7 @@ import uk.co.aosd.flash.services.ProductsService;
 
 @WebMvcTest(ProductRestApi.class)
 @Import({ ErrorMapper.class, GlobalExceptionHandler.class })
-public class ProductRestApiTest {
+public class ProductRestApiCreateProductTest {
 
     @Autowired
     private MockMvc mockMvc;
