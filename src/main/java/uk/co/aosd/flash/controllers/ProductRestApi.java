@@ -32,9 +32,9 @@ public class ProductRestApi {
     @PostMapping
     public ResponseEntity<String> createProduct(@Valid @RequestBody final ProductDto product) throws DuplicateProductException {
         // Logic to save product
-        service.createProduct(product);
+        final var uuid = service.createProduct(product);
         log.info("Created Product: " + product.toString());
-        return ResponseEntity.created(URI.create("/api/v1/products/" + product.id())).build();
+        return ResponseEntity.created(URI.create("/api/v1/products/" + uuid.toString())).build();
     }
 
     // READ (All)

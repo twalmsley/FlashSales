@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,8 @@ public class ProductRestApiCreateProductTest {
         final ProductDto productDto = new ProductDto(uuid, "Dummy Product 1", "Dummy product 1 description", 101,
             BigDecimal.valueOf(99.99));
 
+        Mockito.when(productsService.createProduct(productDto)).thenReturn(UUID.fromString(uuid));
+
         mockMvc.perform(
             post("/api/v1/products")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -74,7 +77,6 @@ public class ProductRestApiCreateProductTest {
             .andExpect(status().isUnprocessableContent())
             .andExpect(content().string(containsString("basePrice: Price cannot be negative")))
             .andExpect(content().string(containsString("name: A name must be provided.")))
-            .andExpect(content().string(containsString("id: Expected a UUID of 36 characters.")))
             .andExpect(content().string(containsString("description: A description must be provided.")))
             .andExpect(content().string(containsString("totalPhysicalStock: Stock cannot be negative")));
 
@@ -89,7 +91,7 @@ public class ProductRestApiCreateProductTest {
         final ProductDto productDto = new ProductDto(uuid, name, "Dummy product 1 description", 101,
             BigDecimal.valueOf(99.99));
 
-        Mockito.doNothing().when(productsService).createProduct(productDto);
+        Mockito.when(productsService.createProduct(productDto)).thenReturn(UUID.fromString(uuid));
 
         mockMvc.perform(
             post("/api/v1/products")

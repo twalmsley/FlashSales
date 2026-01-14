@@ -38,13 +38,20 @@ public class ProductsServiceTest {
 
     @Test
     public void shouldSuccessfullyCreateAProduct() throws DuplicateProductException {
-        final ProductDto product = new ProductDto(uuid1, "Test Product 1", "Description", 1, BigDecimal.valueOf(101.99));
+
+        final Product saved = new Product(UUID.fromString(uuid1), "Test Product 1", "Description", 1, BigDecimal.valueOf(101.99));
+        Mockito.when(repository.save(Mockito.any(Product.class))).thenReturn(saved);
+
+        final ProductDto product = new ProductDto(null, "Test Product 1", "Description", 1, BigDecimal.valueOf(101.99));
         service.createProduct(product);
     }
 
     @Test
     public void shouldFailToCreateAProductWithDuplicateKey() throws DuplicateProductException {
-        final ProductDto product = new ProductDto(uuid1, "Test Product 1", "Description", 1, BigDecimal.valueOf(101.99));
+        final Product saved = new Product(UUID.fromString(uuid1), "Test Product 1", "Description", 1, BigDecimal.valueOf(101.99));
+        Mockito.when(repository.save(Mockito.any(Product.class))).thenReturn(saved);
+
+        final ProductDto product = new ProductDto(null, "Test Product 1", "Description", 1, BigDecimal.valueOf(101.99));
 
         service.createProduct(product);
 

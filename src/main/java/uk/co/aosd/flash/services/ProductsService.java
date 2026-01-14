@@ -29,16 +29,17 @@ public class ProductsService {
 
     // CREATE
     @Transactional
-    public void createProduct(@Valid final ProductDto productDto) throws DuplicateProductException {
+    public UUID createProduct(@Valid final ProductDto productDto) throws DuplicateProductException {
         final Product product = new Product();
-        product.setId(UUID.fromString(productDto.id()));
+        product.setId(null);
         product.setName(productDto.name());
         product.setDescription(productDto.description());
         product.setTotalPhysicalStock(productDto.totalPhysicalStock());
         product.setBasePrice(productDto.basePrice());
 
         try {
-            repository.save(product);
+            final var saved = repository.save(product);
+            return saved.getId();
         } catch (final DuplicateKeyException e) {
             throw new DuplicateProductException(productDto.id(), productDto.name());
         }

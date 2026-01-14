@@ -71,7 +71,6 @@ public class ProductRestApiUpdateProductTest {
             .andExpect(status().isUnprocessableContent())
             .andExpect(content().string(containsString("basePrice: Price cannot be negative")))
             .andExpect(content().string(containsString("name: A name must be provided.")))
-            .andExpect(content().string(containsString("id: Expected a UUID of 36 characters.")))
             .andExpect(content().string(containsString("description: A description must be provided.")))
             .andExpect(content().string(containsString("totalPhysicalStock: Stock cannot be negative")));
 
