@@ -33,7 +33,7 @@ public class ProductRestApi {
     public ResponseEntity<String> createProduct(@Valid @RequestBody final ProductDto product) throws DuplicateProductException {
         // Logic to save product
         final var uuid = service.createProduct(product);
-        log.info("Created Product: " + product.toString());
+        log.info("Created Product: " + uuid);
         return ResponseEntity.created(URI.create("/api/v1/products/" + uuid.toString())).build();
     }
 

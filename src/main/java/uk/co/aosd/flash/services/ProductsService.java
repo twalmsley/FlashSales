@@ -64,18 +64,22 @@ public class ProductsService {
     // UPDATE
     @Transactional
     public void updateProduct(final String id, @Valid final ProductDto product) throws ProductNotFoundException {
-        final var p = repository.findById(UUID.fromString(id));
-        if (p.isEmpty()) {
+        try {
+            final var p = repository.findById(UUID.fromString(id));
+            if (p.isEmpty()) {
+                throw new ProductNotFoundException(id);
+            }
+
+            p.ifPresent(prod -> {
+                prod.setName(product.name());
+                prod.setDescription(product.description());
+                prod.setTotalPhysicalStock(product.totalPhysicalStock());
+                prod.setBasePrice(product.basePrice());
+                repository.save(prod);
+            });
+        } catch (final IllegalArgumentException e) {
             throw new ProductNotFoundException(id);
         }
-
-        p.ifPresent(prod -> {
-            prod.setName(product.name());
-            prod.setDescription(product.description());
-            prod.setTotalPhysicalStock(product.totalPhysicalStock());
-            prod.setBasePrice(product.basePrice());
-            repository.save(prod);
-        });
     }
 
     // DELETE
