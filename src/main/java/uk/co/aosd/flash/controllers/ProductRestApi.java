@@ -30,15 +30,10 @@ public class ProductRestApi {
 
     // CREATE
     @PostMapping
-    public ResponseEntity<String> createProduct(@Valid @RequestBody final ProductDto product) {
+    public ResponseEntity<String> createProduct(@Valid @RequestBody final ProductDto product) throws DuplicateProductException {
         // Logic to save product
-        try {
-            service.createProduct(product);
-            log.info("Created Product: " + product.toString());
-        } catch (final DuplicateProductException e) {
-            log.info("Failed to created Product due to duplicate entity: " + product.toString());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(product.id());
-        }
+        service.createProduct(product);
+        log.info("Created Product: " + product.toString());
         return ResponseEntity.created(URI.create("/api/v1/products/" + product.id())).build();
     }
 
@@ -65,30 +60,19 @@ public class ProductRestApi {
 
     // UPDATE
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateProduct(@PathVariable final String id, @Valid @RequestBody final ProductDto product) {
+    public ResponseEntity<String> updateProduct(@PathVariable final String id, @Valid @RequestBody final ProductDto product) throws ProductNotFoundException {
         // Logic to update existing product
-        try {
-            service.updateProduct(id, product);
-            log.info("Updated product to: " + product.toString());
-        } catch (final ProductNotFoundException e) {
-            log.info("Failed to update product with id: " + product.toString() + " NOT FOUND");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(id);
-        }
+        service.updateProduct(id, product);
+        log.info("Updated product to: " + product.toString());
         return ResponseEntity.ok("Successfully updated the product: " + id);
     }
 
     // DELETE
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteProduct(@PathVariable final String id) {
+    public ResponseEntity<String> deleteProduct(@PathVariable final String id) throws ProductNotFoundException {
         // Logic to delete product
-        try {
-            service.deleteProduct(id);
-            log.info("Deleted product with id: " + id);
-        } catch (final ProductNotFoundException e) {
-
-            log.info("Failed to delete product with id: " + id + " NOT FOUND");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(id);
-        }
+        service.deleteProduct(id);
+        log.info("Deleted product with id: " + id);
         return ResponseEntity.ok("Successfully deleted the product: " + id);
     }
 }
