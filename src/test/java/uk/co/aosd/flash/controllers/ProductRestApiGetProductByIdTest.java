@@ -2,15 +2,13 @@ package uk.co.aosd.flash.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +29,7 @@ import uk.co.aosd.flash.services.ProductsService;
 
 @WebMvcTest(ProductRestApi.class)
 @Import({ ErrorMapper.class, GlobalExceptionHandler.class })
-public class ProductRestApiGetAllProductsTest {
+public class ProductRestApiGetProductByIdTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -47,30 +45,35 @@ public class ProductRestApiGetAllProductsTest {
     }
 
     @Test
-    public void shouldReturnProductListSuccessfully() throws Exception {
-        final ProductDto productDto1 = new ProductDto("146a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
+    public void shouldReturnProductSuccessfully() throws Exception {
+        String uuid = "146a8892-422b-4eff-a201-509bce782cb9";
+        final ProductDto productDto1 = new ProductDto(uuid, "Dummy Product 1", "Dummy product 1 description", 101,
             BigDecimal.valueOf(99.99));
-        final ProductDto productDto2 = new ProductDto("246a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 2", "Dummy product 2 description", 102,
-            BigDecimal.valueOf(100.99));
-        final ProductDto productDto3 = new ProductDto("346a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 3", "Dummy product 3 description", 103,
-            BigDecimal.valueOf(101.99));
-        final List<ProductDto> testProducts = List.of(productDto1, productDto2, productDto3);
 
-        Mockito.when(productsService.getAllProducts()).thenReturn(testProducts);
+        Mockito.when(productsService.getProductById(uuid)).thenReturn(Optional.of(productDto1));
 
         final MvcResult result = mockMvc.perform(
-            get("/api/v1/products"))
+            get("/api/v1/products/" + uuid))
             .andExpect(status().isOk())
             .andReturn();
 
-        final ProductDto[] products = objectMapper.readValue(result.getResponse().getContentAsString(), ProductDto[].class);
-        assertNotNull(products);
-        assertEquals(3, products.length);
+        final ProductDto product = objectMapper.readValue(result.getResponse().getContentAsString(), ProductDto.class);
+        assertNotNull(product);
+        assertEquals(productDto1, product);
 
-        Arrays.asList(products).forEach(p -> {
-            assertTrue(testProducts.contains(p));
-        });
+        verify(productsService, times(1)).getProductById(uuid);
+    }
 
-        verify(productsService, times(1)).getAllProducts();
+    @Test
+    public void shouldNotFindProductById() throws Exception {
+        String uuid = "146a8892-422b-4eff-a201-509bce782cb9";
+
+        Mockito.when(productsService.getProductById(uuid)).thenReturn(Optional.empty());
+
+        mockMvc.perform(
+            get("/api/v1/products/" + uuid))
+            .andExpect(status().isNotFound());
+
+        verify(productsService, times(1)).getProductById(uuid);
     }
 }
