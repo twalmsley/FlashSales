@@ -3,6 +3,7 @@ package uk.co.aosd.flash.controllers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -39,7 +40,10 @@ public class ProductRestApiFullStackTest {
     private static ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    public void shouldCreateAProductSuccessfully() throws Exception {
+    public void shouldCreateAProductUpdateAndRetrieveItSuccessfully() throws Exception {
+        //
+        // CREATE 
+        //
         final ProductDto productDto1 = new ProductDto(null, "Dummy Product 1", "Dummy product 1 description", 101,
             BigDecimal.valueOf(99.99));
 
@@ -50,6 +54,9 @@ public class ProductRestApiFullStackTest {
             .andExpect(status().isCreated())
             .andReturn();
 
+        //
+        // GET and verify
+        //
         final String uri = response.getResponse().getHeader(HttpHeaders.LOCATION);
 
         final var result = mockMvc.perform(
@@ -62,5 +69,33 @@ public class ProductRestApiFullStackTest {
         assertEquals(productDto1.description(), product.description());
         assertEquals(productDto1.totalPhysicalStock(), product.totalPhysicalStock());
         assertEquals(productDto1.basePrice(), product.basePrice());
+
+        //
+        // UPDATE 
+        //
+        final ProductDto updatedProductDto = new ProductDto(product.id(), "Dummy Product 1 - updated", "Dummy product 1 description - updated", 201,
+            BigDecimal.valueOf(199.99));
+
+        mockMvc.perform(
+            put(uri)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updatedProductDto)))
+            .andExpect(status().isOk());
+
+        //
+        // GET and verify
+        //
+        final var result2 = mockMvc.perform(
+            get(uri))
+            .andReturn();
+
+        final ProductDto productDto2 = objectMapper.readValue(result2.getResponse().getContentAsString(), ProductDto.class);
+        assertNotNull(productDto2);
+        assertEquals(productDto2.id(), updatedProductDto.id());
+        assertEquals(productDto2.name(), updatedProductDto.name());
+        assertEquals(productDto2.description(), updatedProductDto.description());
+        assertEquals(productDto2.totalPhysicalStock(), updatedProductDto.totalPhysicalStock());
+        assertEquals(productDto2.basePrice(), updatedProductDto.basePrice());
+
     }
 }
