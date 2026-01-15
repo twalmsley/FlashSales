@@ -2,9 +2,10 @@ package uk.co.aosd.flash.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
@@ -39,10 +40,13 @@ public class ProductRestApiFullStackTest {
 
     private static ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * Test CRUD operations for a Product.
+     */
     @Test
     public void shouldCreateAProductUpdateAndRetrieveItSuccessfully() throws Exception {
         //
-        // CREATE 
+        // CREATE
         //
         final ProductDto productDto1 = new ProductDto(null, "Dummy Product 1", "Dummy product 1 description", 101,
             BigDecimal.valueOf(99.99));
@@ -71,7 +75,7 @@ public class ProductRestApiFullStackTest {
         assertEquals(productDto1.basePrice(), product.basePrice());
 
         //
-        // UPDATE 
+        // UPDATE
         //
         final ProductDto updatedProductDto = new ProductDto(product.id(), "Dummy Product 1 - updated", "Dummy product 1 description - updated", 201,
             BigDecimal.valueOf(199.99));
@@ -97,5 +101,18 @@ public class ProductRestApiFullStackTest {
         assertEquals(productDto2.totalPhysicalStock(), updatedProductDto.totalPhysicalStock());
         assertEquals(productDto2.basePrice(), updatedProductDto.basePrice());
 
+        //
+        // DELETE
+        //
+        mockMvc.perform(
+            delete(uri))
+            .andExpect(status().isOk());
+
+        //
+        // GET and verify
+        //
+        mockMvc.perform(
+            get(uri))
+            .andExpect(status().isNotFound());
     }
 }
