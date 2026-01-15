@@ -5,6 +5,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +54,7 @@ public class ProductsService {
     }
 
     // READ (Single)
+    @Cacheable(value = "products", key = "#id")
     @Transactional(readOnly = true)
     public Optional<ProductDto> getProductById(final String id) {
         try {
@@ -63,6 +66,7 @@ public class ProductsService {
 
     // UPDATE
     @Transactional
+    @CacheEvict(value = "products", key = "#id")
     public void updateProduct(final String id, @Valid final ProductDto product) throws ProductNotFoundException {
         try {
             final var p = repository.findById(UUID.fromString(id));
@@ -84,6 +88,7 @@ public class ProductsService {
 
     // DELETE
     @Transactional
+    @CacheEvict(value = "products", key = "#id")
     public void deleteProduct(final String id) throws ProductNotFoundException {
         try {
             repository.deleteById(UUID.fromString(id));

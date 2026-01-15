@@ -15,12 +15,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -29,11 +33,19 @@ import uk.co.aosd.flash.dto.ProductDto;
 @AutoConfigureMockMvc
 @SpringBootTest
 @Testcontainers
+@EnableCaching
 public class ProductRestApiFullStackTest {
+
+    @Autowired
+    private CacheManager cacheManager;
 
     @Container
     @ServiceConnection
     public static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres");
+
+    @Container
+    @ServiceConnection(name = "redis")
+    public static GenericContainer<?> redisContainer = new GenericContainer<>(DockerImageName.parse("redis:latest")).withExposedPorts(6379);
 
     @Autowired
     private MockMvc mockMvc;

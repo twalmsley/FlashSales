@@ -22,3 +22,9 @@ spring:
     port: 5672
     username: rabbit
     password: rabbit
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      key-prefix: flash_cache_
