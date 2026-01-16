@@ -30,5 +30,5 @@ logging:
     org.springframework: info
     org.hibernate: info
 
-
+springdoc.swagger-ui.path: "/swagger-ui.html"
 
