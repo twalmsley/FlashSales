@@ -15,6 +15,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import uk.co.aosd.flash.dto.CreateSaleDto;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
+import uk.co.aosd.flash.exc.InvalidSaleTimesException;
+import uk.co.aosd.flash.exc.SaleDurationTooShortException;
 import uk.co.aosd.flash.services.FlashSalesService;
 
 @RestController
@@ -28,10 +30,13 @@ public class FlashSaleRestApi {
     private final FlashSalesService service;
 
     @PostMapping("/flash_sale")
-    public ResponseEntity<String> createSale(@Valid @RequestBody final CreateSaleDto sale) throws DuplicateEntityException {
+    public ResponseEntity<String> createSale(@Valid @RequestBody final CreateSaleDto sale)
+        throws DuplicateEntityException, SaleDurationTooShortException, InvalidSaleTimesException {
+
         log.info("Creating Flash Sale: " + sale);
         final var uuid = service.createFlashSale(sale);
         log.info("Created Flash Sale: " + uuid);
+
         return ResponseEntity.created(URI.create("/api/v1/sales/" + uuid.toString())).build();
     }
 }

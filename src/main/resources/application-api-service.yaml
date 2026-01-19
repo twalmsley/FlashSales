@@ -28,3 +28,7 @@ spring:
       host: localhost
       port: 6379
       key-prefix: flash_cache_
+
+app:
+  settings:
+    min-sale-duration-minutes: 5

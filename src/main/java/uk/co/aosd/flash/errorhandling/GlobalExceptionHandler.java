@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import lombok.RequiredArgsConstructor;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
+import uk.co.aosd.flash.exc.InvalidSaleTimesException;
 import uk.co.aosd.flash.exc.ProductNotFoundException;
+import uk.co.aosd.flash.exc.SaleDurationTooShortException;
 
 @ControllerAdvice
 @RequiredArgsConstructor
@@ -45,4 +47,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getId());
     }
 
+    @ExceptionHandler(InvalidSaleTimesException.class)
+    public ResponseEntity<String> handleInvalidSaleTimesException(final InvalidSaleTimesException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Start should be before end. Start: " + e.getStartTime() + ", End: " + e.getEndTime());
+    }
+
+    @ExceptionHandler(SaleDurationTooShortException.class)
+    public ResponseEntity<String> handleSaleDurationTooShortException(final SaleDurationTooShortException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
 }

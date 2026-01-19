@@ -34,6 +34,8 @@ import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
+import uk.co.aosd.flash.exc.InvalidSaleTimesException;
+import uk.co.aosd.flash.exc.SaleDurationTooShortException;
 import uk.co.aosd.flash.services.FlashSalesService;
 
 @WebMvcTest(FlashSaleRestApi.class)
@@ -137,6 +139,48 @@ public class FlashSaleRestApiCreateSaleTest {
                 .content(objectMapper.writeValueAsString(saleDto)))
             .andExpect(status().isConflict())
             .andExpect(content().string(saleUuid));
+
+        verify(salesService, times(1)).createFlashSale(Mockito.any(CreateSaleDto.class));
+    }
+
+    @Test
+    public void shouldRejectStartAfterEndOnCreate() throws Exception {
+        final ProductDto productDto = new ProductDto("846a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
+            BigDecimal.valueOf(99.99));
+        final String saleUuid = "e00813e5-c928-4477-ba27-dacb62781d5c";
+        String name = "Dummy Sale 1";
+        final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, LocalDateTime.of(2026, 01, 01, 12, 00, 00),
+            LocalDateTime.of(2026, 01, 01, 11, 00, 00), SaleStatus.DRAFT, List.of(productDto));
+
+        Mockito.doThrow(new InvalidSaleTimesException(saleDto.startTime(), saleDto.endTime())).when(salesService).createFlashSale(saleDto);
+
+        mockMvc.perform(
+            post("/api/v1/admin/flash_sale")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(saleDto)))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().string("Start should be before end. Start: 2026-01-01T12:00, End: 2026-01-01T11:00"));
+
+        verify(salesService, times(1)).createFlashSale(Mockito.any(CreateSaleDto.class));
+    }
+
+    @Test
+    public void shouldRejectSaleTooShortOnCreate() throws Exception {
+        final ProductDto productDto = new ProductDto("846a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
+            BigDecimal.valueOf(99.99));
+        final String saleUuid = "e00813e5-c928-4477-ba27-dacb62781d5c";
+        String name = "Dummy Sale 1";
+        final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, LocalDateTime.of(2026, 01, 01, 12, 00, 00),
+            LocalDateTime.of(2026, 01, 01, 12, 01, 00), SaleStatus.DRAFT, List.of(productDto));
+
+        Mockito.doThrow(new SaleDurationTooShortException("Too Short")).when(salesService).createFlashSale(saleDto);
+
+        mockMvc.perform(
+            post("/api/v1/admin/flash_sale")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(saleDto)))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().string("Too Short"));
 
         verify(salesService, times(1)).createFlashSale(Mockito.any(CreateSaleDto.class));
     }
