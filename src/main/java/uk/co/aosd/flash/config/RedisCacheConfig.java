@@ -10,10 +10,16 @@ import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair;
 
+/**
+ * Configure the Redis cache.
+ */
 @Configuration
 @EnableCaching
 public class RedisCacheConfig {
 
+    /**
+     * Configure the cache.
+     */
     @Bean
     public RedisCacheConfiguration cacheConfiguration() {
         return RedisCacheConfiguration.defaultCacheConfig()
@@ -22,6 +28,9 @@ public class RedisCacheConfig {
           .serializeValuesWith(SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()));
     }
 
+    /**
+     * Customize the cache.
+     */
     @Bean
     public RedisCacheManagerBuilderCustomizer redisCacheManagerBuilderCustomizer() {
         return (builder) -> builder

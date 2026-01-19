@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,10 +26,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.CreateSaleDto;
 import uk.co.aosd.flash.dto.ProductDto;
@@ -38,6 +36,9 @@ import uk.co.aosd.flash.exc.InvalidSaleTimesException;
 import uk.co.aosd.flash.exc.SaleDurationTooShortException;
 import uk.co.aosd.flash.services.FlashSalesService;
 
+/**
+ * Flash Sale REST API test for creating a new Flash Sale
+ */
 @WebMvcTest(FlashSaleRestApi.class)
 @Import({ ErrorMapper.class, GlobalExceptionHandler.class })
 public class FlashSaleRestApiCreateSaleTest {
@@ -127,7 +128,7 @@ public class FlashSaleRestApiCreateSaleTest {
         final ProductDto productDto = new ProductDto("846a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
             BigDecimal.valueOf(99.99));
         final String saleUuid = "e00813e5-c928-4477-ba27-dacb62781d5c";
-        String name = "Dummy Sale 1";
+        final String name = "Dummy Sale 1";
         final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, LocalDateTime.of(2026, 01, 01, 12, 00, 00),
             LocalDateTime.of(2026, 01, 01, 13, 00, 00), SaleStatus.DRAFT, List.of(productDto));
 
@@ -148,7 +149,7 @@ public class FlashSaleRestApiCreateSaleTest {
         final ProductDto productDto = new ProductDto("846a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
             BigDecimal.valueOf(99.99));
         final String saleUuid = "e00813e5-c928-4477-ba27-dacb62781d5c";
-        String name = "Dummy Sale 1";
+        final String name = "Dummy Sale 1";
         final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, LocalDateTime.of(2026, 01, 01, 12, 00, 00),
             LocalDateTime.of(2026, 01, 01, 11, 00, 00), SaleStatus.DRAFT, List.of(productDto));
 
@@ -169,7 +170,7 @@ public class FlashSaleRestApiCreateSaleTest {
         final ProductDto productDto = new ProductDto("846a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
             BigDecimal.valueOf(99.99));
         final String saleUuid = "e00813e5-c928-4477-ba27-dacb62781d5c";
-        String name = "Dummy Sale 1";
+        final String name = "Dummy Sale 1";
         final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, LocalDateTime.of(2026, 01, 01, 12, 00, 00),
             LocalDateTime.of(2026, 01, 01, 12, 01, 00), SaleStatus.DRAFT, List.of(productDto));
 

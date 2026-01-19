@@ -2,8 +2,8 @@ package uk.co.aosd.flash.controllers;
 
 // Static imports for the fluent API (crucial for readability)
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,10 +11,12 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
 
+/**
+ * Admin API Web Test.
+ */
 @WebMvcTest(AdminRestApi.class)
 @Import({ErrorMapper.class, GlobalExceptionHandler.class})
 public class AdminRestApiTest {
