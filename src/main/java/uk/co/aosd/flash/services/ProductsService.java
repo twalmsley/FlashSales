@@ -15,7 +15,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import uk.co.aosd.flash.domain.Product;
 import uk.co.aosd.flash.dto.ProductDto;
-import uk.co.aosd.flash.exc.DuplicateProductException;
+import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.ProductNotFoundException;
 import uk.co.aosd.flash.repository.ProductRepository;
 
@@ -31,7 +31,7 @@ public class ProductsService {
 
     // CREATE
     @Transactional
-    public UUID createProduct(@Valid final ProductDto productDto) throws DuplicateProductException {
+    public UUID createProduct(@Valid final ProductDto productDto) throws DuplicateEntityException {
         final Product product = new Product();
         product.setId(null);
         product.setName(productDto.name());
@@ -43,7 +43,7 @@ public class ProductsService {
             final var saved = repository.save(product);
             return saved.getId();
         } catch (final DuplicateKeyException e) {
-            throw new DuplicateProductException(productDto.id(), productDto.name());
+            throw new DuplicateEntityException(productDto.id(), productDto.name());
         }
     }
 

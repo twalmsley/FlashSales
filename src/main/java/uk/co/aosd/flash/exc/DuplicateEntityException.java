@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public class DuplicateProductException extends Exception {
+public class DuplicateEntityException extends Exception {
     private final String id;
     private final String name;
 }

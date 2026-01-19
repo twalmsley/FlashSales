@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import lombok.RequiredArgsConstructor;
-import uk.co.aosd.flash.exc.DuplicateProductException;
+import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.ProductNotFoundException;
 
 @ControllerAdvice
@@ -35,8 +35,8 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorMapper.createErrorMap(strBuilder.toString()), HttpStatus.UNPROCESSABLE_CONTENT);
     }
 
-    @ExceptionHandler(DuplicateProductException.class)
-    public ResponseEntity<String> handleDuplicateProductException(final DuplicateProductException e) {
+    @ExceptionHandler(DuplicateEntityException.class)
+    public ResponseEntity<String> handleDuplicateProductException(final DuplicateEntityException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getId());
     }
 
@@ -44,4 +44,5 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleProductNotFoundException(final ProductNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getId());
     }
+
 }

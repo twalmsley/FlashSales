@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import uk.co.aosd.flash.dto.ProductDto;
-import uk.co.aosd.flash.exc.DuplicateProductException;
+import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.ProductNotFoundException;
 import uk.co.aosd.flash.services.ProductsService;
 
@@ -30,7 +30,7 @@ public class ProductRestApi {
 
     // CREATE
     @PostMapping
-    public ResponseEntity<String> createProduct(@Valid @RequestBody final ProductDto product) throws DuplicateProductException {
+    public ResponseEntity<String> createProduct(@Valid @RequestBody final ProductDto product) throws DuplicateEntityException {
         // Logic to save product
         final var uuid = service.createProduct(product);
         log.info("Created Product: " + uuid);

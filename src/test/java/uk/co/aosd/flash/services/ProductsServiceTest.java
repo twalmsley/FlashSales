@@ -18,7 +18,7 @@ import org.springframework.dao.DuplicateKeyException;
 
 import uk.co.aosd.flash.domain.Product;
 import uk.co.aosd.flash.dto.ProductDto;
-import uk.co.aosd.flash.exc.DuplicateProductException;
+import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.ProductNotFoundException;
 import uk.co.aosd.flash.repository.ProductRepository;
 
@@ -37,7 +37,7 @@ public class ProductsServiceTest {
     }
 
     @Test
-    public void shouldSuccessfullyCreateAProduct() throws DuplicateProductException {
+    public void shouldSuccessfullyCreateAProduct() throws DuplicateEntityException {
 
         final Product saved = new Product(UUID.fromString(uuid1), "Test Product 1", "Description", 1, BigDecimal.valueOf(101.99));
         Mockito.when(repository.save(Mockito.any(Product.class))).thenReturn(saved);
@@ -47,7 +47,7 @@ public class ProductsServiceTest {
     }
 
     @Test
-    public void shouldFailToCreateAProductWithDuplicateKey() throws DuplicateProductException {
+    public void shouldFailToCreateAProductWithDuplicateKey() throws DuplicateEntityException {
         final Product saved = new Product(UUID.fromString(uuid1), "Test Product 1", "Description", 1, BigDecimal.valueOf(101.99));
         Mockito.when(repository.save(Mockito.any(Product.class))).thenReturn(saved);
 
@@ -57,7 +57,7 @@ public class ProductsServiceTest {
 
         Mockito.doThrow(new DuplicateKeyException(uuid1)).when(repository).save(Mockito.any(Product.class));
 
-        assertThrows(DuplicateProductException.class, () -> {
+        assertThrows(DuplicateEntityException.class, () -> {
             service.createProduct(product);
         });
     }

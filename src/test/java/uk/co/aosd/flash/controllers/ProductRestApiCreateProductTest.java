@@ -29,7 +29,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
-import uk.co.aosd.flash.exc.DuplicateProductException;
+import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.services.ProductsService;
 
 @WebMvcTest(ProductRestApi.class)
@@ -109,7 +109,7 @@ public class ProductRestApiCreateProductTest {
             .andExpect(status().isCreated())
             .andExpect(header().string(HttpHeaders.LOCATION, "/api/v1/products/" + uuid));
 
-        Mockito.doThrow(new DuplicateProductException(uuid, name)).when(productsService).createProduct(productDto);
+        Mockito.doThrow(new DuplicateEntityException(uuid, name)).when(productsService).createProduct(productDto);
 
         mockMvc.perform(
             post("/api/v1/products")
