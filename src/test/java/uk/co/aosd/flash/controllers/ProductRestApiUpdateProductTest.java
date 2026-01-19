@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -21,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
@@ -29,7 +31,7 @@ import uk.co.aosd.flash.exc.ProductNotFoundException;
 import uk.co.aosd.flash.services.ProductsService;
 
 @WebMvcTest(ProductRestApi.class)
-@Import({ ErrorMapper.class, GlobalExceptionHandler.class })
+@Import({ ErrorMapper.class, GlobalExceptionHandler.class, })
 @Testcontainers
 public class ProductRestApiUpdateProductTest {
 
@@ -39,7 +41,13 @@ public class ProductRestApiUpdateProductTest {
     @MockitoBean
     private ProductsService productsService;
 
-    private static ObjectMapper objectMapper = new ObjectMapper();
+    private static ObjectMapper objectMapper;
+
+    @BeforeAll
+    public static void beforeAll() {
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+    }
 
     @BeforeEach
     public void beforeEach() {
