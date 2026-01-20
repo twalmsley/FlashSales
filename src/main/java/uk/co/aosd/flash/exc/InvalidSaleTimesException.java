@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter
-public class InvalidSaleTimesException extends Exception {
+public class InvalidSaleTimesException extends RuntimeException {
     private final OffsetDateTime startTime;
     private final OffsetDateTime endTime;
 }
