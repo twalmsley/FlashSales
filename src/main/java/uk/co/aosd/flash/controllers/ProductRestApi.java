@@ -17,6 +17,9 @@ import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.ProductNotFoundException;
 import uk.co.aosd.flash.services.ProductsService;
 
+/**
+ * A REST API for products.
+ */
 @RestController
 @Profile("admin-service")
 @RequestMapping("/api/v1/products")
@@ -27,7 +30,9 @@ public class ProductRestApi {
 
     private final ProductsService service;
 
-    // CREATE
+    /**
+     * API for creating a product.
+     */
     @PostMapping
     public ResponseEntity<String> createProduct(@Valid @RequestBody final ProductDto product) throws DuplicateEntityException {
         // Logic to save product
@@ -36,7 +41,9 @@ public class ProductRestApi {
         return ResponseEntity.created(URI.create("/api/v1/products/" + uuid.toString())).build();
     }
 
-    // READ (All)
+    /**
+     * API for getting all products.
+     */
     @GetMapping
     public ResponseEntity<List<ProductDto>> getAllProducts() {
         log.info("Returned a list of all products.");
@@ -44,7 +51,9 @@ public class ProductRestApi {
         return ResponseEntity.ok(service.getAllProducts());
     }
 
-    // READ (Single)
+    /**
+     * API for getting a specific product by id.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<Optional<ProductDto>> getProductById(@PathVariable final String id) {
         // Logic to return a single product by ID
@@ -57,7 +66,9 @@ public class ProductRestApi {
         return ResponseEntity.ok(productById);
     }
 
-    // UPDATE
+    /**
+     * API for updating a product.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<String> updateProduct(@PathVariable final String id, @Valid @RequestBody final ProductDto product) throws ProductNotFoundException {
         // Logic to update existing product
@@ -66,7 +77,9 @@ public class ProductRestApi {
         return ResponseEntity.ok("Successfully updated the product: " + id);
     }
 
-    // DELETE
+    /**
+     * API for deleting a product.
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteProduct(@PathVariable final String id) throws ProductNotFoundException {
         // Logic to delete product

@@ -1,5 +1,6 @@
 package uk.co.aosd.flash.errorhandling;
 
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -55,5 +56,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SaleDurationTooShortException.class)
     public ResponseEntity<String> handleSaleDurationTooShortException(final SaleDurationTooShortException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<String> handleDatabaseConstraintViolationException(final ConstraintViolationException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("The request violates a data constraint.");
     }
 }

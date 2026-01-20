@@ -149,4 +149,23 @@ public class ProductRestApiFullStackTest {
             get(uri))
             .andExpect(status().isNotFound());
     }
+
+    /**
+     * Test that reservedCount > totalPhysicalStock causes and Exception.
+     */
+    @Test
+    public void shouldRejectInvalidReservedCount() throws Exception {
+        //
+        // CREATE
+        //
+        final ProductDto productDto1 = new ProductDto(null, "Dummy Product 1", "Dummy product 1 description", 101,
+            BigDecimal.valueOf(99.99), 102);
+
+        mockMvc.perform(
+            post("/api/v1/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(productDto1)))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+    }
 }
