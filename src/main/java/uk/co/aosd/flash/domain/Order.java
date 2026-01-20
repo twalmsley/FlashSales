@@ -5,17 +5,15 @@ import java.util.UUID;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 /**
  * Domain object for an order entity.
  */
 @Entity
 @Table(name = "orders", uniqueConstraints = { @UniqueConstraint(columnNames = { "user_id", "flash_sale_item_id" }) })
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Order {

@@ -1,2 +1,7 @@
 spring:
 
+logging:
+  level: 
+    uk.co.aosd.flash: trace
+    org.springframework: info
+    org.hibernate: info

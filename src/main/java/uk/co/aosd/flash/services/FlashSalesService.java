@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.co.aosd.flash.domain.FlashSale;
@@ -25,6 +27,8 @@ import uk.co.aosd.flash.repository.ProductRepository;
 @Service
 @RequiredArgsConstructor
 public class FlashSalesService {
+
+    private static final Logger log = LoggerFactory.getLogger(FlashSalesService.class);
 
     private final FlashSaleRepository sales;
 
@@ -54,18 +58,23 @@ public class FlashSalesService {
      */
     @Transactional
     public UUID createFlashSale(@Valid final CreateSaleDto sale) {
+        log.info("Creating FlashSale: " + sale);
         if (!sale.startTime().isBefore(sale.endTime())) {
+            log.error("Failed to create FlashSale due to start-after-end: " + sale);
             throw new InvalidSaleTimesException(sale.startTime(), sale.endTime());
         }
         final var durationMinutes = (sale.endTime().toInstant().toEpochMilli() - sale.startTime().toInstant().toEpochMilli())
             / 60000;
         if (durationMinutes < minSaleDuration) {
+            log.error("Failed to create FlashSale due to duration too short: " + sale);
             throw new SaleDurationTooShortException("Sale duration of " + durationMinutes + " minutes is less than " + minSaleDuration);
         }
 
         // Save the flash sale.
         final FlashSale s = new FlashSale(null, sale.title(), sale.startTime(), sale.endTime(), sale.status());
+        log.debug("Saving FlashSale: " + s);
         final var saved = sales.save(s);
+        log.debug("Saved FlashSale result: " + saved);
 
         // For each product, create a flash sale item and update the reserved stock if
         // there is enough.
@@ -89,12 +98,15 @@ public class FlashSalesService {
             });
         });
         if (!missingProducts.isEmpty()) {
+            log.error("Failed to create Flash Sale due to missing products.");
             throw new ProductNotFoundException(missingProducts.stream().collect(Collectors.joining(", ")));
         }
         if (!notEnoughStockProducts.isEmpty()) {
+            log.error("Failed to create Flash Sale due to not enough stock.");
             throw new InsufficientResourcesException(
                 notEnoughStockProducts.stream().map(Product::getId).map(Object::toString).collect(Collectors.joining(", ")));
         }
+        log.info("Created Flash Sale: " + saved);
         return saved.getId();
     }
 
