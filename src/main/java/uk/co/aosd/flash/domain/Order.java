@@ -1,18 +1,23 @@
 package uk.co.aosd.flash.domain;
 
-import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/**
+ * Domain object for an order entity.
+ */
 @Entity
-@Table(name = "orders", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "user_id", "flash_sale_item_id" })
-})
+@Table(name = "orders", uniqueConstraints = { @UniqueConstraint(columnNames = { "user_id", "flash_sale_item_id" }) })
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

@@ -8,8 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,7 +28,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.CreateSaleDto;
-import uk.co.aosd.flash.dto.ProductDto;
+import uk.co.aosd.flash.dto.SaleProductDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
@@ -64,10 +64,9 @@ public class FlashSaleRestApiCreateSaleTest {
 
     @Test
     public void shouldCreateAFlashSaleSuccessfully() throws Exception {
-        final ProductDto productDto = new ProductDto("846a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
-            BigDecimal.valueOf(99.99), 0);
-        final CreateSaleDto saleDto = new CreateSaleDto(null, "Dummy Sale 1", LocalDateTime.of(2026, 01, 01, 12, 00, 00),
-            LocalDateTime.of(2026, 01, 01, 13, 00, 00), SaleStatus.DRAFT, List.of(productDto));
+        final SaleProductDto productDto = new SaleProductDto("846a8892-422b-4eff-a201-509bce782cb9", 0);
+        final CreateSaleDto saleDto = new CreateSaleDto(null, "Dummy Sale 1", OffsetDateTime.of(2026, 01, 01, 12, 00, 00, 0, ZoneOffset.UTC),
+            OffsetDateTime.of(2026, 01, 01, 13, 00, 00, 0, ZoneOffset.UTC), SaleStatus.DRAFT, List.of(productDto));
 
         final String saleUuid = "e00813e5-c928-4477-ba27-dacb62781d5c";
         Mockito.when(salesService.createFlashSale(saleDto)).thenReturn(UUID.fromString(saleUuid));
@@ -104,20 +103,16 @@ public class FlashSaleRestApiCreateSaleTest {
 
     @Test
     public void shouldRejectAnInvalidProductBeanOnCreate() throws Exception {
-        final ProductDto productDto = new ProductDto("uuid", "", "", -101,
-            BigDecimal.valueOf(-99.99), -1);
-        final CreateSaleDto saleDto = new CreateSaleDto(null, "Dummy Sale 1", LocalDateTime.of(2026, 01, 01, 12, 00, 00),
-            LocalDateTime.of(2026, 01, 01, 13, 00, 00), SaleStatus.DRAFT, List.of(productDto));
+        final SaleProductDto productDto = new SaleProductDto("", -1);
+        final CreateSaleDto saleDto = new CreateSaleDto(null, "Dummy Sale 1", OffsetDateTime.of(2026, 01, 01, 12, 00, 00, 0, ZoneOffset.UTC),
+            OffsetDateTime.of(2026, 01, 01, 13, 00, 00, 0, ZoneOffset.UTC), SaleStatus.DRAFT, List.of(productDto));
 
         mockMvc.perform(
             post("/api/v1/admin/flash_sale")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(saleDto)))
             .andExpect(status().isUnprocessableContent())
-            .andExpect(content().string(containsString("basePrice: Price cannot be negative")))
-            .andExpect(content().string(containsString("name: A name must be provided.")))
-            .andExpect(content().string(containsString("description: A description must be provided.")))
-            .andExpect(content().string(containsString("totalPhysicalStock: Stock cannot be negative")))
+            .andExpect(content().string(containsString("id: ID cannot be empty")))
             .andExpect(content().string(containsString("reservedCount: ReservedCount cannot be negative")));
 
         verify(salesService, times(0)).createFlashSale(saleDto);
@@ -126,12 +121,11 @@ public class FlashSaleRestApiCreateSaleTest {
 
     @Test
     public void shouldRejectDuplicateSaleOnCreate() throws Exception {
-        final ProductDto productDto = new ProductDto("846a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
-            BigDecimal.valueOf(99.99), 0);
+        final SaleProductDto productDto = new SaleProductDto("846a8892-422b-4eff-a201-509bce782cb9", 0);
         final String saleUuid = "e00813e5-c928-4477-ba27-dacb62781d5c";
         final String name = "Dummy Sale 1";
-        final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, LocalDateTime.of(2026, 01, 01, 12, 00, 00),
-            LocalDateTime.of(2026, 01, 01, 13, 00, 00), SaleStatus.DRAFT, List.of(productDto));
+        final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, OffsetDateTime.of(2026, 01, 01, 12, 00, 00, 0, ZoneOffset.UTC),
+            OffsetDateTime.of(2026, 01, 01, 13, 00, 00, 0, ZoneOffset.UTC), SaleStatus.DRAFT, List.of(productDto));
 
         Mockito.doThrow(new DuplicateEntityException(saleUuid, name)).when(salesService).createFlashSale(saleDto);
 
@@ -147,12 +141,11 @@ public class FlashSaleRestApiCreateSaleTest {
 
     @Test
     public void shouldRejectStartAfterEndOnCreate() throws Exception {
-        final ProductDto productDto = new ProductDto("846a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
-            BigDecimal.valueOf(99.99), 0);
+        final SaleProductDto productDto = new SaleProductDto("846a8892-422b-4eff-a201-509bce782cb9", 0);
         final String saleUuid = "e00813e5-c928-4477-ba27-dacb62781d5c";
         final String name = "Dummy Sale 1";
-        final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, LocalDateTime.of(2026, 01, 01, 12, 00, 00),
-            LocalDateTime.of(2026, 01, 01, 11, 00, 00), SaleStatus.DRAFT, List.of(productDto));
+        final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, OffsetDateTime.of(2026, 01, 01, 12, 00, 00, 0, ZoneOffset.UTC),
+            OffsetDateTime.of(2026, 01, 01, 11, 00, 00, 0, ZoneOffset.UTC), SaleStatus.DRAFT, List.of(productDto));
 
         Mockito.doThrow(new InvalidSaleTimesException(saleDto.startTime(), saleDto.endTime())).when(salesService).createFlashSale(saleDto);
 
@@ -161,19 +154,18 @@ public class FlashSaleRestApiCreateSaleTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(saleDto)))
             .andExpect(status().isBadRequest())
-            .andExpect(content().string("Start should be before end. Start: 2026-01-01T12:00, End: 2026-01-01T11:00"));
+            .andExpect(content().string("Start should be before end. Start: 2026-01-01T12:00Z, End: 2026-01-01T11:00Z"));
 
         verify(salesService, times(1)).createFlashSale(Mockito.any(CreateSaleDto.class));
     }
 
     @Test
     public void shouldRejectSaleTooShortOnCreate() throws Exception {
-        final ProductDto productDto = new ProductDto("846a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
-            BigDecimal.valueOf(99.99), 0);
+        final SaleProductDto productDto = new SaleProductDto("846a8892-422b-4eff-a201-509bce782cb9", 0);
         final String saleUuid = "e00813e5-c928-4477-ba27-dacb62781d5c";
         final String name = "Dummy Sale 1";
-        final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, LocalDateTime.of(2026, 01, 01, 12, 00, 00),
-            LocalDateTime.of(2026, 01, 01, 12, 01, 00), SaleStatus.DRAFT, List.of(productDto));
+        final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, OffsetDateTime.of(2026, 01, 01, 12, 00, 00, 0, ZoneOffset.UTC),
+            OffsetDateTime.of(2026, 01, 01, 12, 01, 00, 0, ZoneOffset.UTC), SaleStatus.DRAFT, List.of(productDto));
 
         Mockito.doThrow(new SaleDurationTooShortException("Too Short")).when(salesService).createFlashSale(saleDto);
 

@@ -1,18 +1,23 @@
 package uk.co.aosd.flash.domain;
 
-import jakarta.persistence.*;
-import lombok.*;
-
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/**
+ * Domain object for a Flash Sale Item entity.
+ */
 @Entity
-@Table(name = "flash_sale_items", uniqueConstraints = {
-        @UniqueConstraint(columnNames = { "flash_sale_id", "product_id" })
-})
+@Table(name = "flash_sale_items", uniqueConstraints = { @UniqueConstraint(columnNames = { "flash_sale_id", "product_id" }) })
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class FlashSaleItem {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

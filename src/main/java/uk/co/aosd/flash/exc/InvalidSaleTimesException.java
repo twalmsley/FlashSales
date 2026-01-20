@@ -1,6 +1,6 @@
 package uk.co.aosd.flash.exc;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +8,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Getter
 public class InvalidSaleTimesException extends Exception {
-    private final LocalDateTime startTime;
-    private final LocalDateTime endTime;
+    private final OffsetDateTime startTime;
+    private final OffsetDateTime endTime;
 }
