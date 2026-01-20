@@ -11,6 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,16 +24,15 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.services.ProductsService;
 
+/**
+ * Tests for creating a product.
+ */
 @WebMvcTest(ProductRestApi.class)
 @Import({ ErrorMapper.class, GlobalExceptionHandler.class })
 public class ProductRestApiCreateProductTest {
@@ -60,7 +61,7 @@ public class ProductRestApiCreateProductTest {
     public void shouldCreateAProductSuccessfully() throws Exception {
         final String uuid = "846a8892-422b-4eff-a201-509bce782cb9";
         final ProductDto productDto = new ProductDto(uuid, "Dummy Product 1", "Dummy product 1 description", 101,
-            BigDecimal.valueOf(99.99));
+            BigDecimal.valueOf(99.99), 0);
 
         Mockito.when(productsService.createProduct(productDto)).thenReturn(UUID.fromString(uuid));
 
@@ -77,7 +78,7 @@ public class ProductRestApiCreateProductTest {
     @Test
     public void shouldRejectAnInvalidProductBeanOnCreate() throws Exception {
         final ProductDto productDto = new ProductDto("uuid", "", "", -101,
-            BigDecimal.valueOf(-99.99));
+            BigDecimal.valueOf(-99.99), -1);
 
         mockMvc.perform(
             post("/api/v1/products")
@@ -87,7 +88,8 @@ public class ProductRestApiCreateProductTest {
             .andExpect(content().string(containsString("basePrice: Price cannot be negative")))
             .andExpect(content().string(containsString("name: A name must be provided.")))
             .andExpect(content().string(containsString("description: A description must be provided.")))
-            .andExpect(content().string(containsString("totalPhysicalStock: Stock cannot be negative")));
+            .andExpect(content().string(containsString("totalPhysicalStock: Stock cannot be negative")))
+            .andExpect(content().string(containsString("reservedCount: ReservedCount cannot be negative")));
 
         verify(productsService, times(0)).createProduct(productDto);
 
@@ -98,7 +100,7 @@ public class ProductRestApiCreateProductTest {
         final String uuid = "846a8892-422b-4eff-a201-509bce782cb9";
         final String name = "Dummy Product 1";
         final ProductDto productDto = new ProductDto(uuid, name, "Dummy product 1 description", 101,
-            BigDecimal.valueOf(99.99));
+            BigDecimal.valueOf(99.99), 0);
 
         Mockito.when(productsService.createProduct(productDto)).thenReturn(UUID.fromString(uuid));
 

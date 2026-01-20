@@ -1,11 +1,17 @@
 package uk.co.aosd.flash.domain;
 
-import jakarta.persistence.*;
-import lombok.*;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-// --- Product Entity ---
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/**
+ * Product Entity.
+ */
 @Entity
 @Table(name = "products")
 @Getter
@@ -27,4 +33,7 @@ public class Product {
 
     @Column(name = "base_price", nullable = false)
     private BigDecimal basePrice;
+
+    @Column(name = "reserved_count", nullable = false)
+    private Integer reservedCount;
 }

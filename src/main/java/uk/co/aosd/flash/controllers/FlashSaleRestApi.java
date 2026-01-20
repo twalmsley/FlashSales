@@ -36,6 +36,12 @@ public class FlashSaleRestApi {
      *
      * @param sale CreateSaleDto
      * @return ResponseEntity with a Stringified UUID.
+     * @throws DuplicateEntityException
+     *             if the database reports a duplicate.
+     * @throws SaleDurationTooShortException
+     *             if the sale is too short.
+     * @throws InvalidSaleTimesException
+     *             if the start time is after the end time.
      */
     @PostMapping("/flash_sale")
     public ResponseEntity<String> createSale(@Valid @RequestBody final CreateSaleDto sale)

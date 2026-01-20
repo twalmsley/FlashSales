@@ -10,6 +10,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.math.BigDecimal;
 import java.util.Optional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,15 +23,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
 import uk.co.aosd.flash.services.ProductsService;
 
+/**
+ * Test Get Product by ID service.
+ */
 @WebMvcTest(ProductRestApi.class)
 @Import({ ErrorMapper.class, GlobalExceptionHandler.class })
 @Testcontainers
@@ -56,9 +57,9 @@ public class ProductRestApiGetProductByIdTest {
 
     @Test
     public void shouldReturnProductSuccessfully() throws Exception {
-        String uuid = "146a8892-422b-4eff-a201-509bce782cb9";
+        final String uuid = "146a8892-422b-4eff-a201-509bce782cb9";
         final ProductDto productDto1 = new ProductDto(uuid, "Dummy Product 1", "Dummy product 1 description", 101,
-            BigDecimal.valueOf(99.99));
+            BigDecimal.valueOf(99.99), 0);
 
         Mockito.when(productsService.getProductById(uuid)).thenReturn(Optional.of(productDto1));
 
@@ -76,7 +77,7 @@ public class ProductRestApiGetProductByIdTest {
 
     @Test
     public void shouldNotFindProductById() throws Exception {
-        String uuid = "146a8892-422b-4eff-a201-509bce782cb9";
+        final String uuid = "146a8892-422b-4eff-a201-509bce782cb9";
 
         Mockito.when(productsService.getProductById(uuid)).thenReturn(Optional.empty());
 

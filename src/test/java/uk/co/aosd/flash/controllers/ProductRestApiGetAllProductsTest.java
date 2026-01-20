@@ -60,11 +60,11 @@ public class ProductRestApiGetAllProductsTest {
     @Test
     public void shouldReturnProductListSuccessfully() throws Exception {
         final ProductDto productDto1 = new ProductDto("146a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
-            BigDecimal.valueOf(99.99));
+            BigDecimal.valueOf(99.99), 0);
         final ProductDto productDto2 = new ProductDto("246a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 2", "Dummy product 2 description", 102,
-            BigDecimal.valueOf(100.99));
+            BigDecimal.valueOf(100.99), 0);
         final ProductDto productDto3 = new ProductDto("346a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 3", "Dummy product 3 description", 103,
-            BigDecimal.valueOf(101.99));
+            BigDecimal.valueOf(101.99), 0);
         final List<ProductDto> testProducts = List.of(productDto1, productDto2, productDto3);
 
         Mockito.when(productsService.getAllProducts()).thenReturn(testProducts);

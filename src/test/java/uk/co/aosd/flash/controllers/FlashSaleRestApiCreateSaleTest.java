@@ -37,7 +37,7 @@ import uk.co.aosd.flash.exc.SaleDurationTooShortException;
 import uk.co.aosd.flash.services.FlashSalesService;
 
 /**
- * Flash Sale REST API test for creating a new Flash Sale
+ * Flash Sale REST API test for creating a new Flash Sale.
  */
 @WebMvcTest(FlashSaleRestApi.class)
 @Import({ ErrorMapper.class, GlobalExceptionHandler.class })
@@ -65,7 +65,7 @@ public class FlashSaleRestApiCreateSaleTest {
     @Test
     public void shouldCreateAFlashSaleSuccessfully() throws Exception {
         final ProductDto productDto = new ProductDto("846a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
-            BigDecimal.valueOf(99.99));
+            BigDecimal.valueOf(99.99), 0);
         final CreateSaleDto saleDto = new CreateSaleDto(null, "Dummy Sale 1", LocalDateTime.of(2026, 01, 01, 12, 00, 00),
             LocalDateTime.of(2026, 01, 01, 13, 00, 00), SaleStatus.DRAFT, List.of(productDto));
 
@@ -105,7 +105,7 @@ public class FlashSaleRestApiCreateSaleTest {
     @Test
     public void shouldRejectAnInvalidProductBeanOnCreate() throws Exception {
         final ProductDto productDto = new ProductDto("uuid", "", "", -101,
-            BigDecimal.valueOf(-99.99));
+            BigDecimal.valueOf(-99.99), -1);
         final CreateSaleDto saleDto = new CreateSaleDto(null, "Dummy Sale 1", LocalDateTime.of(2026, 01, 01, 12, 00, 00),
             LocalDateTime.of(2026, 01, 01, 13, 00, 00), SaleStatus.DRAFT, List.of(productDto));
 
@@ -117,7 +117,8 @@ public class FlashSaleRestApiCreateSaleTest {
             .andExpect(content().string(containsString("basePrice: Price cannot be negative")))
             .andExpect(content().string(containsString("name: A name must be provided.")))
             .andExpect(content().string(containsString("description: A description must be provided.")))
-            .andExpect(content().string(containsString("totalPhysicalStock: Stock cannot be negative")));
+            .andExpect(content().string(containsString("totalPhysicalStock: Stock cannot be negative")))
+            .andExpect(content().string(containsString("reservedCount: ReservedCount cannot be negative")));
 
         verify(salesService, times(0)).createFlashSale(saleDto);
 
@@ -126,7 +127,7 @@ public class FlashSaleRestApiCreateSaleTest {
     @Test
     public void shouldRejectDuplicateSaleOnCreate() throws Exception {
         final ProductDto productDto = new ProductDto("846a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
-            BigDecimal.valueOf(99.99));
+            BigDecimal.valueOf(99.99), 0);
         final String saleUuid = "e00813e5-c928-4477-ba27-dacb62781d5c";
         final String name = "Dummy Sale 1";
         final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, LocalDateTime.of(2026, 01, 01, 12, 00, 00),
@@ -147,7 +148,7 @@ public class FlashSaleRestApiCreateSaleTest {
     @Test
     public void shouldRejectStartAfterEndOnCreate() throws Exception {
         final ProductDto productDto = new ProductDto("846a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
-            BigDecimal.valueOf(99.99));
+            BigDecimal.valueOf(99.99), 0);
         final String saleUuid = "e00813e5-c928-4477-ba27-dacb62781d5c";
         final String name = "Dummy Sale 1";
         final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, LocalDateTime.of(2026, 01, 01, 12, 00, 00),
@@ -168,7 +169,7 @@ public class FlashSaleRestApiCreateSaleTest {
     @Test
     public void shouldRejectSaleTooShortOnCreate() throws Exception {
         final ProductDto productDto = new ProductDto("846a8892-422b-4eff-a201-509bce782cb9", "Dummy Product 1", "Dummy product 1 description", 101,
-            BigDecimal.valueOf(99.99));
+            BigDecimal.valueOf(99.99), 0);
         final String saleUuid = "e00813e5-c928-4477-ba27-dacb62781d5c";
         final String name = "Dummy Sale 1";
         final CreateSaleDto saleDto = new CreateSaleDto(saleUuid, name, LocalDateTime.of(2026, 01, 01, 12, 00, 00),

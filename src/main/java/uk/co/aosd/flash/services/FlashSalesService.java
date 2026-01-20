@@ -3,24 +3,39 @@ package uk.co.aosd.flash.services;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 import uk.co.aosd.flash.dto.CreateSaleDto;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.InvalidSaleTimesException;
 import uk.co.aosd.flash.exc.SaleDurationTooShortException;
 
+/**
+ * A Service for working with Flash Sales.
+ */
 @Service
 @RequiredArgsConstructor
 public class FlashSalesService {
 
     @Value("${app.settings.min-sale-duration-minutes}")
-    private long MIN_SALE_DURATION = 10;// Default to 10 minutes.
+    private long minSaleDuration = 10; // Default to 10 minutes.
 
+    /**
+     * Create a new Flash Sale.
+     *
+     * @param sale
+     *            CreateSaleDto
+     * @return UUID
+     * @throws DuplicateEntityException
+     *             if the database reports a duplicate.
+     * @throws SaleDurationTooShortException
+     *             if the sale is too short.
+     * @throws InvalidSaleTimesException
+     *             if the start time is after the end time.
+     */
     @Transactional
     public UUID createFlashSale(@Valid final CreateSaleDto sale) throws DuplicateEntityException, SaleDurationTooShortException, InvalidSaleTimesException {
         if (!sale.startTime().isBefore(sale.endTime())) {
@@ -28,8 +43,8 @@ public class FlashSalesService {
         }
         final var durationMinutes = (sale.endTime().toInstant(ZoneOffset.UTC).toEpochMilli() - sale.startTime().toInstant(ZoneOffset.UTC).toEpochMilli())
             / 60000;
-        if (durationMinutes < MIN_SALE_DURATION) {
-            throw new SaleDurationTooShortException("Sale duration of " + durationMinutes + " minutes is less than " + MIN_SALE_DURATION);
+        if (durationMinutes < minSaleDuration) {
+            throw new SaleDurationTooShortException("Sale duration of " + durationMinutes + " minutes is less than " + minSaleDuration);
         }
         return UUID.randomUUID();
     }

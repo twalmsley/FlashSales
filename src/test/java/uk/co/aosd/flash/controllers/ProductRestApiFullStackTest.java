@@ -30,6 +30,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import uk.co.aosd.flash.dto.ProductDto;
 
+/**
+ * Full stack test for the products REST API.
+ */
 @AutoConfigureMockMvc
 @SpringBootTest
 @Testcontainers
@@ -64,7 +67,7 @@ public class ProductRestApiFullStackTest {
         // CREATE
         //
         final ProductDto productDto1 = new ProductDto(null, "Dummy Product 1", "Dummy product 1 description", 101,
-            BigDecimal.valueOf(99.99));
+            BigDecimal.valueOf(99.99), 0);
 
         final var response = mockMvc.perform(
             post("/api/v1/products")
@@ -108,7 +111,7 @@ public class ProductRestApiFullStackTest {
         // UPDATE
         //
         final ProductDto updatedProductDto = new ProductDto(product.id(), "Dummy Product 1 - updated", "Dummy product 1 description - updated", 201,
-            BigDecimal.valueOf(199.99));
+            BigDecimal.valueOf(199.99), 0);
 
         mockMvc.perform(
             put(uri)
@@ -130,6 +133,7 @@ public class ProductRestApiFullStackTest {
         assertEquals(productDto2.description(), updatedProductDto.description());
         assertEquals(productDto2.totalPhysicalStock(), updatedProductDto.totalPhysicalStock());
         assertEquals(productDto2.basePrice(), updatedProductDto.basePrice());
+        assertEquals(productDto2.reservedCount(), updatedProductDto.reservedCount());
 
         //
         // DELETE
