@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -142,4 +143,44 @@ public class ProductsServiceTest {
             service.deleteProduct("bad uuid");
         });
     }
+
+    @Test
+    public void shouldFailCreateWithConstraintViolation() {
+
+        Mockito.when(repository.save(Mockito.any(Product.class))).thenThrow(ConstraintViolationException.class);
+
+        final ProductDto product = new ProductDto(null, "Test Product 1", "Description", 1, BigDecimal.valueOf(101.99), 1);
+
+        assertThrows(ConstraintViolationException.class, () -> {
+            service.createProduct(product);
+        });
+    }
+
+
+    @Test
+    public void shouldFailWithIllegalArgumentException() {
+
+        Mockito.when(repository.findById(Mockito.any(UUID.class))).thenThrow(IllegalArgumentException.class);
+
+        final ProductDto product = new ProductDto(null, "Test Product 1", "Description", 1, BigDecimal.valueOf(101.99), 1);
+
+        assertThrows(ProductNotFoundException.class, () -> {
+            service.updateProduct(uuid1, product);
+        });
+    }
+
+
+    @Test
+    public void shouldFailUpdateWithConstraintViolation() {
+
+        final UUID uu = UUID.fromString(uuid1);
+        Mockito.when(repository.findById(uu)).thenThrow(ConstraintViolationException.class);
+
+        final ProductDto product = new ProductDto(uuid1, "Test Product 1", "Description", 1, BigDecimal.valueOf(101.99), 0);
+
+        assertThrows(ConstraintViolationException.class, () -> {
+            service.updateProduct(uuid1, product);
+        });
+    }
+
 }
