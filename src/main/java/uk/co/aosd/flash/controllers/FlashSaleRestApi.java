@@ -51,6 +51,6 @@ public class FlashSaleRestApi {
         final var uuid = service.createFlashSale(sale);
         log.info("Created Flash Sale: " + uuid);
 
-        return ResponseEntity.created(URI.create("/api/v1/sales/" + uuid.toString())).build();
+        return ResponseEntity.created(URI.create("/api/v1/admin/flash_sale/" + uuid.toString())).build();
     }
 }

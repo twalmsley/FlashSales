@@ -76,7 +76,7 @@ public class FlashSaleRestApiCreateSaleTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(saleDto)))
             .andExpect(status().isCreated())
-            .andExpect(header().string(HttpHeaders.LOCATION, "/api/v1/sales/" + saleUuid));
+            .andExpect(header().string(HttpHeaders.LOCATION, "/api/v1/admin/flash_sale/" + saleUuid));
 
         verify(salesService, times(1)).createFlashSale(saleDto);
     }

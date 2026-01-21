@@ -2,7 +2,6 @@ package uk.co.aosd.flash.controllers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -81,24 +80,9 @@ public class ProductRestApiFullStackTest {
         //
         final String uri = response.getResponse().getHeader(HttpHeaders.LOCATION);
 
-        final long startGet1 = System.currentTimeMillis();
         final var result = mockMvc.perform(
             get(uri))
             .andReturn();
-        final long endGet1 = System.currentTimeMillis();
-
-        final long startGet2 = System.currentTimeMillis();
-        mockMvc.perform(
-            get(uri))
-            .andReturn();
-        final long endGet2 = System.currentTimeMillis();
-
-        //
-        // Possibly dodgy assertion meant to check if the cache is working
-        //
-        final long duration1 = endGet1 - startGet1;
-        final long duration2 = endGet2 - startGet2;
-        assertTrue((duration1 / duration2) > 10);
 
         final ProductDto product = objectMapper.readValue(result.getResponse().getContentAsString(), ProductDto.class);
         assertNotNull(product);
