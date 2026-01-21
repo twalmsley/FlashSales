@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import uk.co.aosd.flash.domain.FlashSale;
 import uk.co.aosd.flash.domain.FlashSaleItem;
@@ -37,7 +38,7 @@ public class FlashSalesService {
     private final ProductRepository products;
 
     @Value("${app.settings.min-sale-duration-minutes}")
-    private long minSaleDuration = 10; // Default to 10 minutes.
+    private float minSaleDuration = 10; // Default to 10 minutes.
 
     /**
      * Create a new Flash Sale.
@@ -63,51 +64,62 @@ public class FlashSalesService {
             log.error("Failed to create FlashSale due to start-after-end: " + sale);
             throw new InvalidSaleTimesException(sale.startTime(), sale.endTime());
         }
-        final var durationMinutes = (sale.endTime().toInstant().toEpochMilli() - sale.startTime().toInstant().toEpochMilli())
-            / 60000;
+        final var durationMinutes = ((float) (sale.endTime().toInstant().toEpochMilli() - sale.startTime().toInstant().toEpochMilli()))
+            / 60000.0F;
+        log.info("Sale duration: {} minutes", durationMinutes);
         if (durationMinutes < minSaleDuration) {
             log.error("Failed to create FlashSale due to duration too short: " + sale);
             throw new SaleDurationTooShortException("Sale duration of " + durationMinutes + " minutes is less than " + minSaleDuration);
         }
 
-        // Save the flash sale.
-        final FlashSale s = new FlashSale(null, sale.title(), sale.startTime(), sale.endTime(), sale.status());
-        log.debug("Saving FlashSale: " + s);
-        final var saved = sales.save(s);
-        log.debug("Saved FlashSale result: " + saved);
+        try {
+            // Save the flash sale.
+            final FlashSale s = new FlashSale(null, sale.title(), sale.startTime(), sale.endTime(), sale.status());
+            log.debug("Saving FlashSale: " + s);
+            final var saved = sales.save(s);
+            log.debug("Saved FlashSale result: " + saved);
 
-        // For each product, create a flash sale item and update the reserved stock if
-        // there is enough.
-        final List<String> missingProducts = new ArrayList<>();
-        final List<Product> notEnoughStockProducts = new ArrayList<>();
+            // For each product, create a flash sale item and update the reserved stock if
+            // there is enough.
+            final List<String> missingProducts = new ArrayList<>();
+            final List<Product> notEnoughStockProducts = new ArrayList<>();
 
-        sale.products().forEach(sp -> {
-            final var maybeProduct = products.findById(UUID.fromString(sp.id()));
-            maybeProduct.ifPresentOrElse(p -> {
-                if (p.getReservedCount() + sp.reservedCount() > p.getTotalPhysicalStock()) {
-                    notEnoughStockProducts.add(p);
-                } else {
-                    final var item = new FlashSaleItem(null, saved, p, sp.reservedCount(), 0, p.getBasePrice());
-                    items.save(item);
-                    final int allocatedStock = sp.reservedCount() + p.getReservedCount();
-                    p.setReservedCount(allocatedStock);
-                    products.save(p);
-                }
-            }, () -> {
-                missingProducts.add(sp.id());
+            sale.products().forEach(sp -> {
+                final var maybeProduct = products.findById(UUID.fromString(sp.id()));
+                maybeProduct.ifPresentOrElse(p -> {
+                    if (p.getReservedCount() + sp.reservedCount() > p.getTotalPhysicalStock()) {
+                        notEnoughStockProducts.add(p);
+                    } else {
+                        final var item = new FlashSaleItem(null, saved, p, sp.reservedCount(), 0, p.getBasePrice());
+                        items.save(item);
+                        final int allocatedStock = sp.reservedCount() + p.getReservedCount();
+                        p.setReservedCount(allocatedStock);
+                        products.save(p);
+                    }
+                }, () -> {
+                    missingProducts.add(sp.id());
+                });
             });
-        });
-        if (!missingProducts.isEmpty()) {
-            log.error("Failed to create Flash Sale due to missing products.");
-            throw new ProductNotFoundException(missingProducts.stream().collect(Collectors.joining(", ")));
+            if (!missingProducts.isEmpty()) {
+                final String ids = missingProducts.stream().collect(Collectors.joining(", "));
+                log.error("Failed to create Flash Sale due to missing products: {}", ids);
+                throw new ProductNotFoundException(ids);
+            }
+            if (!notEnoughStockProducts.isEmpty()) {
+                final String ids = notEnoughStockProducts.stream().map(Product::getId).map(Object::toString).collect(Collectors.joining(", "));
+                log.error("Failed to create Flash Sale due to not enough stock: {}", ids);
+                throw new InsufficientResourcesException(
+                    ids);
+            }
+            log.info("Created Flash Sale: " + saved);
+            return saved.getId();
+        } catch (final DuplicateKeyException e) {
+            log.error("Unique constraint violated - duplicate key: {}", e.getMessage());
+            throw new DuplicateEntityException(e.getMessage(), sale.title());
+        } catch (final IllegalArgumentException e) {
+            log.error("Invalid UUID String: {}", e.getMessage());
+            throw new ProductNotFoundException(e.getMessage());
         }
-        if (!notEnoughStockProducts.isEmpty()) {
-            log.error("Failed to create Flash Sale due to not enough stock.");
-            throw new InsufficientResourcesException(
-                notEnoughStockProducts.stream().map(Product::getId).map(Object::toString).collect(Collectors.joining(", ")));
-        }
-        log.info("Created Flash Sale: " + saved);
-        return saved.getId();
     }
 
 }
