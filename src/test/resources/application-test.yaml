@@ -1,4 +1,8 @@
 spring:
+  datasource:
+    hikari:
+      data-source-properties:
+        stringtype: unspecified
 
 logging:
   level: 
