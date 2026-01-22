@@ -14,7 +14,7 @@ import uk.co.aosd.flash.domain.FlashSaleItem;
 @Repository
 public interface FlashSaleItemRepository extends JpaRepository<FlashSaleItem, UUID> {
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query("UPDATE FlashSaleItem f SET f.soldCount = f.soldCount + :increment " +
            "WHERE f.id = :id AND f.soldCount + :increment <= f.allocatedStock")

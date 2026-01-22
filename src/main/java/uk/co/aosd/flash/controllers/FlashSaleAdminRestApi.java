@@ -25,9 +25,9 @@ import uk.co.aosd.flash.services.FlashSalesService;
 @Profile("admin-service")
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
-public class FlashSaleRestApi {
+public class FlashSaleAdminRestApi {
 
-    private static Logger log = LoggerFactory.getLogger(FlashSaleRestApi.class.getName());
+    private static Logger log = LoggerFactory.getLogger(FlashSaleAdminRestApi.class.getName());
 
     private final FlashSalesService service;
 

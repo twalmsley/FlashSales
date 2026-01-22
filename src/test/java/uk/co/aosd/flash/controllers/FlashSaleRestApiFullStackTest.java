@@ -25,9 +25,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.CreateSaleDto;
@@ -48,7 +48,7 @@ public class FlashSaleRestApiFullStackTest {
 
     @Container
     @ServiceConnection
-    public static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres");
+    public static PostgreSQLContainer postgreSQLContainer = new PostgreSQLContainer("postgres");
 
     @Container
     @ServiceConnection(name = "redis")

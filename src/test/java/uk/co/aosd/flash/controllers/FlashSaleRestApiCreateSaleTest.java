@@ -39,7 +39,7 @@ import uk.co.aosd.flash.services.FlashSalesService;
 /**
  * Flash Sale REST API test for creating a new Flash Sale.
  */
-@WebMvcTest(FlashSaleRestApi.class)
+@WebMvcTest(FlashSaleAdminRestApi.class)
 @Import({ ErrorMapper.class, GlobalExceptionHandler.class })
 public class FlashSaleRestApiCreateSaleTest {
 
