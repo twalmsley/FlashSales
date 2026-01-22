@@ -78,6 +78,45 @@ public class FlashSaleItemRepositoryTest {
     }
 
     @Test
+    public void shouldFailtToIncrementSoldCountDueToInactiveSale() {
+        UUID saleItemUuid = null;
+        {
+            //
+            // Create a Flash Sale
+            //
+            final var startTime = OffsetDateTime.of(2026, 01, 01, 12, 0, 0, 0, ZoneOffset.UTC);
+            final var endTime = startTime.plusHours(1);
+            final var flashSale = new FlashSale(null, "Test Sale 1", startTime, endTime, SaleStatus.COMPLETED);
+            final var savedFlashSale = sales.save(flashSale);
+
+            //
+            // Create a product.
+            //
+            final var product = new Product(null, "Product 1", "Product 1 description", 100, BigDecimal.valueOf(99.99), 10);
+            final var savedProduct = products.save(product);
+
+            //
+            // Create a Sale Item
+            //
+            final var saleItem = new FlashSaleItem(null, savedFlashSale, savedProduct, 10, 1, BigDecimal.valueOf(99.99));
+            final var savedSaleItem = items.save(saleItem);
+            saleItemUuid = savedSaleItem.getId();
+            assertEquals(1, savedSaleItem.getSoldCount());
+        }
+        {
+            // Verify the sold count
+            final var updatedCount = items.incrementSoldCount(saleItemUuid, 1);
+            assertEquals(0, updatedCount, "Should have updated exactly 0 rows.");
+
+            final var updatedItem = items.findById(saleItemUuid);
+            assertTrue(updatedItem.isPresent());
+            updatedItem.ifPresent(i -> {
+                assertEquals(1, i.getSoldCount());
+            });
+        }
+    }
+
+    @Test
     public void shouldFailToIncrementSoldCountDueToSoldOut() {
         UUID saleItemUuid = null;
         {

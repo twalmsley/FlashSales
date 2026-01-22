@@ -16,7 +16,8 @@ public interface FlashSaleItemRepository extends JpaRepository<FlashSaleItem, UU
 
     @Modifying(clearAutomatically = true)
     @Transactional
-    @Query("UPDATE FlashSaleItem f SET f.soldCount = f.soldCount + :increment " +
-           "WHERE f.id = :id AND f.soldCount + :increment <= f.allocatedStock")
+    @Query("UPDATE FlashSaleItem f SET f.soldCount = f.soldCount + :increment "
+        + "WHERE f.id = :id AND f.soldCount + :increment <= f.allocatedStock "
+        + "AND f.flashSale.status = 'ACTIVE'")
     int incrementSoldCount(@Param("id") UUID id, @Param("increment") int increment);
 }
