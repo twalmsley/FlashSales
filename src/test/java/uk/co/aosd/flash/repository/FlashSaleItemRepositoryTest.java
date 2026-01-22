@@ -3,6 +3,8 @@ package uk.co.aosd.flash.repository;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import javax.sql.DataSource;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import uk.co.aosd.flash.domain.FlashSale;
@@ -38,6 +41,9 @@ public class FlashSaleItemRepositoryTest {
 
     @Autowired
     private FlashSaleRepository sales;
+
+    @Autowired
+    private DataSource dataSource;
 
     @Test
     public void shouldIncrementSoldCount() {
@@ -75,6 +81,15 @@ public class FlashSaleItemRepositoryTest {
             updatedItem.ifPresent(i -> {
                 assertEquals(2, i.getSoldCount());
             });
+        }
+        {
+            // Use a JDBCTemplate to check that there are entries in the remaining active
+            // stock view.
+            final var jdbcTemplate = new JdbcTemplate(dataSource);
+            final var result = jdbcTemplate.queryForList("SELECT * FROM RemainingActiveStock");
+            assertEquals(1, result.size());
+            assertEquals(saleItemUuid, result.get(0).get("item_id"));
+            assertEquals(2, result.get(0).get("sold_count"));
         }
     }
 
