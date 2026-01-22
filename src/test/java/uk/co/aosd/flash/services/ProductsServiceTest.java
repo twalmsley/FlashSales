@@ -47,10 +47,10 @@ public class ProductsServiceTest {
 
     @Test
     public void shouldFailToCreateAProductWithDuplicateKey() throws DuplicateEntityException {
-        final Product saved = new Product(UUID.fromString(uuid1), "Test Product 1", "Description", 1, BigDecimal.valueOf(101.99), 2);
+        final Product saved = new Product(UUID.fromString(uuid1), "Test Product 1", "Description", 10, BigDecimal.valueOf(101.99), 2);
         Mockito.when(repository.save(Mockito.any(Product.class))).thenReturn(saved);
 
-        final ProductDto product = new ProductDto(null, "Test Product 1", "Description", 1, BigDecimal.valueOf(101.99), 2);
+        final ProductDto product = new ProductDto(null, "Test Product 1", "Description", 10, BigDecimal.valueOf(101.99), 2);
 
         service.createProduct(product);
 
@@ -134,7 +134,27 @@ public class ProductsServiceTest {
 
     @Test
     public void shouldDeleteByIdSuccessfully() throws ProductNotFoundException {
+        final UUID uu = UUID.fromString(uuid1);
+        Mockito.when(repository.existsById(uu)).thenReturn(true);
+        Mockito.doNothing().when(repository).deleteById(uu);
+        
         service.deleteProduct(uuid1);
+        
+        Mockito.verify(repository).existsById(uu);
+        Mockito.verify(repository).deleteById(uu);
+    }
+
+    @Test
+    public void shouldFailDeleteByIdWhenProductDoesNotExist() {
+        final UUID uu = UUID.fromString(uuid1);
+        Mockito.when(repository.existsById(uu)).thenReturn(false);
+        
+        assertThrows(ProductNotFoundException.class, () -> {
+            service.deleteProduct(uuid1);
+        });
+        
+        Mockito.verify(repository).existsById(uu);
+        Mockito.verify(repository, Mockito.never()).deleteById(Mockito.any());
     }
 
     @Test

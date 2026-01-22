@@ -5,6 +5,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
@@ -104,7 +105,7 @@ public class ProductRestApiUpdateProductTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(productDto)))
             .andExpect(status().isNotFound())
-            .andExpect(content().string(uuid));
+            .andExpect(jsonPath("$.message").value(containsString(uuid)));
 
         verify(productsService, times(1)).updateProduct(uuid, productDto);
     }

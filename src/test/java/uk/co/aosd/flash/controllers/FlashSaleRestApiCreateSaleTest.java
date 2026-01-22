@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.OffsetDateTime;
@@ -134,7 +135,8 @@ public class FlashSaleRestApiCreateSaleTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(saleDto)))
             .andExpect(status().isConflict())
-            .andExpect(content().string(saleUuid));
+            .andExpect(jsonPath("$.message").value(containsString(saleUuid)))
+            .andExpect(jsonPath("$.message").value(containsString(name)));
 
         verify(salesService, times(1)).createFlashSale(Mockito.any(CreateSaleDto.class));
     }
@@ -154,7 +156,9 @@ public class FlashSaleRestApiCreateSaleTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(saleDto)))
             .andExpect(status().isBadRequest())
-            .andExpect(content().string("Start should be before end. Start: 2026-01-01T12:00Z, End: 2026-01-01T11:00Z"));
+            .andExpect(jsonPath("$.message").value(containsString("Start time must be before end time")))
+            .andExpect(jsonPath("$.message").value(containsString("2026-01-01T12:00Z")))
+            .andExpect(jsonPath("$.message").value(containsString("2026-01-01T11:00Z")));
 
         verify(salesService, times(1)).createFlashSale(Mockito.any(CreateSaleDto.class));
     }
@@ -174,7 +178,7 @@ public class FlashSaleRestApiCreateSaleTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(saleDto)))
             .andExpect(status().isBadRequest())
-            .andExpect(content().string("Too Short"));
+            .andExpect(jsonPath("$.message").value("Too Short"));
 
         verify(salesService, times(1)).createFlashSale(Mockito.any(CreateSaleDto.class));
     }

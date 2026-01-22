@@ -43,6 +43,15 @@ public class ProductsService {
     public UUID createProduct(@Valid final ProductDto productDto) throws DuplicateEntityException {
         log.info("Creating product: " + productDto);
 
+        // Validate business rules
+        if (productDto.reservedCount() > productDto.totalPhysicalStock()) {
+            log.error("Failed to create product: reservedCount ({}) exceeds totalPhysicalStock ({})",
+                productDto.reservedCount(), productDto.totalPhysicalStock());
+            throw new IllegalArgumentException(
+                String.format("Reserved count (%d) cannot exceed total physical stock (%d)",
+                    productDto.reservedCount(), productDto.totalPhysicalStock()));
+        }
+
         final Product product = new Product();
         product.setId(null);
         product.setName(productDto.name());
@@ -98,6 +107,15 @@ public class ProductsService {
     @Transactional
     @CacheEvict(value = "products", key = "#id")
     public void updateProduct(final String id, @Valid final ProductDto product) throws ProductNotFoundException {
+        // Validate business rules first
+        if (product.reservedCount() > product.totalPhysicalStock()) {
+            log.error("Failed to update product: reservedCount ({}) exceeds totalPhysicalStock ({})",
+                product.reservedCount(), product.totalPhysicalStock());
+            throw new IllegalArgumentException(
+                String.format("Reserved count (%d) cannot exceed total physical stock (%d)",
+                    product.reservedCount(), product.totalPhysicalStock()));
+        }
+
         try {
             log.info("Updating product: " + id + ", " + product);
             final var p = repository.findById(UUID.fromString(id));
@@ -116,6 +134,13 @@ public class ProductsService {
                 log.info("Product Updated: " + prod);
             });
         } catch (final IllegalArgumentException e) {
+            // This could be from UUID parsing - check if it's a business rule violation
+            // If the message contains "Reserved count", it's a business rule violation we
+            // already threw
+            if (e.getMessage() != null && e.getMessage().contains("Reserved count")) {
+                throw e;
+            }
+            // Otherwise, it's likely a UUID parsing error
             log.error("Failed to update product: " + product);
             log.error("Failed to update product: " + e.getMessage());
             throw new ProductNotFoundException(id);
@@ -135,7 +160,12 @@ public class ProductsService {
     public void deleteProduct(final String id) throws ProductNotFoundException {
         try {
             log.info("Deleting product: " + id);
-            repository.deleteById(UUID.fromString(id));
+            final UUID uuid = UUID.fromString(id);
+            if (!repository.existsById(uuid)) {
+                log.warn("Product not found for deletion: " + id);
+                throw new ProductNotFoundException(id);
+            }
+            repository.deleteById(uuid);
             log.info("Deleted product: " + id);
         } catch (final IllegalArgumentException e) {
             log.error("Failed to delete product: " + id);

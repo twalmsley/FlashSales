@@ -17,7 +17,11 @@ import uk.co.aosd.flash.domain.FlashSale;
 import uk.co.aosd.flash.domain.FlashSaleItem;
 import uk.co.aosd.flash.domain.Product;
 import uk.co.aosd.flash.dto.CreateSaleDto;
-import uk.co.aosd.flash.exc.*;
+import uk.co.aosd.flash.exc.DuplicateEntityException;
+import uk.co.aosd.flash.exc.InsufficientResourcesException;
+import uk.co.aosd.flash.exc.InvalidSaleTimesException;
+import uk.co.aosd.flash.exc.ProductNotFoundException;
+import uk.co.aosd.flash.exc.SaleDurationTooShortException;
 import uk.co.aosd.flash.repository.FlashSaleItemRepository;
 import uk.co.aosd.flash.repository.FlashSaleRepository;
 import uk.co.aosd.flash.repository.ProductRepository;
@@ -69,7 +73,11 @@ public class FlashSalesService {
         log.info("Sale duration: {} minutes", durationMinutes);
         if (durationMinutes < minSaleDuration) {
             log.error("Failed to create FlashSale due to duration too short: " + sale);
-            throw new SaleDurationTooShortException("Sale duration of " + durationMinutes + " minutes is less than " + minSaleDuration);
+            throw new SaleDurationTooShortException(
+                String.format("Sale duration of %.2f minutes is less than minimum required duration of %.2f minutes",
+                    durationMinutes, minSaleDuration),
+                durationMinutes,
+                minSaleDuration);
         }
 
         try {

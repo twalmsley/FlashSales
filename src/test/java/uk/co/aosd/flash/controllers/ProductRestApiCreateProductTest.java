@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
@@ -118,7 +119,8 @@ public class ProductRestApiCreateProductTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(productDto)))
             .andExpect(status().isConflict())
-            .andExpect(content().string(uuid));
+            .andExpect(jsonPath("$.message").value(containsString(uuid)))
+            .andExpect(jsonPath("$.message").value(containsString(name)));
 
         verify(productsService, times(2)).createProduct(productDto);
     }
