@@ -2,6 +2,7 @@ package uk.co.aosd.flash.controllers;
 
 import java.util.Optional;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -11,12 +12,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import lombok.RequiredArgsConstructor;
-import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.dto.ClientProductDto;
+import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.services.ProductsService;
 
+/**
+ * Client API.
+ */
 @RestController
 @Profile("api-service")
 @RequestMapping("/api/v1/clients")
@@ -27,7 +29,12 @@ public class ClientRestApi {
 
     private final ProductsService service;
 
-    // READ (Single)
+    /**
+     * Get a client's view of a product.
+     *
+     * @param id Product ID String
+     * @return maybe a ClientProductDto
+     */
     @GetMapping("/products/{id}")
     public ResponseEntity<Optional<ClientProductDto>> getProductById(@PathVariable final String id) {
         // Logic to return a single product by ID
