@@ -6,9 +6,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,17 +24,19 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.co.aosd.flash.dto.ClientActiveSaleDto;
 import uk.co.aosd.flash.dto.ClientProductDto;
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
+import uk.co.aosd.flash.services.ActiveSalesService;
 import uk.co.aosd.flash.services.ProductsService;
 
 /**
  * Admin API Web Test.
  */
 @WebMvcTest(ClientRestApi.class)
-@Import({ErrorMapper.class, GlobalExceptionHandler.class})
+@Import({ ErrorMapper.class, GlobalExceptionHandler.class })
 public class ClientRestApiTest {
 
     @Autowired
@@ -37,6 +46,20 @@ public class ClientRestApiTest {
 
     @MockitoBean
     private ProductsService productsService;
+
+    @MockitoBean
+    private ActiveSalesService activeSalesService;
+
+    @BeforeAll
+    public static void beforeAll() {
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+    }
+
+    @BeforeEach
+    public void beforeEach() {
+        Mockito.reset(productsService, activeSalesService);
+    }
 
     @Test
     public void shouldReturnAProductSuccessfully() throws Exception {
@@ -69,6 +92,76 @@ public class ClientRestApiTest {
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound())
             .andReturn();
+    }
+
+    @Test
+    public void shouldReturnActiveSalesSuccessfully() throws Exception {
+        final OffsetDateTime startTime = OffsetDateTime.of(2026, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC);
+        final OffsetDateTime endTime = startTime.plusHours(1);
+
+        final ClientActiveSaleDto sale1 = new ClientActiveSaleDto(
+            "547cf74d-7b64-44ea-b70f-cbcde09cadc9",
+            "Sale 1",
+            startTime,
+            endTime,
+            "11111111-1111-1111-1111-111111111111",
+            10,
+            5,
+            BigDecimal.valueOf(89.99));
+
+        final ClientActiveSaleDto sale2 = new ClientActiveSaleDto(
+            "1c05690e-cd9a-42ee-9f15-194b4c454216",
+            "Sale 2",
+            startTime.plusDays(1),
+            endTime.plusDays(1),
+            "22222222-2222-2222-2222-222222222222",
+            20,
+            10,
+            BigDecimal.valueOf(79.99));
+
+        final List<ClientActiveSaleDto> activeSales = List.of(sale1, sale2);
+
+        Mockito.when(activeSalesService.getActiveSales()).thenReturn(activeSales);
+
+        final var getResult = mockMvc.perform(get("/api/v1/clients/sales/active")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final var result = objectMapper.readValue(getResult.getResponse().getContentAsString(),
+            new TypeReference<List<ClientActiveSaleDto>>() {
+            });
+
+        assertEquals(2, result.size());
+        assertEquals(sale1.saleId(), result.get(0).saleId());
+        assertEquals(sale1.title(), result.get(0).title());
+        assertEquals(sale1.productId(), result.get(0).productId());
+        assertEquals(sale1.allocatedStock(), result.get(0).allocatedStock());
+        assertEquals(sale1.soldCount(), result.get(0).soldCount());
+        assertEquals(0, sale1.salePrice().compareTo(result.get(0).salePrice()));
+
+        assertEquals(sale2.saleId(), result.get(1).saleId());
+        assertEquals(sale2.title(), result.get(1).title());
+        assertEquals(sale2.productId(), result.get(1).productId());
+        assertEquals(sale2.allocatedStock(), result.get(1).allocatedStock());
+        assertEquals(sale2.soldCount(), result.get(1).soldCount());
+        assertEquals(0, sale2.salePrice().compareTo(result.get(1).salePrice()));
+    }
+
+    @Test
+    public void shouldReturnEmptyListWhenNoActiveSales() throws Exception {
+        Mockito.when(activeSalesService.getActiveSales()).thenReturn(List.of());
+
+        final var getResult = mockMvc.perform(get("/api/v1/clients/sales/active")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final var result = objectMapper.readValue(getResult.getResponse().getContentAsString(),
+            new TypeReference<List<ClientActiveSaleDto>>() {
+            });
+
+        assertEquals(0, result.size());
     }
 
 }

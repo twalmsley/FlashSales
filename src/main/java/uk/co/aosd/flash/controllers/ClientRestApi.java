@@ -1,5 +1,6 @@
 package uk.co.aosd.flash.controllers;
 
+import java.util.List;
 import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
@@ -12,8 +13,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import uk.co.aosd.flash.dto.ClientActiveSaleDto;
 import uk.co.aosd.flash.dto.ClientProductDto;
 import uk.co.aosd.flash.dto.ProductDto;
+import uk.co.aosd.flash.services.ActiveSalesService;
 import uk.co.aosd.flash.services.ProductsService;
 
 /**
@@ -29,10 +32,13 @@ public class ClientRestApi {
 
     private final ProductsService service;
 
+    private final ActiveSalesService activeSalesService;
+
     /**
      * Get a client's view of a product.
      *
-     * @param id Product ID String
+     * @param id
+     *            Product ID String
      * @return maybe a ClientProductDto
      */
     @GetMapping("/products/{id}")
@@ -47,6 +53,19 @@ public class ClientRestApi {
         final ProductDto dto = productById.get();
         final ClientProductDto clientProductById = new ClientProductDto(id, dto.name(), dto.description(), dto.basePrice());
         return ResponseEntity.ok(Optional.of(clientProductById));
+    }
+
+    /**
+     * Get all active sales with remaining stock.
+     *
+     * @return List of active sales
+     */
+    @GetMapping("/sales/active")
+    public ResponseEntity<List<ClientActiveSaleDto>> getActiveSales() {
+        log.info("Fetching active sales");
+        final List<ClientActiveSaleDto> activeSales = activeSalesService.getActiveSales();
+        log.info("Fetched {} active sales", activeSales.size());
+        return ResponseEntity.ok(activeSales);
     }
 
 }
