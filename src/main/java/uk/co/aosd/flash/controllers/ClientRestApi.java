@@ -14,9 +14,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.co.aosd.flash.dto.ClientActiveSaleDto;
+import uk.co.aosd.flash.dto.ClientDraftSaleDto;
 import uk.co.aosd.flash.dto.ClientProductDto;
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.services.ActiveSalesService;
+import uk.co.aosd.flash.services.DraftSalesService;
 import uk.co.aosd.flash.services.ProductsService;
 
 /**
@@ -33,6 +35,8 @@ public class ClientRestApi {
     private final ProductsService service;
 
     private final ActiveSalesService activeSalesService;
+
+    private final DraftSalesService draftSalesService;
 
     /**
      * Get a client's view of a product.
@@ -66,6 +70,24 @@ public class ClientRestApi {
         final List<ClientActiveSaleDto> activeSales = activeSalesService.getActiveSales();
         log.info("Fetched {} active sales", activeSales.size());
         return ResponseEntity.ok(activeSales);
+    }
+
+    /**
+     * Get all DRAFT flash sales coming up within the next N days.
+     *
+     * @param days the number of days to look ahead
+     * @return List of draft sales
+     */
+    @GetMapping("/sales/draft/{days}")
+    public ResponseEntity<List<ClientDraftSaleDto>> getDraftSales(@PathVariable final int days) {
+        log.info("Fetching draft sales within the next {} days", days);
+        if (days < 0) {
+            log.warn("Invalid days parameter: {}", days);
+            return ResponseEntity.badRequest().build();
+        }
+        final List<ClientDraftSaleDto> draftSales = draftSalesService.getDraftSalesWithinDays(days);
+        log.info("Fetched {} draft sales within the next {} days", draftSales.size(), days);
+        return ResponseEntity.ok(draftSales);
     }
 
 }

@@ -25,11 +25,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.co.aosd.flash.dto.ClientActiveSaleDto;
+import uk.co.aosd.flash.dto.ClientDraftSaleDto;
 import uk.co.aosd.flash.dto.ClientProductDto;
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
 import uk.co.aosd.flash.services.ActiveSalesService;
+import uk.co.aosd.flash.services.DraftSalesService;
 import uk.co.aosd.flash.services.ProductsService;
 
 /**
@@ -50,6 +52,9 @@ public class ClientRestApiTest {
     @MockitoBean
     private ActiveSalesService activeSalesService;
 
+    @MockitoBean
+    private DraftSalesService draftSalesService;
+
     @BeforeAll
     public static void beforeAll() {
         objectMapper = new ObjectMapper();
@@ -58,7 +63,7 @@ public class ClientRestApiTest {
 
     @BeforeEach
     public void beforeEach() {
-        Mockito.reset(productsService, activeSalesService);
+        Mockito.reset(productsService, activeSalesService, draftSalesService);
     }
 
     @Test
@@ -162,6 +167,92 @@ public class ClientRestApiTest {
             });
 
         assertEquals(0, result.size());
+    }
+
+    @Test
+    public void shouldReturnDraftSalesSuccessfully() throws Exception {
+        final OffsetDateTime startTime = OffsetDateTime.of(2026, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC);
+        final OffsetDateTime endTime = startTime.plusHours(1);
+
+        final ClientDraftSaleDto.DraftSaleProductDto product1 = new ClientDraftSaleDto.DraftSaleProductDto(
+            "11111111-1111-1111-1111-111111111111",
+            10,
+            BigDecimal.valueOf(89.99));
+
+        final ClientDraftSaleDto.DraftSaleProductDto product2 = new ClientDraftSaleDto.DraftSaleProductDto(
+            "22222222-2222-2222-2222-222222222222",
+            20,
+            BigDecimal.valueOf(79.99));
+
+        final ClientDraftSaleDto sale1 = new ClientDraftSaleDto(
+            "547cf74d-7b64-44ea-b70f-cbcde09cadc9",
+            "Draft Sale 1",
+            startTime,
+            endTime,
+            List.of(product1));
+
+        final ClientDraftSaleDto sale2 = new ClientDraftSaleDto(
+            "1c05690e-cd9a-42ee-9f15-194b4c454216",
+            "Draft Sale 2",
+            startTime.plusDays(1),
+            endTime.plusDays(1),
+            List.of(product2));
+
+        final List<ClientDraftSaleDto> draftSales = List.of(sale1, sale2);
+
+        Mockito.when(draftSalesService.getDraftSalesWithinDays(7)).thenReturn(draftSales);
+
+        final var getResult = mockMvc.perform(get("/api/v1/clients/sales/draft/7")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final var result = objectMapper.readValue(getResult.getResponse().getContentAsString(),
+            new TypeReference<List<ClientDraftSaleDto>>() {
+            });
+
+        assertEquals(2, result.size());
+        assertEquals(sale1.saleId(), result.get(0).saleId());
+        assertEquals(sale1.title(), result.get(0).title());
+        assertEquals(sale1.startTime(), result.get(0).startTime());
+        assertEquals(sale1.endTime(), result.get(0).endTime());
+        assertEquals(1, result.get(0).products().size());
+        assertEquals(product1.productId(), result.get(0).products().get(0).productId());
+        assertEquals(product1.allocatedStock(), result.get(0).products().get(0).allocatedStock());
+        assertEquals(0, product1.salePrice().compareTo(result.get(0).products().get(0).salePrice()));
+
+        assertEquals(sale2.saleId(), result.get(1).saleId());
+        assertEquals(sale2.title(), result.get(1).title());
+        assertEquals(sale2.startTime(), result.get(1).startTime());
+        assertEquals(sale2.endTime(), result.get(1).endTime());
+        assertEquals(1, result.get(1).products().size());
+        assertEquals(product2.productId(), result.get(1).products().get(0).productId());
+        assertEquals(product2.allocatedStock(), result.get(1).products().get(0).allocatedStock());
+        assertEquals(0, product2.salePrice().compareTo(result.get(1).products().get(0).salePrice()));
+    }
+
+    @Test
+    public void shouldReturnEmptyListWhenNoDraftSales() throws Exception {
+        Mockito.when(draftSalesService.getDraftSalesWithinDays(7)).thenReturn(List.of());
+
+        final var getResult = mockMvc.perform(get("/api/v1/clients/sales/draft/7")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final var result = objectMapper.readValue(getResult.getResponse().getContentAsString(),
+            new TypeReference<List<ClientDraftSaleDto>>() {
+            });
+
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    public void shouldReturnBadRequestForNegativeDays() throws Exception {
+        mockMvc.perform(get("/api/v1/clients/sales/draft/-1")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andReturn();
     }
 
 }

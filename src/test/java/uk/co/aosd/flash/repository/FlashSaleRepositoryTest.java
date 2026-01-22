@@ -69,4 +69,38 @@ public class FlashSaleRepositoryTest {
         }
     }
 
+    @Test
+    public void shouldFindDraftSalesWithinDays() {
+        final var now = OffsetDateTime.now();
+        final var currentTime = now.withSecond(0).withNano(0);
+        final var futureTime = currentTime.plusDays(7);
+
+        // Create draft sales within the next 7 days
+        final var draftSale1 = new FlashSale(null, "Draft Sale 1", currentTime.plusDays(1), currentTime.plusDays(1).plusHours(1), SaleStatus.DRAFT, List.of());
+        final var draftSale2 = new FlashSale(null, "Draft Sale 2", currentTime.plusDays(3), currentTime.plusDays(3).plusHours(1), SaleStatus.DRAFT, List.of());
+        final var draftSale3 = new FlashSale(null, "Draft Sale 3", currentTime.plusDays(5), currentTime.plusDays(5).plusHours(1), SaleStatus.DRAFT, List.of());
+
+        // Create a draft sale outside the range (more than 7 days)
+        final var draftSale4 = new FlashSale(null, "Draft Sale 4", currentTime.plusDays(10), currentTime.plusDays(10).plusHours(1), SaleStatus.DRAFT, List.of());
+
+        // Create a draft sale in the past
+        final var draftSale5 = new FlashSale(null, "Draft Sale 5", currentTime.minusDays(1), currentTime.minusDays(1).plusHours(1), SaleStatus.DRAFT, List.of());
+
+        // Create an active sale (should not be included)
+        final var activeSale = new FlashSale(null, "Active Sale", currentTime.plusDays(2), currentTime.plusDays(2).plusHours(1), SaleStatus.ACTIVE, List.of());
+
+        sales.save(draftSale1);
+        sales.save(draftSale2);
+        sales.save(draftSale3);
+        sales.save(draftSale4);
+        sales.save(draftSale5);
+        sales.save(activeSale);
+
+        final var draftSales = sales.findDraftSalesWithinDays(SaleStatus.DRAFT, currentTime, futureTime);
+        assertEquals(3, draftSales.size());
+        assertEquals("Draft Sale 1", draftSales.get(0).getTitle());
+        assertEquals("Draft Sale 2", draftSales.get(1).getTitle());
+        assertEquals("Draft Sale 3", draftSales.get(2).getTitle());
+    }
+
 }
