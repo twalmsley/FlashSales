@@ -1,4 +1,4 @@
-CREATE VIEW RemainingActiveStock AS 
+CREATE VIEW remaining_active_stock AS 
 SELECT 
     fs.id,
     fs.title,

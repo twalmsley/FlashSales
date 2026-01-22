@@ -86,7 +86,7 @@ public class FlashSaleItemRepositoryTest {
             // Use a JDBCTemplate to check that there are entries in the remaining active
             // stock view.
             final var jdbcTemplate = new JdbcTemplate(dataSource);
-            final var result = jdbcTemplate.queryForList("SELECT * FROM RemainingActiveStock");
+            final var result = jdbcTemplate.queryForList("SELECT * FROM remaining_active_stock");
             assertEquals(1, result.size());
             assertEquals(saleItemUuid, result.get(0).get("item_id"));
             assertEquals(2, result.get(0).get("sold_count"));
