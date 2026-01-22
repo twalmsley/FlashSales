@@ -28,7 +28,7 @@ public class DraftSalesService {
     private final FlashSaleRepository repository;
 
     private Function<FlashSale, ClientDraftSaleDto> toClientDraftSaleDto = sale -> {
-        List<DraftSaleProductDto> products = sale.getItems().stream()
+        final List<DraftSaleProductDto> products = sale.getItems().stream()
             .map(item -> new DraftSaleProductDto(
                 item.getProduct().getId().toString(),
                 item.getAllocatedStock(),
@@ -52,7 +52,7 @@ public class DraftSalesService {
      */
     @Cacheable(value = "draftSales", key = "#days")
     @Transactional(readOnly = true)
-    public List<ClientDraftSaleDto> getDraftSalesWithinDays(int days) {
+    public List<ClientDraftSaleDto> getDraftSalesWithinDays(final int days) {
         log.info("Getting draft sales within the next {} days", days);
         final OffsetDateTime currentTime = OffsetDateTime.now();
         final OffsetDateTime futureTime = currentTime.plusDays(days);
