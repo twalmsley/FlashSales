@@ -44,6 +44,7 @@ public class ProductRestApiFullStackTest {
 
     @Container
     @ServiceConnection(name = "redis")
+    @SuppressWarnings("resource")
     public static GenericContainer<?> redisContainer = new GenericContainer<>(DockerImageName.parse("redis:latest")).withExposedPorts(6379);
 
     @Autowired
