@@ -7,6 +7,7 @@ import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.aosd.flash.domain.FlashSale;
@@ -45,9 +46,11 @@ public class DraftSalesService {
     /**
      * Get all draft sales coming up within the next N days.
      *
-     * @param days the number of days to look ahead
+     * @param days
+     *            the number of days to look ahead
      * @return List of draft sales
      */
+    @Cacheable(value = "draftSales", key = "#days")
     @Transactional(readOnly = true)
     public List<ClientDraftSaleDto> getDraftSalesWithinDays(int days) {
         log.info("Getting draft sales within the next {} days", days);

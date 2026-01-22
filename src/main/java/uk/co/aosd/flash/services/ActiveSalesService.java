@@ -6,6 +6,7 @@ import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.aosd.flash.domain.RemainingActiveStock;
@@ -40,6 +41,7 @@ public class ActiveSalesService {
      *
      * @return List of active sales
      */
+    @Cacheable(value = "activeSales")
     @Transactional(readOnly = true)
     public List<ClientActiveSaleDto> getActiveSales() {
         log.info("Getting all active sales");
