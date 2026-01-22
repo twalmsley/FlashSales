@@ -169,7 +169,7 @@ public class FlashSalesServiceCreateFlashSaleFailuresTest {
         final OffsetDateTime startTime = OffsetDateTime.of(2026, 01, 01, 13, 0, 0, 0, ZoneOffset.UTC);
         final OffsetDateTime endTime = OffsetDateTime.of(2026, 01, 01, 14, 0, 0, 0, ZoneOffset.UTC);
         final SaleStatus status = SaleStatus.DRAFT;
-        final FlashSale newSale = new FlashSale(null, title, startTime, endTime, status);
+        final FlashSale newSale = new FlashSale(null, title, startTime, endTime, status, List.of());
 
         Mockito.when(sales.save(newSale)).thenThrow(DuplicateKeyException.class);
 
@@ -276,8 +276,8 @@ public class FlashSalesServiceCreateFlashSaleFailuresTest {
         final OffsetDateTime startTime = OffsetDateTime.of(2026, 01, 01, 12, 0, 0, 0, ZoneOffset.UTC);
         final OffsetDateTime endTime = OffsetDateTime.of(2026, 01, 01, 12, 10, 0, 0, ZoneOffset.UTC);
         final SaleStatus status = SaleStatus.DRAFT;
-        final FlashSale newSale = new FlashSale(null, title, startTime, endTime, status);
-        final FlashSale savedSale = new FlashSale(UUID.fromString("db22fee4-35d7-4b66-82b5-6e9f3c3643ea"), title, startTime, endTime, status);
+        final FlashSale newSale = new FlashSale(null, title, startTime, endTime, status, List.of());
+        final FlashSale savedSale = new FlashSale(UUID.fromString("db22fee4-35d7-4b66-82b5-6e9f3c3643ea"), title, startTime, endTime, status, List.of());
 
         Mockito.when(sales.save(newSale)).thenReturn(savedSale);
 

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -47,7 +48,7 @@ public class FlashSaleItemRepositoryTest {
             //
             final var startTime = OffsetDateTime.of(2026, 01, 01, 12, 0, 0, 0, ZoneOffset.UTC);
             final var endTime = startTime.plusHours(1);
-            final var flashSale = new FlashSale(null, "Test Sale 1", startTime, endTime, SaleStatus.ACTIVE);
+            final var flashSale = new FlashSale(null, "Test Sale 1", startTime, endTime, SaleStatus.ACTIVE, List.of());
             final var savedFlashSale = sales.save(flashSale);
 
             //
@@ -86,7 +87,7 @@ public class FlashSaleItemRepositoryTest {
             //
             final var startTime = OffsetDateTime.of(2026, 01, 01, 12, 0, 0, 0, ZoneOffset.UTC);
             final var endTime = startTime.plusHours(1);
-            final var flashSale = new FlashSale(null, "Test Sale 1", startTime, endTime, SaleStatus.COMPLETED);
+            final var flashSale = new FlashSale(null, "Test Sale 1", startTime, endTime, SaleStatus.COMPLETED, List.of());
             final var savedFlashSale = sales.save(flashSale);
 
             //
@@ -125,7 +126,7 @@ public class FlashSaleItemRepositoryTest {
             //
             final var startTime = OffsetDateTime.of(2026, 01, 01, 12, 0, 0, 0, ZoneOffset.UTC);
             final var endTime = startTime.plusHours(1);
-            final var flashSale = new FlashSale(null, "Test Sale 1", startTime, endTime, SaleStatus.ACTIVE);
+            final var flashSale = new FlashSale(null, "Test Sale 1", startTime, endTime, SaleStatus.ACTIVE, List.of());
             final var savedFlashSale = sales.save(flashSale);
 
             //

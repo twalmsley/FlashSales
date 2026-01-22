@@ -1,6 +1,8 @@
 package uk.co.aosd.flash.domain;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import jakarta.persistence.*;
@@ -32,4 +34,7 @@ public class FlashSale {
 
     @Enumerated(EnumType.STRING)
     private SaleStatus status;
+
+    @OneToMany(mappedBy = "flashSale", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private List<FlashSaleItem> items = new ArrayList<>();
 }

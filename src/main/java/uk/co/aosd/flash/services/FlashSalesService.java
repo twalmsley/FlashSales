@@ -74,7 +74,7 @@ public class FlashSalesService {
 
         try {
             // Save the flash sale.
-            final FlashSale s = new FlashSale(null, sale.title(), sale.startTime(), sale.endTime(), sale.status());
+            final FlashSale s = new FlashSale(null, sale.title(), sale.startTime(), sale.endTime(), sale.status(), List.of());
             log.debug("Saving FlashSale: " + s);
             final var saved = sales.save(s);
             log.debug("Saved FlashSale result: " + saved);
