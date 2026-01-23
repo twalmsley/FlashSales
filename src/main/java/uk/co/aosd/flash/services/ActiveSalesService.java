@@ -27,6 +27,7 @@ public class ActiveSalesService {
     private Function<RemainingActiveStock, ClientActiveSaleDto> toClientActiveSaleDto = stock -> {
         return new ClientActiveSaleDto(
             stock.getSaleId().toString(),
+            stock.getItemId().toString(),
             stock.getTitle(),
             stock.getStartTime(),
             stock.getEndTime(),

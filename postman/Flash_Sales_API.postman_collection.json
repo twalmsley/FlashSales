@@ -1,0 +1,330 @@
+{
+	"info": {
+		"_postman_id": "flash-sales-api-collection",
+		"name": "Flash Sales API",
+		"description": "Complete API collection for Flash Sales Demo App including order management",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Admin APIs",
+			"item": [
+				{
+					"name": "Admin Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/admin_api_status",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "admin_api_status"]
+						},
+						"description": "Check admin API status"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const location = pm.response.headers.get('Location');",
+									"    if (location) {",
+									"        const productId = location.split('/').pop();",
+									"        pm.environment.set('productId', productId);",
+									"        console.log('Product ID saved:', productId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Test Product\",\n    \"description\": \"A test product description\",\n    \"totalPhysicalStock\": 100,\n    \"basePrice\": 99.99,\n    \"reservedCount\": 0\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products"]
+						},
+						"description": "Create a new product. The product ID will be automatically saved to the productId environment variable."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products"]
+						},
+						"description": "Get all products"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", "{{productId}}"]
+						},
+						"description": "Get a specific product by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"{{productId}}\",\n    \"name\": \"Updated Product Name\",\n    \"description\": \"Updated description\",\n    \"totalPhysicalStock\": 150,\n    \"basePrice\": 89.99,\n    \"reservedCount\": 10\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", "{{productId}}"]
+						},
+						"description": "Update an existing product"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Product",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/products/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "products", "{{productId}}"]
+						},
+						"description": "Delete a product"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Flash Sale",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const location = pm.response.headers.get('Location');",
+									"    if (location) {",
+									"        const saleId = location.split('/').pop();",
+									"        pm.environment.set('saleId', saleId);",
+									"        console.log('Sale ID saved:', saleId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Summer Flash Sale\",\n    \"startTime\": \"2026-01-24T10:00:00Z\",\n    \"endTime\": \"2026-01-24T18:00:00Z\",\n    \"status\": \"DRAFT\",\n    \"products\": [\n        {\n            \"id\": \"{{productId}}\",\n            \"reservedCount\": 50\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/admin/flash_sale",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "admin", "flash_sale"]
+						},
+						"description": "Create a new flash sale. Make sure:\n- startTime is in the future\n- endTime is at least 5 minutes after startTime\n- productId is set in environment\n- reservedCount <= product's totalPhysicalStock"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Client APIs",
+			"item": [
+				{
+					"name": "Get Product By ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/clients/products/{{productId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "clients", "products", "{{productId}}"]
+						},
+						"description": "Get a client's view of a product"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Active Sales",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response && response.length > 0) {",
+									"        // Auto-set first flashSaleItemId from response",
+									"        const firstSale = response[0];",
+									"        if (firstSale.flashSaleItemId) {",
+									"            pm.environment.set('flashSaleItemId', firstSale.flashSaleItemId);",
+									"            console.log('Flash Sale Item ID saved:', firstSale.flashSaleItemId);",
+									"        }",
+									"        pm.environment.set('hasActiveSales', 'true');",
+									"    } else {",
+									"        pm.environment.set('hasActiveSales', 'false');",
+									"        console.log('No active sales found');",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/clients/sales/active",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "clients", "sales", "active"]
+						},
+						"description": "Get all active sales with remaining stock. The flashSaleItemId from the first sale will be automatically saved to the environment variable."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Draft Sales",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/clients/sales/draft/7",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "clients", "sales", "draft", "7"]
+						},
+						"description": "Get draft sales within the next N days (7 in this example). Change the number in the path to adjust days."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response && response.orderId) {",
+									"        pm.environment.set('orderId', response.orderId);",
+									"        console.log('Order ID saved:', response.orderId);",
+									"        console.log('Order Status:', response.status);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userId\": \"{{userId}}\",\n    \"flashSaleItemId\": \"{{flashSaleItemId}}\",\n    \"quantity\": 2\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/clients/orders",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "clients", "orders"]
+						},
+						"description": "Create a new order for an active sale. Requirements:\n1. First get active sales to find a flashSaleItemId (auto-set)\n2. Use a valid userId (UUID format)\n3. Ensure the sale is still active (check endTime)\n4. Ensure sufficient stock is available\n\nThe orderId will be automatically saved to the environment."
+					},
+					"response": []
+				},
+				{
+					"name": "Refund Order",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/v1/clients/orders/{{orderId}}/refund",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "v1", "clients", "orders", "{{orderId}}", "refund"]
+						},
+						"description": "Request a refund for a PAID order. Note: The order must be in PAID status to be refunded. Check application logs to see when payment processing completes."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+}

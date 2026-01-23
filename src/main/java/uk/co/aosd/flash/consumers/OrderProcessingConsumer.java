@@ -24,7 +24,8 @@ public class OrderProcessingConsumer {
     /**
      * Listen to order processing queue and process payment.
      *
-     * @param orderIdStr the order ID as string
+     * @param orderIdStr
+     *            the order ID as string
      */
     @RabbitListener(queues = RabbitMQConfig.ORDER_PROCESSING_QUEUE)
     public void processOrder(final String orderIdStr) {

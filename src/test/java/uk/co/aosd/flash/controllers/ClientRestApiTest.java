@@ -116,6 +116,7 @@ public class ClientRestApiTest {
 
         final ClientActiveSaleDto sale1 = new ClientActiveSaleDto(
             "547cf74d-7b64-44ea-b70f-cbcde09cadc9",
+            "ab3b715e-e2c2-4c28-925d-83ac93c32d02",
             "Sale 1",
             startTime,
             endTime,
@@ -126,6 +127,7 @@ public class ClientRestApiTest {
 
         final ClientActiveSaleDto sale2 = new ClientActiveSaleDto(
             "1c05690e-cd9a-42ee-9f15-194b4c454216",
+            "d4e5f6a7-b8c9-d0e1-f2a3-b4c5d6e7f8a9",
             "Sale 2",
             startTime.plusDays(1),
             endTime.plusDays(1),
@@ -149,6 +151,7 @@ public class ClientRestApiTest {
 
         assertEquals(2, result.size());
         assertEquals(sale1.saleId(), result.get(0).saleId());
+        assertEquals(sale1.flashSaleItemId(), result.get(0).flashSaleItemId());
         assertEquals(sale1.title(), result.get(0).title());
         assertEquals(sale1.productId(), result.get(0).productId());
         assertEquals(sale1.allocatedStock(), result.get(0).allocatedStock());
@@ -156,6 +159,7 @@ public class ClientRestApiTest {
         assertEquals(0, sale1.salePrice().compareTo(result.get(0).salePrice()));
 
         assertEquals(sale2.saleId(), result.get(1).saleId());
+        assertEquals(sale2.flashSaleItemId(), result.get(1).flashSaleItemId());
         assertEquals(sale2.title(), result.get(1).title());
         assertEquals(sale2.productId(), result.get(1).productId());
         assertEquals(sale2.allocatedStock(), result.get(1).allocatedStock());

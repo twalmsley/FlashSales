@@ -26,7 +26,6 @@ class TestcontainersConfiguration {
 
     @Bean
     @ServiceConnection
-    @SuppressWarnings("resource")
     RabbitMQContainer rabbitMQContainer() {
         return new RabbitMQContainer(DockerImageName.parse("rabbitmq:latest"));
     }

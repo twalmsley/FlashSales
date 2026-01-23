@@ -23,7 +23,6 @@ import uk.co.aosd.flash.dto.ClientProductDto;
 import uk.co.aosd.flash.dto.CreateOrderDto;
 import uk.co.aosd.flash.dto.OrderResponseDto;
 import uk.co.aosd.flash.dto.ProductDto;
-import uk.co.aosd.flash.dto.RefundOrderDto;
 import uk.co.aosd.flash.services.ActiveSalesService;
 import uk.co.aosd.flash.services.DraftSalesService;
 import uk.co.aosd.flash.services.OrderService;
@@ -85,7 +84,8 @@ public class ClientRestApi {
     /**
      * Get all DRAFT flash sales coming up within the next N days.
      *
-     * @param days the number of days to look ahead
+     * @param days
+     *            the number of days to look ahead
      * @return List of draft sales
      */
     @GetMapping("/sales/draft/{days}")
@@ -103,7 +103,8 @@ public class ClientRestApi {
     /**
      * Create a new order for an active sale.
      *
-     * @param createOrderDto the order creation DTO
+     * @param createOrderDto
+     *            the order creation DTO
      * @return OrderResponseDto with order status
      */
     @PostMapping("/orders")
@@ -122,7 +123,8 @@ public class ClientRestApi {
     /**
      * Request a refund for a PAID order.
      *
-     * @param orderId the order ID
+     * @param orderId
+     *            the order ID
      * @return ResponseEntity with success message
      */
     @PostMapping("/orders/{orderId}/refund")

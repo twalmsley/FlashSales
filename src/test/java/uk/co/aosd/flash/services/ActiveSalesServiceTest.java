@@ -109,6 +109,7 @@ public class ActiveSalesServiceTest {
 
         final ClientActiveSaleDto dto = activeSales.get(0);
         assertEquals(saleId1, dto.saleId());
+        assertEquals(itemId1, dto.flashSaleItemId());
         assertEquals("Test Sale", dto.title());
         assertEquals(startTime, dto.startTime());
         assertEquals(endTime, dto.endTime());

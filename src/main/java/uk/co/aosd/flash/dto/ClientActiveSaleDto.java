@@ -10,6 +10,7 @@ import java.time.OffsetDateTime;
  */
 public record ClientActiveSaleDto(
     String saleId,
+    String flashSaleItemId,
     String title,
     OffsetDateTime startTime,
     OffsetDateTime endTime,

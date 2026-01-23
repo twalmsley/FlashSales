@@ -23,6 +23,7 @@ public class ClientActiveSaleDtoTest {
 
         final ClientActiveSaleDto dto = new ClientActiveSaleDto(
             "sale-1",
+            "item-1",
             "Test Sale",
             startTime,
             endTime,
@@ -46,6 +47,7 @@ public class ClientActiveSaleDtoTest {
 
         final ClientActiveSaleDto dto = new ClientActiveSaleDto(
             "sale-1",
+            "item-1",
             "Test Sale",
             startTime,
             endTime,
@@ -67,6 +69,7 @@ public class ClientActiveSaleDtoTest {
 
         final ClientActiveSaleDto dto = new ClientActiveSaleDto(
             "sale-1",
+            "item-1",
             "Test Sale",
             startTime,
             endTime,
@@ -88,6 +91,7 @@ public class ClientActiveSaleDtoTest {
 
         final ClientActiveSaleDto dto = new ClientActiveSaleDto(
             "sale-1",
+            "item-1",
             "Test Sale",
             startTime,
             endTime,

@@ -11,10 +11,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import uk.co.aosd.flash.config.RabbitMQConfig;
 import uk.co.aosd.flash.domain.FlashSaleItem;
 import uk.co.aosd.flash.domain.Order;
 import uk.co.aosd.flash.domain.OrderStatus;
+import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.CreateOrderDto;
 import uk.co.aosd.flash.dto.OrderResponseDto;
 import uk.co.aosd.flash.exc.InsufficientStockException;
@@ -82,7 +85,27 @@ public class OrderService {
                 availableStock);
         }
 
-        // Create order
+        // Check sale status is ACTIVE (required for incrementSoldCount)
+        if (flashSaleItem.getFlashSale().getStatus() != SaleStatus.ACTIVE) {
+            log.warn("Sale is not ACTIVE. Current status: {}", flashSaleItem.getFlashSale().getStatus());
+            throw new SaleNotActiveException(
+                flashSaleItem.getFlashSale().getId(),
+                flashSaleItem.getFlashSale().getEndTime(),
+                now);
+        }
+
+        // Atomically increment sold count FIRST (before creating order)
+        // This ensures we don't create orders that can't be fulfilled
+        final int updated = flashSaleItemRepository.incrementSoldCount(flashSaleItem.getId(), createOrderDto.quantity());
+        if (updated == 0) {
+            log.error("Failed to increment sold count for flash sale item {}. Sale may not be ACTIVE or stock insufficient.", flashSaleItem.getId());
+            throw new InsufficientStockException(
+                createOrderDto.flashSaleItemId(),
+                createOrderDto.quantity(),
+                availableStock);
+        }
+
+        // Create order AFTER successful increment
         final Order order = new Order();
         order.setUserId(createOrderDto.userId());
         order.setFlashSaleItem(flashSaleItem);
@@ -95,23 +118,28 @@ public class OrderService {
         final Order savedOrder = orderRepository.save(order);
         log.info("Created order: {}", savedOrder.getId());
 
-        // Atomically increment sold count
-        final int updated = flashSaleItemRepository.incrementSoldCount(flashSaleItem.getId(), createOrderDto.quantity());
-        if (updated == 0) {
-            log.error("Failed to increment sold count for flash sale item {}", flashSaleItem.getId());
-            throw new InsufficientStockException(
-                createOrderDto.flashSaleItemId(),
-                createOrderDto.quantity(),
-                availableStock);
+        // Queue order for processing AFTER transaction commits
+        // This ensures the order is visible in the database when the consumer processes it
+        final UUID orderIdToQueue = savedOrder.getId();
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    rabbitTemplate.convertAndSend(
+                        RabbitMQConfig.ORDER_EXCHANGE,
+                        RabbitMQConfig.ROUTING_KEY_PROCESSING,
+                        orderIdToQueue.toString());
+                    log.info("Queued order {} for processing (after transaction commit)", orderIdToQueue);
+                }
+            });
+        } else {
+            // No active transaction, send immediately (e.g., in tests)
+            rabbitTemplate.convertAndSend(
+                RabbitMQConfig.ORDER_EXCHANGE,
+                RabbitMQConfig.ROUTING_KEY_PROCESSING,
+                orderIdToQueue.toString());
+            log.info("Queued order {} for processing", orderIdToQueue);
         }
-
-        // Queue order for processing
-        rabbitTemplate.convertAndSend(
-            RabbitMQConfig.ORDER_EXCHANGE,
-            RabbitMQConfig.ROUTING_KEY_PROCESSING,
-            savedOrder.getId().toString());
-
-        log.info("Queued order {} for processing", savedOrder.getId());
 
         return new OrderResponseDto(savedOrder.getId(), OrderStatus.PENDING, "Order created and queued for processing");
     }
@@ -145,25 +173,51 @@ public class OrderService {
             orderRepository.save(order);
             log.info("Payment succeeded for order {}. Status updated to PAID", orderId);
 
-            // Queue for dispatch
-            rabbitTemplate.convertAndSend(
-                RabbitMQConfig.ORDER_EXCHANGE,
-                RabbitMQConfig.ROUTING_KEY_DISPATCH,
-                orderId.toString());
-
-            log.info("Queued order {} for dispatch", orderId);
+            // Queue for dispatch AFTER transaction commits
+            final UUID dispatchOrderId = orderId;
+            if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        rabbitTemplate.convertAndSend(
+                            RabbitMQConfig.ORDER_EXCHANGE,
+                            RabbitMQConfig.ROUTING_KEY_DISPATCH,
+                            dispatchOrderId.toString());
+                        log.info("Queued order {} for dispatch (after transaction commit)", dispatchOrderId);
+                    }
+                });
+            } else {
+                rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.ORDER_EXCHANGE,
+                    RabbitMQConfig.ROUTING_KEY_DISPATCH,
+                    dispatchOrderId.toString());
+                log.info("Queued order {} for dispatch", dispatchOrderId);
+            }
         } else {
             order.setStatus(OrderStatus.FAILED);
             orderRepository.save(order);
             log.warn("Payment failed for order {}. Status updated to FAILED", orderId);
 
-            // Queue for failed payment handling
-            rabbitTemplate.convertAndSend(
-                RabbitMQConfig.ORDER_EXCHANGE,
-                RabbitMQConfig.ROUTING_KEY_PAYMENT_FAILED,
-                orderId.toString());
-
-            log.info("Queued order {} for failed payment handling", orderId);
+            // Queue for failed payment handling AFTER transaction commits
+            final UUID failedOrderId = orderId;
+            if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        rabbitTemplate.convertAndSend(
+                            RabbitMQConfig.ORDER_EXCHANGE,
+                            RabbitMQConfig.ROUTING_KEY_PAYMENT_FAILED,
+                            failedOrderId.toString());
+                        log.info("Queued order {} for failed payment handling (after transaction commit)", failedOrderId);
+                    }
+                });
+            } else {
+                rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.ORDER_EXCHANGE,
+                    RabbitMQConfig.ROUTING_KEY_PAYMENT_FAILED,
+                    failedOrderId.toString());
+                log.info("Queued order {} for failed payment handling", failedOrderId);
+            }
         }
     }
 
@@ -204,16 +258,30 @@ public class OrderService {
         orderRepository.save(order);
         log.info("Order {} status updated to REFUNDED", orderId);
 
-        // Queue for refund notification
-        rabbitTemplate.convertAndSend(
-            RabbitMQConfig.ORDER_EXCHANGE,
-            RabbitMQConfig.ROUTING_KEY_REFUND,
-            orderId.toString());
+        // Queue for refund notification AFTER transaction commits
+        final UUID refundOrderId = orderId;
+        final UUID refundUserId = order.getUserId();
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    rabbitTemplate.convertAndSend(
+                        RabbitMQConfig.ORDER_EXCHANGE,
+                        RabbitMQConfig.ROUTING_KEY_REFUND,
+                        refundOrderId.toString());
+                    log.info("Queued order {} for refund notification (after transaction commit)", refundOrderId);
+                }
+            });
+        } else {
+            rabbitTemplate.convertAndSend(
+                RabbitMQConfig.ORDER_EXCHANGE,
+                RabbitMQConfig.ROUTING_KEY_REFUND,
+                refundOrderId.toString());
+            log.info("Queued order {} for refund notification", refundOrderId);
+        }
 
-        log.info("Queued order {} for refund notification", orderId);
-
-        // Notify user
-        notificationService.sendRefundNotification(order.getUserId(), orderId);
+        // Notify user (can be done synchronously as it's just logging)
+        notificationService.sendRefundNotification(refundUserId, refundOrderId);
     }
 
     /**
