@@ -193,6 +193,25 @@ public class FlashSalesService {
                 sales.save(sale);
                 completedCount++;
                 log.info("Completed FlashSale: {} (endTime: {})", sale.getId(), sale.getEndTime());
+                
+                // Release unsold stock for each sale item
+                for (final FlashSaleItem item : sale.getItems()) {
+                    final int difference = item.getAllocatedStock() - item.getSoldCount();
+                    if (difference > 0) {
+                        // Reduce allocated stock to match sold count
+                        item.setAllocatedStock(item.getSoldCount());
+                        items.save(item);
+                        
+                        // Release reserved count from product
+                        final Product product = item.getProduct();
+                        final int newReservedCount = product.getReservedCount() - difference;
+                        product.setReservedCount(newReservedCount);
+                        products.save(product);
+                        
+                        log.debug("Released {} unsold units for product {} in sale {}", 
+                            difference, product.getId(), sale.getId());
+                    }
+                }
             }
         }
         
