@@ -103,4 +103,66 @@ public class FlashSaleRepositoryTest {
         assertEquals("Draft Sale 3", draftSales.get(2).getTitle());
     }
 
+    @Test
+    public void shouldFindDraftSalesReadyToActivate() {
+        final var now = OffsetDateTime.now();
+        final var currentTime = now.withSecond(0).withNano(0);
+
+        // Create draft sales ready to activate (start time in the past)
+        final var draftSale1 = new FlashSale(null, "Draft Sale Ready 1", currentTime.minusHours(1), currentTime.plusHours(1), SaleStatus.DRAFT, List.of());
+        final var draftSale2 = new FlashSale(null, "Draft Sale Ready 2", currentTime.minusMinutes(30), currentTime.plusHours(1), SaleStatus.DRAFT, List.of());
+        final var draftSale3 = new FlashSale(null, "Draft Sale Ready 3", currentTime, currentTime.plusHours(1), SaleStatus.DRAFT, List.of());
+
+        // Create draft sales not ready (start time in the future)
+        final var draftSale4 = new FlashSale(null, "Draft Sale Future 1", currentTime.plusHours(1), currentTime.plusHours(2), SaleStatus.DRAFT, List.of());
+        final var draftSale5 = new FlashSale(null, "Draft Sale Future 2", currentTime.plusDays(1), currentTime.plusDays(1).plusHours(1), SaleStatus.DRAFT, List.of());
+
+        // Create an active sale (should not be included)
+        final var activeSale = new FlashSale(null, "Active Sale", currentTime.minusHours(2), currentTime.plusHours(1), SaleStatus.ACTIVE, List.of());
+
+        sales.save(draftSale1);
+        sales.save(draftSale2);
+        sales.save(draftSale3);
+        sales.save(draftSale4);
+        sales.save(draftSale5);
+        sales.save(activeSale);
+
+        final var readySales = sales.findDraftSalesReadyToActivate(SaleStatus.DRAFT, currentTime);
+        assertEquals(3, readySales.size());
+        assertEquals("Draft Sale Ready 1", readySales.get(0).getTitle());
+        assertEquals("Draft Sale Ready 2", readySales.get(1).getTitle());
+        assertEquals("Draft Sale Ready 3", readySales.get(2).getTitle());
+    }
+
+    @Test
+    public void shouldFindActiveSalesReadyToComplete() {
+        final var now = OffsetDateTime.now();
+        final var currentTime = now.withSecond(0).withNano(0);
+
+        // Create active sales ready to complete (end time in the past)
+        final var activeSale1 = new FlashSale(null, "Active Sale Ready 1", currentTime.minusHours(2), currentTime.minusHours(1), SaleStatus.ACTIVE, List.of());
+        final var activeSale2 = new FlashSale(null, "Active Sale Ready 2", currentTime.minusHours(3), currentTime.minusMinutes(30), SaleStatus.ACTIVE, List.of());
+        final var activeSale3 = new FlashSale(null, "Active Sale Ready 3", currentTime.minusHours(1), currentTime, SaleStatus.ACTIVE, List.of());
+
+        // Create active sales not ready (end time in the future)
+        final var activeSale4 = new FlashSale(null, "Active Sale Future 1", currentTime.minusHours(1), currentTime.plusHours(1), SaleStatus.ACTIVE, List.of());
+        final var activeSale5 = new FlashSale(null, "Active Sale Future 2", currentTime, currentTime.plusDays(1), SaleStatus.ACTIVE, List.of());
+
+        // Create a completed sale (should not be included)
+        final var completedSale = new FlashSale(null, "Completed Sale", currentTime.minusHours(3), currentTime.minusHours(2), SaleStatus.COMPLETED, List.of());
+
+        sales.save(activeSale1);
+        sales.save(activeSale2);
+        sales.save(activeSale3);
+        sales.save(activeSale4);
+        sales.save(activeSale5);
+        sales.save(completedSale);
+
+        final var readySales = sales.findActiveSalesReadyToComplete(SaleStatus.ACTIVE, currentTime);
+        assertEquals(3, readySales.size());
+        assertEquals("Active Sale Ready 1", readySales.get(0).getTitle());
+        assertEquals("Active Sale Ready 2", readySales.get(1).getTitle());
+        assertEquals("Active Sale Ready 3", readySales.get(2).getTitle());
+    }
+
 }

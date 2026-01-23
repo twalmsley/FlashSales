@@ -1,5 +1,6 @@
 package uk.co.aosd.flash.services;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import uk.co.aosd.flash.domain.FlashSale;
 import uk.co.aosd.flash.domain.FlashSaleItem;
 import uk.co.aosd.flash.domain.Product;
+import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.CreateSaleDto;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.InsufficientResourcesException;
@@ -128,6 +130,74 @@ public class FlashSalesService {
             log.error("Invalid UUID String: {}", e.getMessage());
             throw new ProductNotFoundException(e.getMessage());
         }
+    }
+
+    /**
+     * Activates DRAFT sales whose start time has passed.
+     * This method is called by the scheduled job to transition sales from DRAFT to ACTIVE.
+     *
+     * @return the number of sales activated
+     */
+    @Transactional
+    public int activateDraftSales() {
+        final OffsetDateTime now = OffsetDateTime.now();
+        log.debug("Checking for DRAFT sales ready to activate at {}", now);
+        
+        final List<FlashSale> draftSales = sales.findDraftSalesReadyToActivate(SaleStatus.DRAFT, now);
+        
+        if (draftSales.isEmpty()) {
+            log.debug("No DRAFT sales found ready to activate");
+            return 0;
+        }
+        
+        log.info("Found {} DRAFT sale(s) ready to activate", draftSales.size());
+        
+        int activatedCount = 0;
+        for (final FlashSale sale : draftSales) {
+            if (sale.getStatus() == SaleStatus.DRAFT && (sale.getStartTime().isBefore(now) || sale.getStartTime().isEqual(now))) {
+                sale.setStatus(SaleStatus.ACTIVE);
+                sales.save(sale);
+                activatedCount++;
+                log.info("Activated FlashSale: {} (startTime: {})", sale.getId(), sale.getStartTime());
+            }
+        }
+        
+        log.info("Activated {} DRAFT sale(s)", activatedCount);
+        return activatedCount;
+    }
+
+    /**
+     * Completes ACTIVE sales whose end time has passed.
+     * This method is called by the scheduled job to transition sales from ACTIVE to COMPLETED.
+     *
+     * @return the number of sales completed
+     */
+    @Transactional
+    public int completeActiveSales() {
+        final OffsetDateTime now = OffsetDateTime.now();
+        log.debug("Checking for ACTIVE sales ready to complete at {}", now);
+        
+        final List<FlashSale> activeSales = sales.findActiveSalesReadyToComplete(SaleStatus.ACTIVE, now);
+        
+        if (activeSales.isEmpty()) {
+            log.debug("No ACTIVE sales found ready to complete");
+            return 0;
+        }
+        
+        log.info("Found {} ACTIVE sale(s) ready to complete", activeSales.size());
+        
+        int completedCount = 0;
+        for (final FlashSale sale : activeSales) {
+            if (sale.getStatus() == SaleStatus.ACTIVE && (sale.getEndTime().isBefore(now) || sale.getEndTime().isEqual(now))) {
+                sale.setStatus(SaleStatus.COMPLETED);
+                sales.save(sale);
+                completedCount++;
+                log.info("Completed FlashSale: {} (endTime: {})", sale.getId(), sale.getEndTime());
+            }
+        }
+        
+        log.info("Completed {} ACTIVE sale(s)", completedCount);
+        return completedCount;
     }
 
 }

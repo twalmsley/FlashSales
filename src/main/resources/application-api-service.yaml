@@ -17,6 +17,16 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: always  # Auto-create Quartz tables on startup
+    properties:
+      org:
+        quartz:
+          jobStore:
+            driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+
   rabbitmq:
     host: localhost
     port: 5672
@@ -32,3 +42,5 @@ spring:
 app:
   settings:
     min-sale-duration-minutes: 5
+  scheduler:
+    interval-seconds: 30  # Default: check every 30 seconds

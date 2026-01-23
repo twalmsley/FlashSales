@@ -29,4 +29,26 @@ public interface FlashSaleRepository extends JpaRepository<FlashSale, UUID> {
      */
     @Query("SELECT DISTINCT fs FROM FlashSale fs LEFT JOIN FETCH fs.items item LEFT JOIN FETCH item.product WHERE fs.status = :status AND fs.startTime >= :currentTime AND fs.startTime <= :futureTime ORDER BY fs.startTime ASC")
     List<FlashSale> findDraftSalesWithinDays(@Param("status") SaleStatus status, @Param("currentTime") OffsetDateTime currentTime, @Param("futureTime") OffsetDateTime futureTime);
+
+    /**
+     * Find DRAFT sales that are ready to be activated (start time has passed).
+     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading issues.
+     *
+     * @param status the sale status (should be DRAFT)
+     * @param currentTime the current time
+     * @return list of draft sales ready to activate
+     */
+    @Query("SELECT DISTINCT fs FROM FlashSale fs LEFT JOIN FETCH fs.items item LEFT JOIN FETCH item.product WHERE fs.status = :status AND fs.startTime <= :currentTime ORDER BY fs.startTime ASC")
+    List<FlashSale> findDraftSalesReadyToActivate(@Param("status") SaleStatus status, @Param("currentTime") OffsetDateTime currentTime);
+
+    /**
+     * Find ACTIVE sales that are ready to be completed (end time has passed).
+     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading issues.
+     *
+     * @param status the sale status (should be ACTIVE)
+     * @param currentTime the current time
+     * @return list of active sales ready to complete
+     */
+    @Query("SELECT DISTINCT fs FROM FlashSale fs LEFT JOIN FETCH fs.items item LEFT JOIN FETCH item.product WHERE fs.status = :status AND fs.endTime <= :currentTime ORDER BY fs.endTime ASC")
+    List<FlashSale> findActiveSalesReadyToComplete(@Param("status") SaleStatus status, @Param("currentTime") OffsetDateTime currentTime);
 }
