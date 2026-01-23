@@ -120,6 +120,9 @@ public class OrderService {
         final Order savedOrder = orderRepository.save(order);
         log.info("Created order: {}", savedOrder.getId());
 
+        // Send order confirmation notification
+        notificationService.sendOrderConfirmation(createOrderDto.userId(), savedOrder.getId());
+
         // Queue order for processing AFTER transaction commits
         // This ensures the order is visible in the database when the consumer processes it
         final UUID orderIdToQueue = savedOrder.getId();

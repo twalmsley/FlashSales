@@ -103,6 +103,7 @@ public class OrderServiceTest {
         assertNotNull(response.orderId());
         assertEquals(OrderStatus.PENDING, response.status());
         Mockito.verify(rabbitTemplate).convertAndSend(eq("order.exchange"), eq("order.processing"), any(String.class));
+        Mockito.verify(notificationService).sendOrderConfirmation(eq(userId), eq(response.orderId()));
     }
 
     @Test
