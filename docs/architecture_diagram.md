@@ -9,11 +9,11 @@ graph TB
     %% API Layer - Client APIs
     subgraph "API Layer - Client APIs (api-service profile)"
         ClientAPI[ClientRestApi<br/>/api/v1/clients]
-        ClientAPI --> |GET /products/{id}| ProductsService
-        ClientAPI --> |GET /sales/active| ActiveSalesService
-        ClientAPI --> |GET /sales/draft/{days}| DraftSalesService
-        ClientAPI --> |POST /orders| OrderService
-        ClientAPI --> |POST /orders/{id}/refund| OrderService
+        ClientAPI --> |"GET /products/{id}"| ProductsService
+        ClientAPI --> |"GET /sales/active"| ActiveSalesService
+        ClientAPI --> |"GET /sales/draft/{days}"| DraftSalesService
+        ClientAPI --> |"POST /orders"| OrderService
+        ClientAPI --> |"POST /orders/{id}/refund"| OrderService
     end
     
     %% API Layer - Admin APIs
@@ -22,8 +22,8 @@ graph TB
         FlashSaleAdminAPI[FlashSaleAdminRestApi<br/>/api/v1/admin]
         ProductAPI[ProductRestApi<br/>/api/v1/products]
         
-        FlashSaleAdminAPI --> |POST /flash_sale| FlashSalesService
-        ProductAPI --> |CRUD operations| ProductsService
+        FlashSaleAdminAPI --> |"POST /flash_sale"| FlashSalesService
+        ProductAPI --> |"CRUD operations"| ProductsService
     end
     
     %% Service Layer
@@ -39,11 +39,11 @@ graph TB
     
     %% Scheduled Jobs
     subgraph "Scheduled Jobs (Quartz)"
-        ActivateJob[ActivateDraftSalesJob<br/>Runs every 30s<br/>Activates DRAFT → ACTIVE]
-        CompleteJob[CompleteActiveSalesJob<br/>Runs every 30s<br/>Completes ACTIVE → COMPLETED]
+        ActivateJob[ActivateDraftSalesJob<br/>Runs every 30s<br/>Activates DRAFT to ACTIVE]
+        CompleteJob[CompleteActiveSalesJob<br/>Runs every 30s<br/>Completes ACTIVE to COMPLETED]
         
-        ActivateJob --> |calls| FlashSalesService
-        CompleteJob --> |calls| FlashSalesService
+        ActivateJob --> |"calls"| FlashSalesService
+        CompleteJob --> |"calls"| FlashSalesService
     end
     
     %% Message Queue Consumers
@@ -53,10 +53,10 @@ graph TB
         FailedPaymentConsumer[FailedPaymentConsumer<br/>order.payment.failed queue]
         RefundConsumer[RefundConsumer<br/>order.refund queue]
         
-        OrderProcessingConsumer --> |processOrderPayment| OrderService
-        DispatchConsumer --> |processDispatch| OrderService
-        FailedPaymentConsumer --> |processFailedPayment| OrderService
-        RefundConsumer --> |sendRefundNotification| NotificationService
+        OrderProcessingConsumer --> |"processOrderPayment"| OrderService
+        DispatchConsumer --> |"processDispatch"| OrderService
+        FailedPaymentConsumer --> |"processFailedPayment"| OrderService
+        RefundConsumer --> |"sendRefundNotification"| NotificationService
     end
     
     %% Message Queue Infrastructure
@@ -67,10 +67,10 @@ graph TB
         PaymentFailedQueue[order.payment.failed<br/>Queue]
         RefundQueue[order.refund<br/>Queue]
         
-        OrderExchange --> |routing: order.processing| ProcessingQueue
-        OrderExchange --> |routing: order.dispatch| DispatchQueue
-        OrderExchange --> |routing: order.payment.failed| PaymentFailedQueue
-        OrderExchange --> |routing: order.refund| RefundQueue
+        OrderExchange --> |"routing: order.processing"| ProcessingQueue
+        OrderExchange --> |"routing: order.dispatch"| DispatchQueue
+        OrderExchange --> |"routing: order.payment.failed"| PaymentFailedQueue
+        OrderExchange --> |"routing: order.refund"| RefundQueue
     end
     
     %% Repository Layer
@@ -135,15 +135,15 @@ graph TB
     RemainingActiveStock --> RemainingActiveStockView
     
     %% Cache connections
-    ProductsService -.->|@Cacheable| ProductsCache
-    ActiveSalesService -.->|@Cacheable| ActiveSalesCache
-    DraftSalesService -.->|@Cacheable| DraftSalesCache
-    ProductsCache -.->|cache miss| ProductsTable
-    ActiveSalesCache -.->|cache miss| RemainingActiveStockView
-    DraftSalesCache -.->|cache miss| FlashSalesTable
+    ProductsService -.->|"@Cacheable"| ProductsCache
+    ActiveSalesService -.->|"@Cacheable"| ActiveSalesCache
+    DraftSalesService -.->|"@Cacheable"| DraftSalesCache
+    ProductsCache -.->|"cache miss"| ProductsTable
+    ActiveSalesCache -.->|"cache miss"| RemainingActiveStockView
+    DraftSalesCache -.->|"cache miss"| FlashSalesTable
     
     %% Message Queue connections
-    OrderService --> |publishes after commit| OrderExchange
+    OrderService --> |"publishes after commit"| OrderExchange
     ProcessingQueue --> OrderProcessingConsumer
     DispatchQueue --> DispatchConsumer
     PaymentFailedQueue --> FailedPaymentConsumer
