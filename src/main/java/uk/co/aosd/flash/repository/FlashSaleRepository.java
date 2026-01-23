@@ -51,4 +51,33 @@ public interface FlashSaleRepository extends JpaRepository<FlashSale, UUID> {
      */
     @Query("SELECT DISTINCT fs FROM FlashSale fs LEFT JOIN FETCH fs.items item LEFT JOIN FETCH item.product WHERE fs.status = :status AND fs.endTime <= :currentTime ORDER BY fs.endTime ASC")
     List<FlashSale> findActiveSalesReadyToComplete(@Param("status") SaleStatus status, @Param("currentTime") OffsetDateTime currentTime);
+
+    /**
+     * Find all flash sales with optional filters for status and date range.
+     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading issues.
+     *
+     * @param status optional status filter
+     * @param startDate optional start date filter (sales with startTime >= startDate)
+     * @param endDate optional end date filter (sales with endTime <= endDate)
+     * @return list of flash sales matching the filters, ordered by startTime
+     */
+    @Query("SELECT DISTINCT fs FROM FlashSale fs LEFT JOIN FETCH fs.items item LEFT JOIN FETCH item.product " +
+           "WHERE (:status IS NULL OR fs.status = :status) " +
+           "AND (:startDate IS NULL OR fs.startTime >= :startDate) " +
+           "AND (:endDate IS NULL OR fs.endTime <= :endDate) " +
+           "ORDER BY fs.startTime ASC")
+    List<FlashSale> findAllWithFilters(
+        @Param("status") SaleStatus status,
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate);
+
+    /**
+     * Find a flash sale by ID with items and products eagerly loaded.
+     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading issues.
+     *
+     * @param id the flash sale ID
+     * @return optional flash sale with items and products loaded
+     */
+    @Query("SELECT DISTINCT fs FROM FlashSale fs LEFT JOIN FETCH fs.items item LEFT JOIN FETCH item.product WHERE fs.id = :id")
+    java.util.Optional<FlashSale> findByIdWithItems(@Param("id") UUID id);
 }

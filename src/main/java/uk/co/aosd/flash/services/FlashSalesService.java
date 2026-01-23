@@ -19,6 +19,9 @@ import uk.co.aosd.flash.domain.FlashSaleItem;
 import uk.co.aosd.flash.domain.Product;
 import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.CreateSaleDto;
+import uk.co.aosd.flash.dto.FlashSaleItemDto;
+import uk.co.aosd.flash.dto.FlashSaleResponseDto;
+import uk.co.aosd.flash.dto.UpdateFlashSaleDto;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.FlashSaleNotFoundException;
 import uk.co.aosd.flash.exc.InsufficientResourcesException;
@@ -273,6 +276,174 @@ public class FlashSalesService {
         sale.setStatus(SaleStatus.CANCELLED);
         sales.save(sale);
         log.info("Cancelled FlashSale: {} (previous status: {})", saleId, previousStatus);
+    }
+
+    /**
+     * Get all flash sales with optional filters.
+     *
+     * @param status optional status filter
+     * @param startDate optional start date filter
+     * @param endDate optional end date filter
+     * @return list of flash sales matching the filters
+     */
+    public List<FlashSaleResponseDto> getAllFlashSales(final SaleStatus status, final OffsetDateTime startDate, final OffsetDateTime endDate) {
+        log.debug("Getting all flash sales with filters: status={}, startDate={}, endDate={}", status, startDate, endDate);
+        final List<FlashSale> flashSales = sales.findAllWithFilters(status, startDate, endDate);
+        final List<FlashSaleResponseDto> result = flashSales.stream()
+            .map(this::mapToResponseDto)
+            .collect(Collectors.toList());
+        log.info("Found {} flash sale(s)", result.size());
+        return result;
+    }
+
+    /**
+     * Get a flash sale by ID.
+     *
+     * @param id the flash sale ID
+     * @return the flash sale DTO
+     * @throws FlashSaleNotFoundException if the sale is not found
+     */
+    public FlashSaleResponseDto getFlashSaleById(final UUID id) {
+        log.debug("Getting flash sale by ID: {}", id);
+        final FlashSale sale = sales.findByIdWithItems(id)
+            .orElseThrow(() -> {
+                log.error("Flash sale not found: {}", id);
+                return new FlashSaleNotFoundException(id);
+            });
+        return mapToResponseDto(sale);
+    }
+
+    /**
+     * Update a flash sale.
+     *
+     * @param id the flash sale ID
+     * @param updateDto the update DTO
+     * @return the updated flash sale DTO
+     * @throws FlashSaleNotFoundException if the sale is not found
+     * @throws InvalidSaleTimesException if the times are invalid
+     * @throws SaleDurationTooShortException if the duration is too short
+     */
+    @Transactional
+    public FlashSaleResponseDto updateFlashSale(final UUID id, @Valid final UpdateFlashSaleDto updateDto) {
+        log.info("Updating FlashSale: {} with {}", id, updateDto);
+        
+        final FlashSale sale = sales.findById(id)
+            .orElseThrow(() -> {
+                log.error("Flash sale not found: {}", id);
+                return new FlashSaleNotFoundException(id);
+            });
+        
+        // Determine the times to use (updateDto values or existing values)
+        final OffsetDateTime newStartTime = updateDto.startTime() != null ? updateDto.startTime() : sale.getStartTime();
+        final OffsetDateTime newEndTime = updateDto.endTime() != null ? updateDto.endTime() : sale.getEndTime();
+        
+        // Validate times if both are provided or being updated
+        if (updateDto.startTime() != null || updateDto.endTime() != null) {
+            if (!newStartTime.isBefore(newEndTime)) {
+                log.error("Failed to update FlashSale due to start-after-end: startTime={}, endTime={}", newStartTime, newEndTime);
+                throw new InvalidSaleTimesException(newStartTime, newEndTime);
+            }
+            
+            // Validate minimum duration
+            final var durationMinutes = ((float) (newEndTime.toInstant().toEpochMilli() - newStartTime.toInstant().toEpochMilli()))
+                / 60000.0F;
+            log.debug("Sale duration: {} minutes", durationMinutes);
+            if (durationMinutes < minSaleDuration) {
+                log.error("Failed to update FlashSale due to duration too short: duration={}, min={}", durationMinutes, minSaleDuration);
+                throw new SaleDurationTooShortException(
+                    String.format("Sale duration of %.2f minutes is less than minimum required duration of %.2f minutes",
+                        durationMinutes, minSaleDuration),
+                    durationMinutes,
+                    minSaleDuration);
+            }
+        }
+        
+        // Update fields
+        if (updateDto.title() != null && !updateDto.title().trim().isEmpty()) {
+            sale.setTitle(updateDto.title());
+        }
+        if (updateDto.startTime() != null) {
+            sale.setStartTime(updateDto.startTime());
+        }
+        if (updateDto.endTime() != null) {
+            sale.setEndTime(updateDto.endTime());
+        }
+        
+        final FlashSale saved = sales.save(sale);
+        log.info("Updated FlashSale: {}", saved.getId());
+        
+        // Reload with items for response
+        return mapToResponseDto(sales.findByIdWithItems(saved.getId()).orElse(saved));
+    }
+
+    /**
+     * Delete a flash sale (only DRAFT status allowed).
+     * Releases reserved stock back to products.
+     *
+     * @param id the flash sale ID
+     * @throws FlashSaleNotFoundException if the sale is not found
+     * @throws IllegalArgumentException if the sale is not in DRAFT status
+     */
+    @Transactional
+    public void deleteFlashSale(final UUID id) {
+        log.info("Deleting FlashSale: {}", id);
+        
+        final FlashSale sale = sales.findByIdWithItems(id)
+            .orElseThrow(() -> {
+                log.error("Flash sale not found: {}", id);
+                return new FlashSaleNotFoundException(id);
+            });
+        
+        // Validate status: Only DRAFT can be deleted
+        if (sale.getStatus() != SaleStatus.DRAFT) {
+            log.error("Cannot delete flash sale with status {}: {}", sale.getStatus(), id);
+            throw new IllegalArgumentException("Only DRAFT flash sales can be deleted");
+        }
+        
+        // Release reserved stock for each sale item
+        for (final FlashSaleItem item : sale.getItems()) {
+            final int difference = item.getAllocatedStock() - item.getSoldCount();
+            if (difference > 0) {
+                // Release reserved count from product
+                final Product product = item.getProduct();
+                final int newReservedCount = product.getReservedCount() - difference;
+                product.setReservedCount(newReservedCount);
+                products.save(product);
+                
+                log.debug("Released {} units for product {} in sale {}", 
+                    difference, product.getId(), sale.getId());
+            }
+        }
+        
+        // Delete the flash sale (cascade will handle items)
+        sales.delete(sale);
+        log.info("Deleted FlashSale: {}", id);
+    }
+
+    /**
+     * Map a FlashSale entity to FlashSaleResponseDto.
+     *
+     * @param sale the flash sale entity
+     * @return the response DTO
+     */
+    private FlashSaleResponseDto mapToResponseDto(final FlashSale sale) {
+        final List<FlashSaleItemDto> itemDtos = sale.getItems().stream()
+            .map(item -> new FlashSaleItemDto(
+                item.getId().toString(),
+                item.getProduct().getId().toString(),
+                item.getProduct().getName(),
+                item.getAllocatedStock(),
+                item.getSoldCount(),
+                item.getSalePrice()))
+            .collect(Collectors.toList());
+        
+        return new FlashSaleResponseDto(
+            sale.getId().toString(),
+            sale.getTitle(),
+            sale.getStartTime(),
+            sale.getEndTime(),
+            sale.getStatus(),
+            itemDtos);
     }
 
 }
