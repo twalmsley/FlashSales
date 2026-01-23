@@ -3,6 +3,7 @@ package uk.co.aosd.flash.controllers;
 // Static imports for the fluent API (crucial for readability)
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
@@ -24,14 +25,20 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import java.util.UUID;
+
+import uk.co.aosd.flash.domain.OrderStatus;
 import uk.co.aosd.flash.dto.ClientActiveSaleDto;
 import uk.co.aosd.flash.dto.ClientDraftSaleDto;
 import uk.co.aosd.flash.dto.ClientProductDto;
+import uk.co.aosd.flash.dto.CreateOrderDto;
+import uk.co.aosd.flash.dto.OrderResponseDto;
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
 import uk.co.aosd.flash.services.ActiveSalesService;
 import uk.co.aosd.flash.services.DraftSalesService;
+import uk.co.aosd.flash.services.OrderService;
 import uk.co.aosd.flash.services.ProductsService;
 
 /**
@@ -55,6 +62,9 @@ public class ClientRestApiTest {
     @MockitoBean
     private DraftSalesService draftSalesService;
 
+    @MockitoBean
+    private OrderService orderService;
+
     @BeforeAll
     public static void beforeAll() {
         objectMapper = new ObjectMapper();
@@ -63,7 +73,7 @@ public class ClientRestApiTest {
 
     @BeforeEach
     public void beforeEach() {
-        Mockito.reset(productsService, activeSalesService, draftSalesService);
+        Mockito.reset(productsService, activeSalesService, draftSalesService, orderService);
     }
 
     @Test
@@ -250,6 +260,53 @@ public class ClientRestApiTest {
     @Test
     public void shouldReturnBadRequestForNegativeDays() throws Exception {
         mockMvc.perform(get("/api/v1/clients/sales/draft/-1")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+    }
+
+    @Test
+    public void shouldCreateOrderSuccessfully() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        final UUID flashSaleItemId = UUID.randomUUID();
+        final UUID orderId = UUID.randomUUID();
+
+        final CreateOrderDto createOrderDto = new CreateOrderDto(userId, flashSaleItemId, 5);
+        final OrderResponseDto orderResponse = new OrderResponseDto(orderId, OrderStatus.PENDING, "Order created");
+
+        Mockito.when(orderService.createOrder(createOrderDto)).thenReturn(orderResponse);
+
+        final String requestBody = objectMapper.writeValueAsString(createOrderDto);
+
+        final var result = mockMvc.perform(post("/api/v1/clients/orders")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody)
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        final var response = objectMapper.readValue(result.getResponse().getContentAsString(), OrderResponseDto.class);
+        assertEquals(orderId, response.orderId());
+        assertEquals(OrderStatus.PENDING, response.status());
+    }
+
+    @Test
+    public void shouldProcessRefundSuccessfully() throws Exception {
+        final UUID orderId = UUID.randomUUID();
+
+        Mockito.doNothing().when(orderService).handleRefund(orderId);
+
+        mockMvc.perform(post("/api/v1/clients/orders/" + orderId + "/refund")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        Mockito.verify(orderService).handleRefund(orderId);
+    }
+
+    @Test
+    public void shouldReturnBadRequestForInvalidOrderId() throws Exception {
+        mockMvc.perform(post("/api/v1/clients/orders/invalid-uuid/refund")
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest())
             .andReturn();

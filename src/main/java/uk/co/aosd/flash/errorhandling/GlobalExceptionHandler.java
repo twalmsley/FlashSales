@@ -18,9 +18,13 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.InsufficientResourcesException;
+import uk.co.aosd.flash.exc.InsufficientStockException;
+import uk.co.aosd.flash.exc.InvalidOrderStatusException;
 import uk.co.aosd.flash.exc.InvalidSaleTimesException;
+import uk.co.aosd.flash.exc.OrderNotFoundException;
 import uk.co.aosd.flash.exc.ProductNotFoundException;
 import uk.co.aosd.flash.exc.SaleDurationTooShortException;
+import uk.co.aosd.flash.exc.SaleNotActiveException;
 
 /**
  * Global Exception Handling.
@@ -175,6 +179,54 @@ public class GlobalExceptionHandler {
         log.error("Database access error: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(errorMapper.createErrorMap("A database error occurred. Please try again later."));
+    }
+
+    /**
+     * Handle sale not active exceptions.
+     */
+    @ExceptionHandler(SaleNotActiveException.class)
+    public ResponseEntity<Map<String, String>> handleSaleNotActiveException(final SaleNotActiveException e) {
+        log.warn("Sale not active: saleId={}, endTime={}, currentTime={}", e.getSaleId(), e.getEndTime(), e.getCurrentTime());
+        final String message = String.format("Sale has ended. End time: %s, Current time: %s", e.getEndTime(), e.getCurrentTime());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(errorMapper.createErrorMap(message));
+    }
+
+    /**
+     * Handle insufficient stock exceptions.
+     */
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<Map<String, String>> handleInsufficientStockException(final InsufficientStockException e) {
+        log.warn("Insufficient stock: flashSaleItemId={}, requested={}, available={}", 
+            e.getFlashSaleItemId(), e.getRequestedQuantity(), e.getAvailableStock());
+        final String message = String.format("Insufficient stock. Requested: %d, Available: %d", 
+            e.getRequestedQuantity(), e.getAvailableStock());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(errorMapper.createErrorMap(message));
+    }
+
+    /**
+     * Handle order not found exceptions.
+     */
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleOrderNotFoundException(final OrderNotFoundException e) {
+        log.warn("Order not found: orderId={}", e.getOrderId());
+        final String message = String.format("Order with id '%s' not found", e.getOrderId());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(errorMapper.createErrorMap(message));
+    }
+
+    /**
+     * Handle invalid order status exceptions.
+     */
+    @ExceptionHandler(InvalidOrderStatusException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidOrderStatusException(final InvalidOrderStatusException e) {
+        log.warn("Invalid order status: orderId={}, currentStatus={}, requiredStatus={}, operation={}", 
+            e.getOrderId(), e.getCurrentStatus(), e.getRequiredStatus(), e.getOperation());
+        final String message = String.format("Invalid order status for operation '%s'. Current: %s, Required: %s", 
+            e.getOperation(), e.getCurrentStatus(), e.getRequiredStatus());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(errorMapper.createErrorMap(message));
     }
 
     /**

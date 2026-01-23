@@ -1,0 +1,22 @@
+digraph OrderStatusTransitions {
+    rankdir=LR;
+    node [shape=box, style=rounded];
+    
+    PENDING [label="PENDING\nOrder Created"];
+    PAID [label="PAID\nPayment Successful"];
+    FAILED [label="FAILED\nPayment Failed"];
+    REFUNDED [label="REFUNDED\nOrder Refunded"];
+    DISPATCHED [label="DISPATCHED\nOrder Dispatched"];
+    
+    PENDING -> PAID [label="Payment\nSuccess"];
+    PENDING -> FAILED [label="Payment\nFailed"];
+    PAID -> DISPATCHED [label="Dispatch\nOrder"];
+    PAID -> REFUNDED [label="Refund\nRequest"];
+    
+    // Styling
+    PENDING [fillcolor=lightyellow, style="rounded,filled"];
+    PAID [fillcolor=lightgreen, style="rounded,filled"];
+    FAILED [fillcolor=lightcoral, style="rounded,filled"];
+    REFUNDED [fillcolor=lightblue, style="rounded,filled"];
+    DISPATCHED [fillcolor=lightgray, style="rounded,filled"];
+}

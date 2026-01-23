@@ -2,7 +2,9 @@ package uk.co.aosd.flash.controllers;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,14 +13,20 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.co.aosd.flash.dto.ClientActiveSaleDto;
 import uk.co.aosd.flash.dto.ClientDraftSaleDto;
 import uk.co.aosd.flash.dto.ClientProductDto;
+import uk.co.aosd.flash.dto.CreateOrderDto;
+import uk.co.aosd.flash.dto.OrderResponseDto;
 import uk.co.aosd.flash.dto.ProductDto;
+import uk.co.aosd.flash.dto.RefundOrderDto;
 import uk.co.aosd.flash.services.ActiveSalesService;
 import uk.co.aosd.flash.services.DraftSalesService;
+import uk.co.aosd.flash.services.OrderService;
 import uk.co.aosd.flash.services.ProductsService;
 
 /**
@@ -37,6 +45,8 @@ public class ClientRestApi {
     private final ActiveSalesService activeSalesService;
 
     private final DraftSalesService draftSalesService;
+
+    private final OrderService orderService;
 
     /**
      * Get a client's view of a product.
@@ -88,6 +98,48 @@ public class ClientRestApi {
         final List<ClientDraftSaleDto> draftSales = draftSalesService.getDraftSalesWithinDays(days);
         log.info("Fetched {} draft sales within the next {} days", draftSales.size(), days);
         return ResponseEntity.ok(draftSales);
+    }
+
+    /**
+     * Create a new order for an active sale.
+     *
+     * @param createOrderDto the order creation DTO
+     * @return OrderResponseDto with order status
+     */
+    @PostMapping("/orders")
+    public ResponseEntity<OrderResponseDto> createOrder(@Valid @RequestBody final CreateOrderDto createOrderDto) {
+        log.info("Creating order for user {} for flash sale item {}", createOrderDto.userId(), createOrderDto.flashSaleItemId());
+        try {
+            final OrderResponseDto response = orderService.createOrder(createOrderDto);
+            log.info("Order created successfully: {}", response.orderId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (final Exception e) {
+            log.error("Failed to create order", e);
+            throw e; // Let GlobalExceptionHandler handle it
+        }
+    }
+
+    /**
+     * Request a refund for a PAID order.
+     *
+     * @param orderId the order ID
+     * @return ResponseEntity with success message
+     */
+    @PostMapping("/orders/{orderId}/refund")
+    public ResponseEntity<OrderResponseDto> refundOrder(@PathVariable final String orderId) {
+        log.info("Processing refund request for order {}", orderId);
+        try {
+            final UUID orderUuid = UUID.fromString(orderId);
+            orderService.handleRefund(orderUuid);
+            log.info("Refund processed successfully for order {}", orderId);
+            return ResponseEntity.ok(new OrderResponseDto(orderUuid, null, "Refund processed successfully"));
+        } catch (final IllegalArgumentException e) {
+            log.error("Invalid order ID format: {}", orderId);
+            return ResponseEntity.badRequest().build();
+        } catch (final Exception e) {
+            log.error("Failed to process refund for order {}", orderId, e);
+            throw e; // Let GlobalExceptionHandler handle it
+        }
     }
 
 }
