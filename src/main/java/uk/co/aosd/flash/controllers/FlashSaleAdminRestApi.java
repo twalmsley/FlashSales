@@ -1,6 +1,7 @@
 package uk.co.aosd.flash.controllers;
 
 import java.net.URI;
+import java.util.UUID;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,5 +54,22 @@ public class FlashSaleAdminRestApi {
         log.info("Created Flash Sale: " + uuid);
 
         return ResponseEntity.created(URI.create("/api/v1/admin/flash_sale/" + uuid.toString())).build();
+    }
+
+    /**
+     * Cancel a flash sale by ID.
+     * Only DRAFT and ACTIVE sales can be cancelled.
+     * Releases reserved stock back to products.
+     *
+     * @param id the flash sale ID to cancel
+     * @return ResponseEntity with no content on success
+     */
+    @PostMapping("/flash_sale/{id}/cancel")
+    public ResponseEntity<Void> cancelSale(@PathVariable final String id) {
+        log.info("Cancelling Flash Sale: {}", id);
+        final var uuid = UUID.fromString(id);
+        service.cancelFlashSale(uuid);
+        log.info("Cancelled Flash Sale: {}", id);
+        return ResponseEntity.noContent().build();
     }
 }

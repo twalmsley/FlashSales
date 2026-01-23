@@ -20,6 +20,7 @@ import uk.co.aosd.flash.domain.Product;
 import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.CreateSaleDto;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
+import uk.co.aosd.flash.exc.FlashSaleNotFoundException;
 import uk.co.aosd.flash.exc.InsufficientResourcesException;
 import uk.co.aosd.flash.exc.InvalidSaleTimesException;
 import uk.co.aosd.flash.exc.ProductNotFoundException;
@@ -217,6 +218,61 @@ public class FlashSalesService {
         
         log.info("Completed {} ACTIVE sale(s)", completedCount);
         return completedCount;
+    }
+
+    /**
+     * Cancels a flash sale by ID.
+     * Only DRAFT and ACTIVE sales can be cancelled.
+     * Releases reserved stock back to products.
+     *
+     * @param saleId the flash sale ID to cancel
+     * @throws FlashSaleNotFoundException if the sale is not found
+     * @throws IllegalArgumentException if the sale is already COMPLETED or CANCELLED
+     */
+    @Transactional
+    public void cancelFlashSale(final UUID saleId) {
+        log.info("Cancelling FlashSale: {}", saleId);
+        
+        final FlashSale sale = sales.findById(saleId)
+            .orElseThrow(() -> {
+                log.error("Flash sale not found: {}", saleId);
+                return new FlashSaleNotFoundException(saleId);
+            });
+        
+        // Validate status: Only DRAFT or ACTIVE can be cancelled
+        final SaleStatus previousStatus = sale.getStatus();
+        if (previousStatus == SaleStatus.COMPLETED) {
+            log.error("Cannot cancel COMPLETED sale: {}", saleId);
+            throw new IllegalArgumentException("Cannot cancel a COMPLETED sale");
+        }
+        if (previousStatus == SaleStatus.CANCELLED) {
+            log.error("Sale is already CANCELLED: {}", saleId);
+            throw new IllegalArgumentException("Sale is already CANCELLED");
+        }
+        
+        // Release stock for each sale item
+        for (final FlashSaleItem item : sale.getItems()) {
+            final int difference = item.getAllocatedStock() - item.getSoldCount();
+            if (difference > 0) {
+                // Reduce allocated stock to match sold count (0 for DRAFT, soldCount for ACTIVE)
+                item.setAllocatedStock(item.getSoldCount());
+                items.save(item);
+                
+                // Release reserved count from product
+                final Product product = item.getProduct();
+                final int newReservedCount = product.getReservedCount() - difference;
+                product.setReservedCount(newReservedCount);
+                products.save(product);
+                
+                log.debug("Released {} units for product {} in sale {}", 
+                    difference, product.getId(), sale.getId());
+            }
+        }
+        
+        // Set sale status to CANCELLED
+        sale.setStatus(SaleStatus.CANCELLED);
+        sales.save(sale);
+        log.info("Cancelled FlashSale: {} (previous status: {})", saleId, previousStatus);
     }
 
 }
