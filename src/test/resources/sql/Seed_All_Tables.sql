@@ -473,6 +473,9 @@ INSERT INTO orders (
         id,
         user_id,
         flash_sale_item_id,
+        product_id,
+        sold_price,
+        sold_quantity,
         status,
         created_at
     )
@@ -481,6 +484,9 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
         '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
         '10000000-0000-0000-0000-000000000001',
         'bbbbbbbb-0000-0000-0000-000000000001',
+        '11111111-1111-1111-1111-111111111111',
+        749.99,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '45 minutes'
     ),
@@ -488,6 +494,9 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
         '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaab',
         '10000000-0000-0000-0000-000000000002',
         'bbbbbbbb-0000-0000-0000-000000000001',
+        '11111111-1111-1111-1111-111111111111',
+        749.99,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '40 minutes'
     ),
@@ -495,6 +504,9 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
         '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaac',
         '10000000-0000-0000-0000-000000000003',
         'bbbbbbbb-0000-0000-0000-000000000002',
+        '33333333-3333-3333-3333-333333333333',
+        119.50,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '35 minutes'
     ),
@@ -502,6 +514,9 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
         '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaad',
         '10000000-0000-0000-0000-000000000004',
         'bbbbbbbb-0000-0000-0000-000000000002',
+        '33333333-3333-3333-3333-333333333333',
+        119.50,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '30 minutes'
     ),
@@ -509,6 +524,9 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
         '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaae',
         '10000000-0000-0000-0000-000000000005',
         'bbbbbbbb-0000-0000-0000-000000000003',
+        '77777777-7777-7777-7777-777777777777',
+        279.00,
+        1,
         'PENDING',
         CURRENT_TIMESTAMP - INTERVAL '25 minutes'
     ),
@@ -516,6 +534,9 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
         '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaf',
         '10000000-0000-0000-0000-000000000006',
         'bbbbbbbb-0000-0000-0000-000000000004',
+        'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
+        39.99,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '20 minutes'
     ),
@@ -523,6 +544,9 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
         '11111111-aaaa-aaaa-aaaa-aaaaaaaa0010',
         '10000000-0000-0000-0000-000000000007',
         'bbbbbbbb-0000-0000-0000-000000000004',
+        'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
+        39.99,
+        1,
         'FAILED',
         CURRENT_TIMESTAMP - INTERVAL '15 minutes'
     ),
@@ -531,6 +555,9 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
         '22222222-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
         '10000000-0000-0000-0000-000000000008',
         'bbbbbbbb-0000-0000-0000-000000000005',
+        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        129.00,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '20 minutes'
     ),
@@ -538,6 +565,9 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
         '22222222-bbbb-bbbb-bbbb-bbbbbbbbbbbc',
         '10000000-0000-0000-0000-000000000009',
         'bbbbbbbb-0000-0000-0000-000000000005',
+        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        129.00,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '18 minutes'
     ),
@@ -545,6 +575,9 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
         '22222222-bbbb-bbbb-bbbb-bbbbbbbbbbbd',
         '10000000-0000-0000-0000-000000000010',
         'bbbbbbbb-0000-0000-0000-000000000006',
+        'cccccccc-cccc-cccc-cccc-cccccccccccc',
+        69.00,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '10 minutes'
     ),
@@ -552,6 +585,9 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
         '22222222-bbbb-bbbb-bbbb-bbbbbbbbbbbe',
         '10000000-0000-0000-0000-000000000011',
         'bbbbbbbb-0000-0000-0000-000000000007',
+        'dddddddd-dddd-dddd-dddd-dddddddddddd',
+        149.00,
+        1,
         'PENDING',
         CURRENT_TIMESTAMP - INTERVAL '5 minutes'
     );
@@ -560,6 +596,9 @@ INSERT INTO orders (
         id,
         user_id,
         flash_sale_item_id,
+        product_id,
+        sold_price,
+        sold_quantity,
         status,
         created_at
     )
@@ -568,6 +607,9 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
         '33333333-cccc-cccc-cccc-cccccccccccc',
         '20000000-0000-0000-0000-000000000101',
         'cccccccc-0000-0000-0000-000000000001',
+        '11111111-1111-1111-1111-111111111111',
+        649.99,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '30 days' + INTERVAL '1 hour'
     ),
@@ -575,6 +617,9 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
         '33333333-cccc-cccc-cccc-cccccccccccd',
         '20000000-0000-0000-0000-000000000102',
         'cccccccc-0000-0000-0000-000000000001',
+        '11111111-1111-1111-1111-111111111111',
+        649.99,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '30 days' + INTERVAL '2 hours'
     ),
@@ -582,6 +627,9 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
         '33333333-cccc-cccc-cccc-ccccccccccce',
         '20000000-0000-0000-0000-000000000103',
         'cccccccc-0000-0000-0000-000000000002',
+        '22222222-2222-2222-2222-222222222222',
+        449.00,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '30 days' + INTERVAL '3 hours'
     ),
@@ -590,6 +638,9 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
         '44444444-dddd-dddd-dddd-dddddddddddd',
         '20000000-0000-0000-0000-000000000201',
         'cccccccc-0000-0000-0000-000000000004',
+        '33333333-3333-3333-3333-333333333333',
+        99.50,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '25 days' + INTERVAL '2 hours'
     ),
@@ -597,6 +648,9 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
         '44444444-dddd-dddd-dddd-ddddddddddde',
         '20000000-0000-0000-0000-000000000202',
         'cccccccc-0000-0000-0000-000000000005',
+        '55555555-5555-5555-5555-555555555555',
+        199.00,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '25 days' + INTERVAL '4 hours'
     ),
@@ -605,6 +659,9 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
         '55555555-eeee-eeee-eeee-eeeeeeeeeeee',
         '20000000-0000-0000-0000-000000000301',
         'cccccccc-0000-0000-0000-000000000006',
+        '66666666-6666-6666-6666-666666666666',
+        349.99,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '10 days' + INTERVAL '1 hour'
     ),
@@ -612,6 +669,9 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
         '55555555-eeee-eeee-eeee-eeeeeeeeeeef',
         '20000000-0000-0000-0000-000000000302',
         'cccccccc-0000-0000-0000-000000000007',
+        '88888888-8888-8888-8888-888888888888',
+        149.00,
+        1,
         'PAID',
         CURRENT_TIMESTAMP - INTERVAL '10 days' + INTERVAL '2 hours'
     ),
@@ -619,6 +679,9 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
         '55555555-eeee-eeee-eeee-eeeeeeeeeeed',
         '20000000-0000-0000-0000-000000000303',
         'cccccccc-0000-0000-0000-000000000007',
+        '88888888-8888-8888-8888-888888888888',
+        149.00,
+        1,
         'REFUNDED',
         CURRENT_TIMESTAMP - INTERVAL '10 days' + INTERVAL '3 hours'
     );

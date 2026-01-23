@@ -1,5 +1,6 @@
 package uk.co.aosd.flash.domain;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -27,6 +28,16 @@ public class Order {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "flash_sale_item_id", nullable = false)
     private FlashSaleItem flashSaleItem;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
+
+    @Column(name = "sold_price", nullable = false, precision = 12, scale = 2)
+    private BigDecimal soldPrice;
+
+    @Column(name = "sold_quantity", nullable = false)
+    private Integer soldQuantity;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus status = OrderStatus.PENDING;
