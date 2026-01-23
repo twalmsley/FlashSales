@@ -32,10 +32,12 @@ import uk.co.aosd.flash.dto.ClientActiveSaleDto;
 import uk.co.aosd.flash.dto.ClientDraftSaleDto;
 import uk.co.aosd.flash.dto.ClientProductDto;
 import uk.co.aosd.flash.dto.CreateOrderDto;
+import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.OrderResponseDto;
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
+import uk.co.aosd.flash.exc.OrderNotFoundException;
 import uk.co.aosd.flash.services.ActiveSalesService;
 import uk.co.aosd.flash.services.DraftSalesService;
 import uk.co.aosd.flash.services.OrderService;
@@ -311,6 +313,325 @@ public class ClientRestApiTest {
     @Test
     public void shouldReturnBadRequestForInvalidOrderId() throws Exception {
         mockMvc.perform(post("/api/v1/clients/orders/invalid-uuid/refund")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+    }
+
+    @Test
+    public void shouldGetOrderByIdSuccessfully() throws Exception {
+        final UUID orderId = UUID.randomUUID();
+        final UUID userId = UUID.randomUUID();
+        final UUID productId = UUID.randomUUID();
+        final UUID flashSaleItemId = UUID.randomUUID();
+        final UUID flashSaleId = UUID.randomUUID();
+        final OffsetDateTime createdAt = OffsetDateTime.now();
+
+        final OrderDetailDto orderDetail = new OrderDetailDto(
+            orderId,
+            userId,
+            productId,
+            "Test Product",
+            flashSaleItemId,
+            flashSaleId,
+            "Test Sale",
+            BigDecimal.valueOf(79.99),
+            5,
+            BigDecimal.valueOf(399.95),
+            OrderStatus.PAID,
+            createdAt);
+
+        Mockito.when(orderService.getOrderById(orderId, userId)).thenReturn(orderDetail);
+
+        final var result = mockMvc.perform(get("/api/v1/clients/orders/" + orderId)
+            .param("userId", userId.toString())
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final var response = objectMapper.readValue(result.getResponse().getContentAsString(), OrderDetailDto.class);
+        assertEquals(orderId, response.orderId());
+        assertEquals(userId, response.userId());
+        assertEquals(productId, response.productId());
+        assertEquals("Test Product", response.productName());
+        assertEquals(flashSaleItemId, response.flashSaleItemId());
+        assertEquals(flashSaleId, response.flashSaleId());
+        assertEquals("Test Sale", response.flashSaleTitle());
+        assertEquals(0, BigDecimal.valueOf(79.99).compareTo(response.soldPrice()));
+        assertEquals(5, response.soldQuantity());
+        assertEquals(0, BigDecimal.valueOf(399.95).compareTo(response.totalAmount()));
+        assertEquals(OrderStatus.PAID, response.status());
+    }
+
+    @Test
+    public void shouldReturnNotFoundWhenOrderNotFound() throws Exception {
+        final UUID orderId = UUID.randomUUID();
+        final UUID userId = UUID.randomUUID();
+
+        Mockito.when(orderService.getOrderById(orderId, userId))
+            .thenThrow(new OrderNotFoundException(orderId));
+
+        mockMvc.perform(get("/api/v1/clients/orders/" + orderId)
+            .param("userId", userId.toString())
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNotFound())
+            .andReturn();
+    }
+
+    @Test
+    public void shouldReturnBadRequestForInvalidOrderIdFormat() throws Exception {
+        final UUID userId = UUID.randomUUID();
+
+        mockMvc.perform(get("/api/v1/clients/orders/invalid-uuid")
+            .param("userId", userId.toString())
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+    }
+
+    @Test
+    public void shouldReturnBadRequestForInvalidUserIdFormat() throws Exception {
+        final UUID orderId = UUID.randomUUID();
+
+        mockMvc.perform(get("/api/v1/clients/orders/" + orderId)
+            .param("userId", "invalid-uuid")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+    }
+
+    @Test
+    public void shouldGetOrdersByUserWithoutFilters() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        final UUID orderId1 = UUID.randomUUID();
+        final UUID orderId2 = UUID.randomUUID();
+        final OffsetDateTime now = OffsetDateTime.now();
+
+        final OrderDetailDto order1 = new OrderDetailDto(
+            orderId1,
+            userId,
+            UUID.randomUUID(),
+            "Product 1",
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            "Sale 1",
+            BigDecimal.valueOf(79.99),
+            5,
+            BigDecimal.valueOf(399.95),
+            OrderStatus.PAID,
+            now.minusDays(1));
+
+        final OrderDetailDto order2 = new OrderDetailDto(
+            orderId2,
+            userId,
+            UUID.randomUUID(),
+            "Product 2",
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            "Sale 2",
+            BigDecimal.valueOf(89.99),
+            3,
+            BigDecimal.valueOf(269.97),
+            OrderStatus.PENDING,
+            now);
+
+        final List<OrderDetailDto> orders = List.of(order2, order1);
+
+        Mockito.when(orderService.getOrdersByUser(userId, null, null, null)).thenReturn(orders);
+
+        final var result = mockMvc.perform(get("/api/v1/clients/orders")
+            .param("userId", userId.toString())
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final var response = objectMapper.readValue(result.getResponse().getContentAsString(),
+            new TypeReference<List<OrderDetailDto>>() {
+            });
+
+        assertEquals(2, response.size());
+        assertEquals(orderId2, response.get(0).orderId());
+        assertEquals(orderId1, response.get(1).orderId());
+    }
+
+    @Test
+    public void shouldGetOrdersByUserWithStatusFilter() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        final UUID orderId = UUID.randomUUID();
+        final OffsetDateTime now = OffsetDateTime.now();
+
+        final OrderDetailDto order = new OrderDetailDto(
+            orderId,
+            userId,
+            UUID.randomUUID(),
+            "Product",
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            "Sale",
+            BigDecimal.valueOf(79.99),
+            5,
+            BigDecimal.valueOf(399.95),
+            OrderStatus.PAID,
+            now);
+
+        final List<OrderDetailDto> orders = List.of(order);
+
+        Mockito.when(orderService.getOrdersByUser(userId, OrderStatus.PAID, null, null)).thenReturn(orders);
+
+        final var result = mockMvc.perform(get("/api/v1/clients/orders")
+            .param("userId", userId.toString())
+            .param("status", "PAID")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final var response = objectMapper.readValue(result.getResponse().getContentAsString(),
+            new TypeReference<List<OrderDetailDto>>() {
+            });
+
+        assertEquals(1, response.size());
+        assertEquals(orderId, response.get(0).orderId());
+        assertEquals(OrderStatus.PAID, response.get(0).status());
+    }
+
+    @Test
+    public void shouldGetOrdersByUserWithDateRangeFilter() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        final UUID orderId = UUID.randomUUID();
+        final OffsetDateTime startDate = OffsetDateTime.now().minusDays(7);
+        final OffsetDateTime endDate = OffsetDateTime.now();
+        final OffsetDateTime orderDate = OffsetDateTime.now().minusDays(3);
+
+        final OrderDetailDto order = new OrderDetailDto(
+            orderId,
+            userId,
+            UUID.randomUUID(),
+            "Product",
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            "Sale",
+            BigDecimal.valueOf(79.99),
+            5,
+            BigDecimal.valueOf(399.95),
+            OrderStatus.PAID,
+            orderDate);
+
+        final List<OrderDetailDto> orders = List.of(order);
+
+        Mockito.when(orderService.getOrdersByUser(userId, null, startDate, endDate)).thenReturn(orders);
+
+        final var result = mockMvc.perform(get("/api/v1/clients/orders")
+            .param("userId", userId.toString())
+            .param("startDate", startDate.toString())
+            .param("endDate", endDate.toString())
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final var response = objectMapper.readValue(result.getResponse().getContentAsString(),
+            new TypeReference<List<OrderDetailDto>>() {
+            });
+
+        assertEquals(1, response.size());
+        assertEquals(orderId, response.get(0).orderId());
+    }
+
+    @Test
+    public void shouldGetOrdersByUserWithAllFilters() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        final UUID orderId = UUID.randomUUID();
+        final OffsetDateTime startDate = OffsetDateTime.now().minusDays(7);
+        final OffsetDateTime endDate = OffsetDateTime.now();
+        final OffsetDateTime orderDate = OffsetDateTime.now().minusDays(3);
+
+        final OrderDetailDto order = new OrderDetailDto(
+            orderId,
+            userId,
+            UUID.randomUUID(),
+            "Product",
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            "Sale",
+            BigDecimal.valueOf(79.99),
+            5,
+            BigDecimal.valueOf(399.95),
+            OrderStatus.PAID,
+            orderDate);
+
+        final List<OrderDetailDto> orders = List.of(order);
+
+        Mockito.when(orderService.getOrdersByUser(userId, OrderStatus.PAID, startDate, endDate)).thenReturn(orders);
+
+        final var result = mockMvc.perform(get("/api/v1/clients/orders")
+            .param("userId", userId.toString())
+            .param("status", "PAID")
+            .param("startDate", startDate.toString())
+            .param("endDate", endDate.toString())
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final var response = objectMapper.readValue(result.getResponse().getContentAsString(),
+            new TypeReference<List<OrderDetailDto>>() {
+            });
+
+        assertEquals(1, response.size());
+        assertEquals(orderId, response.get(0).orderId());
+        assertEquals(OrderStatus.PAID, response.get(0).status());
+    }
+
+    @Test
+    public void shouldReturnBadRequestForInvalidStatus() throws Exception {
+        final UUID userId = UUID.randomUUID();
+
+        mockMvc.perform(get("/api/v1/clients/orders")
+            .param("userId", userId.toString())
+            .param("status", "INVALID_STATUS")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+    }
+
+    @Test
+    public void shouldReturnBadRequestForInvalidDateRange() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        final OffsetDateTime startDate = OffsetDateTime.now();
+        final OffsetDateTime endDate = OffsetDateTime.now().minusDays(1); // endDate before startDate
+
+        Mockito.when(orderService.getOrdersByUser(userId, null, startDate, endDate))
+            .thenThrow(new IllegalArgumentException("Start date must be before or equal to end date"));
+
+        mockMvc.perform(get("/api/v1/clients/orders")
+            .param("userId", userId.toString())
+            .param("startDate", startDate.toString())
+            .param("endDate", endDate.toString())
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+    }
+
+    @Test
+    public void shouldReturnEmptyListWhenNoOrdersFound() throws Exception {
+        final UUID userId = UUID.randomUUID();
+
+        Mockito.when(orderService.getOrdersByUser(userId, null, null, null)).thenReturn(List.of());
+
+        final var result = mockMvc.perform(get("/api/v1/clients/orders")
+            .param("userId", userId.toString())
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final var response = objectMapper.readValue(result.getResponse().getContentAsString(),
+            new TypeReference<List<OrderDetailDto>>() {
+            });
+
+        assertEquals(0, response.size());
+    }
+
+    @Test
+    public void shouldReturnBadRequestWhenUserIdMissing() throws Exception {
+        mockMvc.perform(get("/api/v1/clients/orders")
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest())
             .andReturn();

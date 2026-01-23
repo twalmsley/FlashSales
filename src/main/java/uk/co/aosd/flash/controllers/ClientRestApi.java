@@ -1,5 +1,6 @@
 package uk.co.aosd.flash.controllers;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,11 +18,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.co.aosd.flash.domain.OrderStatus;
 import uk.co.aosd.flash.dto.ClientActiveSaleDto;
 import uk.co.aosd.flash.dto.ClientDraftSaleDto;
 import uk.co.aosd.flash.dto.ClientProductDto;
 import uk.co.aosd.flash.dto.CreateOrderDto;
+import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.OrderResponseDto;
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.services.ActiveSalesService;
@@ -116,6 +121,80 @@ public class ClientRestApi {
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (final Exception e) {
             log.error("Failed to create order", e);
+            throw e; // Let GlobalExceptionHandler handle it
+        }
+    }
+
+    /**
+     * Get order details by ID.
+     *
+     * @param orderId
+     *            the order ID
+     * @param userId
+     *            the user ID (required query parameter)
+     * @return OrderDetailDto with order details or 404 if not found
+     */
+    @GetMapping("/orders/{orderId}")
+    public ResponseEntity<OrderDetailDto> getOrderById(
+        @PathVariable final String orderId,
+        @RequestParam final String userId) {
+        log.info("Fetching order {} for user {}", orderId, userId);
+        try {
+            final UUID orderUuid = UUID.fromString(orderId);
+            final UUID userUuid = UUID.fromString(userId);
+            final OrderDetailDto orderDetail = orderService.getOrderById(orderUuid, userUuid);
+            log.info("Fetched order {} for user {}", orderId, userId);
+            return ResponseEntity.ok(orderDetail);
+        } catch (final IllegalArgumentException e) {
+            log.error("Invalid UUID format: orderId={}, userId={}", orderId, userId);
+            return ResponseEntity.badRequest().build();
+        } catch (final Exception e) {
+            log.error("Failed to fetch order {} for user {}", orderId, userId, e);
+            throw e; // Let GlobalExceptionHandler handle it
+        }
+    }
+
+    /**
+     * Get user's order history with optional filters.
+     *
+     * @param userId
+     *            the user ID (required query parameter)
+     * @param status
+     *            optional status filter (PENDING, PAID, FAILED, REFUNDED, DISPATCHED)
+     * @param startDate
+     *            optional start date filter (ISO-8601 format)
+     * @param endDate
+     *            optional end date filter (ISO-8601 format)
+     * @return List of OrderDetailDto matching the criteria
+     */
+    @GetMapping("/orders")
+    public ResponseEntity<List<OrderDetailDto>> getOrders(
+        @RequestParam final String userId,
+        @RequestParam(required = false) final String status,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime startDate,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime endDate) {
+        log.info("Fetching orders for user {} with filters: status={}, startDate={}, endDate={}",
+            userId, status, startDate, endDate);
+        try {
+            final UUID userUuid = UUID.fromString(userId);
+            OrderStatus orderStatus = null;
+            if (status != null && !status.isEmpty()) {
+                try {
+                    orderStatus = OrderStatus.valueOf(status.toUpperCase());
+                } catch (final IllegalArgumentException e) {
+                    log.warn("Invalid order status: {}", status);
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+
+            final List<OrderDetailDto> orders = orderService.getOrdersByUser(userUuid, orderStatus, startDate, endDate);
+            log.info("Fetched {} orders for user {}", orders.size(), userId);
+            return ResponseEntity.ok(orders);
+        } catch (final IllegalArgumentException e) {
+            log.error("Invalid UUID format or date range: userId={}, error={}", userId, e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (final Exception e) {
+            log.error("Failed to fetch orders for user {}", userId, e);
             throw e; // Let GlobalExceptionHandler handle it
         }
     }

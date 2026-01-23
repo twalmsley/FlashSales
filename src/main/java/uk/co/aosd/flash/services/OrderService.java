@@ -2,6 +2,7 @@ package uk.co.aosd.flash.services;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import jakarta.transaction.Transactional;
@@ -19,6 +20,7 @@ import uk.co.aosd.flash.domain.Order;
 import uk.co.aosd.flash.domain.OrderStatus;
 import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.CreateOrderDto;
+import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.OrderResponseDto;
 import uk.co.aosd.flash.exc.InsufficientStockException;
 import uk.co.aosd.flash.exc.InvalidOrderStatusException;
@@ -362,5 +364,96 @@ public class OrderService {
 
         // Notify user
         notificationService.sendDispatchNotification(order.getUserId(), orderId);
+    }
+
+    /**
+     * Get order details by ID for a specific user.
+     * Validates that the order belongs to the user.
+     *
+     * @param orderId the order ID
+     * @param userId the user ID
+     * @return OrderDetailDto with complete order information
+     * @throws OrderNotFoundException if order doesn't exist or doesn't belong to user
+     */
+    public OrderDetailDto getOrderById(final UUID orderId, final UUID userId) {
+        log.info("Fetching order {} for user {}", orderId, userId);
+
+        final Order order = orderRepository.findByIdAndUserId(orderId, userId)
+            .orElseThrow(() -> {
+                log.warn("Order {} not found for user {}", orderId, userId);
+                return new OrderNotFoundException(orderId);
+            });
+
+        return mapToOrderDetailDto(order);
+    }
+
+    /**
+     * Get orders for a user with optional filters (status, date range).
+     * Results are ordered by createdAt descending (most recent first).
+     *
+     * @param userId the user ID
+     * @param status optional status filter
+     * @param startDate optional start date filter (inclusive)
+     * @param endDate optional end date filter (inclusive)
+     * @return list of OrderDetailDto matching the criteria
+     * @throws IllegalArgumentException if date range is invalid (startDate > endDate)
+     */
+    public List<OrderDetailDto> getOrdersByUser(
+        final UUID userId,
+        final OrderStatus status,
+        final OffsetDateTime startDate,
+        final OffsetDateTime endDate) {
+
+        log.info("Fetching orders for user {} with filters: status={}, startDate={}, endDate={}",
+            userId, status, startDate, endDate);
+
+        // Validate date range if both dates are provided
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("Start date must be before or equal to end date");
+        }
+
+        final List<Order> orders;
+        if (status != null && startDate != null && endDate != null) {
+            // All filters
+            orders = orderRepository.findByUserIdAndStatusAndCreatedAtBetween(userId, status, startDate, endDate);
+        } else if (status != null) {
+            // Status only
+            orders = orderRepository.findByUserIdAndStatus(userId, status);
+        } else if (startDate != null && endDate != null) {
+            // Date range only
+            orders = orderRepository.findByUserIdAndCreatedAtBetween(userId, startDate, endDate);
+        } else {
+            // No filters
+            orders = orderRepository.findByUserId(userId);
+        }
+
+        log.info("Found {} orders for user {}", orders.size(), userId);
+        return orders.stream()
+            .map(this::mapToOrderDetailDto)
+            .toList();
+    }
+
+    /**
+     * Maps an Order entity to OrderDetailDto.
+     *
+     * @param order the order entity
+     * @return OrderDetailDto
+     */
+    private OrderDetailDto mapToOrderDetailDto(final Order order) {
+        final BigDecimal totalAmount = order.getSoldPrice().multiply(BigDecimal.valueOf(order.getSoldQuantity()));
+
+        return new OrderDetailDto(
+            order.getId(),
+            order.getUserId(),
+            order.getProduct().getId(),
+            order.getProduct().getName(),
+            order.getFlashSaleItem().getId(),
+            order.getFlashSaleItem().getFlashSale().getId(),
+            order.getFlashSaleItem().getFlashSale().getTitle(),
+            order.getSoldPrice(),
+            order.getSoldQuantity(),
+            totalAmount,
+            order.getStatus(),
+            order.getCreatedAt());
     }
 }

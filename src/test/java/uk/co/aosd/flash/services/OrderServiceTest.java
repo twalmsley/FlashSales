@@ -3,11 +3,13 @@ package uk.co.aosd.flash.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,6 +23,7 @@ import uk.co.aosd.flash.domain.OrderStatus;
 import uk.co.aosd.flash.domain.Product;
 import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.CreateOrderDto;
+import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.OrderResponseDto;
 import uk.co.aosd.flash.exc.InsufficientStockException;
 import uk.co.aosd.flash.exc.InvalidOrderStatusException;
@@ -271,5 +274,196 @@ public class OrderServiceTest {
         assertThrows(OrderNotFoundException.class, () -> {
             orderService.processOrderPayment(orderId);
         });
+    }
+
+    @Test
+    public void shouldGetOrderByIdSuccessfully() {
+        final UUID orderId = UUID.randomUUID();
+        final UUID differentUserId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.PAID);
+        order.setCreatedAt(OffsetDateTime.now());
+
+        Mockito.when(orderRepository.findByIdAndUserId(orderId, userId)).thenReturn(Optional.of(order));
+
+        final OrderDetailDto result = orderService.getOrderById(orderId, userId);
+
+        assertNotNull(result);
+        assertEquals(orderId, result.orderId());
+        assertEquals(userId, result.userId());
+        assertEquals(productId, result.productId());
+        assertEquals(product.getName(), result.productName());
+        assertEquals(flashSaleItemId, result.flashSaleItemId());
+        assertEquals(flashSaleId, result.flashSaleId());
+        assertEquals(flashSale.getTitle(), result.flashSaleTitle());
+        assertEquals(BigDecimal.valueOf(79.99), result.soldPrice());
+        assertEquals(5, result.soldQuantity());
+        assertEquals(BigDecimal.valueOf(399.95), result.totalAmount());
+        assertEquals(OrderStatus.PAID, result.status());
+        assertNotNull(result.createdAt());
+    }
+
+    @Test
+    public void shouldFailGetOrderByIdWhenOrderNotFound() {
+        final UUID orderId = UUID.randomUUID();
+        Mockito.when(orderRepository.findByIdAndUserId(orderId, userId)).thenReturn(Optional.empty());
+
+        assertThrows(OrderNotFoundException.class, () -> {
+            orderService.getOrderById(orderId, userId);
+        });
+    }
+
+    @Test
+    public void shouldFailGetOrderByIdWhenOrderBelongsToDifferentUser() {
+        final UUID orderId = UUID.randomUUID();
+        final UUID differentUserId = UUID.randomUUID();
+        Mockito.when(orderRepository.findByIdAndUserId(orderId, userId)).thenReturn(Optional.empty());
+
+        assertThrows(OrderNotFoundException.class, () -> {
+            orderService.getOrderById(orderId, userId);
+        });
+    }
+
+    @Test
+    public void shouldGetOrdersByUserWithoutFilters() {
+        final UUID orderId1 = UUID.randomUUID();
+        final UUID orderId2 = UUID.randomUUID();
+        final OffsetDateTime now = OffsetDateTime.now();
+
+        final Order order1 = new Order();
+        order1.setId(orderId1);
+        order1.setUserId(userId);
+        order1.setFlashSaleItem(flashSaleItem);
+        order1.setProduct(product);
+        order1.setSoldPrice(BigDecimal.valueOf(79.99));
+        order1.setSoldQuantity(5);
+        order1.setStatus(OrderStatus.PAID);
+        order1.setCreatedAt(now.minusDays(1));
+
+        final Order order2 = new Order();
+        order2.setId(orderId2);
+        order2.setUserId(userId);
+        order2.setFlashSaleItem(flashSaleItem);
+        order2.setProduct(product);
+        order2.setSoldPrice(BigDecimal.valueOf(89.99));
+        order2.setSoldQuantity(3);
+        order2.setStatus(OrderStatus.PENDING);
+        order2.setCreatedAt(now);
+
+        Mockito.when(orderRepository.findByUserId(userId)).thenReturn(List.of(order2, order1));
+
+        final List<OrderDetailDto> result = orderService.getOrdersByUser(userId, null, null, null);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        // Should be ordered by createdAt DESC (most recent first)
+        assertEquals(orderId2, result.get(0).orderId());
+        assertEquals(orderId1, result.get(1).orderId());
+    }
+
+    @Test
+    public void shouldGetOrdersByUserWithStatusFilter() {
+        final UUID orderId1 = UUID.randomUUID();
+        final OffsetDateTime now = OffsetDateTime.now();
+
+        final Order order1 = new Order();
+        order1.setId(orderId1);
+        order1.setUserId(userId);
+        order1.setFlashSaleItem(flashSaleItem);
+        order1.setProduct(product);
+        order1.setSoldPrice(BigDecimal.valueOf(79.99));
+        order1.setSoldQuantity(5);
+        order1.setStatus(OrderStatus.PAID);
+        order1.setCreatedAt(now);
+
+        Mockito.when(orderRepository.findByUserIdAndStatus(userId, OrderStatus.PAID)).thenReturn(List.of(order1));
+
+        final List<OrderDetailDto> result = orderService.getOrdersByUser(userId, OrderStatus.PAID, null, null);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(orderId1, result.get(0).orderId());
+        assertEquals(OrderStatus.PAID, result.get(0).status());
+    }
+
+    @Test
+    public void shouldGetOrdersByUserWithDateRangeFilter() {
+        final UUID orderId1 = UUID.randomUUID();
+        final OffsetDateTime startDate = OffsetDateTime.now().minusDays(7);
+        final OffsetDateTime endDate = OffsetDateTime.now();
+        final OffsetDateTime orderDate = OffsetDateTime.now().minusDays(3);
+
+        final Order order1 = new Order();
+        order1.setId(orderId1);
+        order1.setUserId(userId);
+        order1.setFlashSaleItem(flashSaleItem);
+        order1.setProduct(product);
+        order1.setSoldPrice(BigDecimal.valueOf(79.99));
+        order1.setSoldQuantity(5);
+        order1.setStatus(OrderStatus.PAID);
+        order1.setCreatedAt(orderDate);
+
+        Mockito.when(orderRepository.findByUserIdAndCreatedAtBetween(userId, startDate, endDate))
+            .thenReturn(List.of(order1));
+
+        final List<OrderDetailDto> result = orderService.getOrdersByUser(userId, null, startDate, endDate);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(orderId1, result.get(0).orderId());
+    }
+
+    @Test
+    public void shouldGetOrdersByUserWithAllFilters() {
+        final UUID orderId1 = UUID.randomUUID();
+        final OffsetDateTime startDate = OffsetDateTime.now().minusDays(7);
+        final OffsetDateTime endDate = OffsetDateTime.now();
+        final OffsetDateTime orderDate = OffsetDateTime.now().minusDays(3);
+
+        final Order order1 = new Order();
+        order1.setId(orderId1);
+        order1.setUserId(userId);
+        order1.setFlashSaleItem(flashSaleItem);
+        order1.setProduct(product);
+        order1.setSoldPrice(BigDecimal.valueOf(79.99));
+        order1.setSoldQuantity(5);
+        order1.setStatus(OrderStatus.PAID);
+        order1.setCreatedAt(orderDate);
+
+        Mockito.when(orderRepository.findByUserIdAndStatusAndCreatedAtBetween(userId, OrderStatus.PAID, startDate, endDate))
+            .thenReturn(List.of(order1));
+
+        final List<OrderDetailDto> result = orderService.getOrdersByUser(userId, OrderStatus.PAID, startDate, endDate);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(orderId1, result.get(0).orderId());
+        assertEquals(OrderStatus.PAID, result.get(0).status());
+    }
+
+    @Test
+    public void shouldFailGetOrdersByUserWithInvalidDateRange() {
+        final OffsetDateTime startDate = OffsetDateTime.now();
+        final OffsetDateTime endDate = OffsetDateTime.now().minusDays(1); // endDate before startDate
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            orderService.getOrdersByUser(userId, null, startDate, endDate);
+        });
+    }
+
+    @Test
+    public void shouldReturnEmptyListWhenNoOrdersFound() {
+        Mockito.when(orderRepository.findByUserId(userId)).thenReturn(List.of());
+
+        final List<OrderDetailDto> result = orderService.getOrdersByUser(userId, null, null, null);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 }

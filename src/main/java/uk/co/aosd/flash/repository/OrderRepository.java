@@ -1,5 +1,7 @@
 package uk.co.aosd.flash.repository;
 
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -9,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import uk.co.aosd.flash.domain.Order;
+import uk.co.aosd.flash.domain.OrderStatus;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, UUID> {
@@ -30,4 +33,93 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      */
     @Query("SELECT o FROM Order o LEFT JOIN FETCH o.product WHERE o.id = :id")
     Optional<Order> findByIdWithProduct(@Param("id") UUID id);
+
+    /**
+     * Find order by ID and userId with all related entities eagerly loaded.
+     * Used for ownership validation and retrieving complete order details.
+     *
+     * @param id the order ID
+     * @param userId the user ID
+     * @return the order with all related entities
+     */
+    @Query("SELECT o FROM Order o " +
+          "LEFT JOIN FETCH o.product p " +
+          "LEFT JOIN FETCH o.flashSaleItem fsi " +
+          "LEFT JOIN FETCH fsi.flashSale fs " +
+          "WHERE o.id = :id AND o.userId = :userId")
+    Optional<Order> findByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
+
+    /**
+     * Find all orders for a user with all related entities eagerly loaded.
+     * Results are ordered by createdAt descending (most recent first).
+     *
+     * @param userId the user ID
+     * @return list of orders for the user
+     */
+    @Query("SELECT o FROM Order o " +
+          "LEFT JOIN FETCH o.product p " +
+          "LEFT JOIN FETCH o.flashSaleItem fsi " +
+          "LEFT JOIN FETCH fsi.flashSale fs " +
+          "WHERE o.userId = :userId " +
+          "ORDER BY o.createdAt DESC")
+    List<Order> findByUserId(@Param("userId") UUID userId);
+
+    /**
+     * Find orders by user and status with all related entities eagerly loaded.
+     * Results are ordered by createdAt descending (most recent first).
+     *
+     * @param userId the user ID
+     * @param status the order status
+     * @return list of orders matching the criteria
+     */
+    @Query("SELECT o FROM Order o " +
+          "LEFT JOIN FETCH o.product p " +
+          "LEFT JOIN FETCH o.flashSaleItem fsi " +
+          "LEFT JOIN FETCH fsi.flashSale fs " +
+          "WHERE o.userId = :userId AND o.status = :status " +
+          "ORDER BY o.createdAt DESC")
+    List<Order> findByUserIdAndStatus(@Param("userId") UUID userId, @Param("status") OrderStatus status);
+
+    /**
+     * Find orders by user and date range with all related entities eagerly loaded.
+     * Results are ordered by createdAt descending (most recent first).
+     *
+     * @param userId the user ID
+     * @param startDate the start date (inclusive)
+     * @param endDate the end date (inclusive)
+     * @return list of orders matching the criteria
+     */
+    @Query("SELECT o FROM Order o " +
+          "LEFT JOIN FETCH o.product p " +
+          "LEFT JOIN FETCH o.flashSaleItem fsi " +
+          "LEFT JOIN FETCH fsi.flashSale fs " +
+          "WHERE o.userId = :userId AND o.createdAt >= :startDate AND o.createdAt <= :endDate " +
+          "ORDER BY o.createdAt DESC")
+    List<Order> findByUserIdAndCreatedAtBetween(
+        @Param("userId") UUID userId,
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate);
+
+    /**
+     * Find orders by user, status, and date range with all related entities eagerly loaded.
+     * Results are ordered by createdAt descending (most recent first).
+     *
+     * @param userId the user ID
+     * @param status the order status
+     * @param startDate the start date (inclusive)
+     * @param endDate the end date (inclusive)
+     * @return list of orders matching the criteria
+     */
+    @Query("SELECT o FROM Order o " +
+          "LEFT JOIN FETCH o.product p " +
+          "LEFT JOIN FETCH o.flashSaleItem fsi " +
+          "LEFT JOIN FETCH fsi.flashSale fs " +
+          "WHERE o.userId = :userId AND o.status = :status " +
+          "AND o.createdAt >= :startDate AND o.createdAt <= :endDate " +
+          "ORDER BY o.createdAt DESC")
+    List<Order> findByUserIdAndStatusAndCreatedAtBetween(
+        @Param("userId") UUID userId,
+        @Param("status") OrderStatus status,
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate);
 }
