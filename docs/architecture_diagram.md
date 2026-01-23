@@ -278,7 +278,7 @@ erDiagram
         string title
         timestamp start_time
         timestamp end_time
-        enum status "DRAFT|ACTIVE|COMPLETED|CANCELLED"
+        string status "DRAFT|ACTIVE|COMPLETED|CANCELLED"
     }
     
     FLASH_SALE_ITEMS {
@@ -288,7 +288,6 @@ erDiagram
         int allocated_stock
         int sold_count
         decimal sale_price
-        UNIQUE flash_sale_id product_id
     }
     
     ORDERS {
@@ -296,11 +295,10 @@ erDiagram
         UUID user_id
         UUID flash_sale_item_id FK
         UUID product_id FK
-        enum status "PENDING|PAID|FAILED|REFUNDED|DISPATCHED"
+        string status "PENDING|PAID|FAILED|REFUNDED|DISPATCHED"
         decimal sold_price
         int sold_quantity
         timestamp created_at
-        UNIQUE user_id flash_sale_item_id
     }
     
     REMAINING_ACTIVE_STOCK {
