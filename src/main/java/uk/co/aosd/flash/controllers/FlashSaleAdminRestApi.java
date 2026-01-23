@@ -23,12 +23,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.co.aosd.flash.domain.SaleStatus;
+import uk.co.aosd.flash.dto.AddFlashSaleItemDto;
 import uk.co.aosd.flash.dto.CreateSaleDto;
 import uk.co.aosd.flash.dto.FlashSaleResponseDto;
 import uk.co.aosd.flash.dto.UpdateFlashSaleDto;
+import uk.co.aosd.flash.dto.UpdateFlashSaleItemDto;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
+import uk.co.aosd.flash.exc.FlashSaleItemNotFoundException;
 import uk.co.aosd.flash.exc.FlashSaleNotFoundException;
+import uk.co.aosd.flash.exc.InsufficientResourcesException;
 import uk.co.aosd.flash.exc.InvalidSaleTimesException;
+import uk.co.aosd.flash.exc.ProductNotFoundException;
 import uk.co.aosd.flash.exc.SaleDurationTooShortException;
 import uk.co.aosd.flash.services.FlashSalesService;
 
@@ -192,6 +197,118 @@ public class FlashSaleAdminRestApi {
             return ResponseEntity.badRequest().build();
         } catch (final FlashSaleNotFoundException e) {
             log.info("Flash sale not found with id: {}", id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
+    /**
+     * Add items to an existing flash sale.
+     * Only DRAFT sales can have items added.
+     *
+     * @param id    the flash sale ID
+     * @param items the items to add
+     * @return ResponseEntity with updated flash sale DTO, or 404 if not found, or 400 for validation errors, or 409 for duplicate products
+     */
+    @PostMapping("/flash_sale/{id}/items")
+    public ResponseEntity<FlashSaleResponseDto> addItemsToFlashSale(
+        @PathVariable final String id,
+        @Valid @RequestBody final List<AddFlashSaleItemDto> items) {
+        
+        log.info("Adding items to flash sale: {}", id);
+        
+        try {
+            final UUID uuid = UUID.fromString(id);
+            final FlashSaleResponseDto updated = service.addItemsToFlashSale(uuid, items);
+            log.info("Added items to flash sale: {}", id);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                .location(URI.create("/api/v1/admin/flash_sale/" + uuid.toString()))
+                .body(updated);
+        } catch (final IllegalArgumentException e) {
+            log.error("Invalid UUID format or validation error: {}", e.getMessage());
+            // Check if it's a duplicate product error
+            if (e.getMessage() != null && e.getMessage().contains("already in sale")) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).build();
+            }
+            return ResponseEntity.badRequest().build();
+        } catch (final FlashSaleNotFoundException e) {
+            log.info("Flash sale not found with id: {}", id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (final ProductNotFoundException e) {
+            log.warn("Product not found: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (final InsufficientResourcesException e) {
+            log.warn("Insufficient resources: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Update a flash sale item.
+     * Only DRAFT sales can have items updated.
+     *
+     * @param id      the flash sale ID
+     * @param itemId   the flash sale item ID
+     * @param updateDto the update DTO
+     * @return ResponseEntity with updated flash sale DTO, or 404 if not found, or 400 for validation errors
+     */
+    @PutMapping("/flash_sale/{id}/items/{itemId}")
+    public ResponseEntity<FlashSaleResponseDto> updateFlashSaleItem(
+        @PathVariable final String id,
+        @PathVariable final String itemId,
+        @Valid @RequestBody final UpdateFlashSaleItemDto updateDto) {
+        
+        log.info("Updating flash sale item: {} in sale {}", itemId, id);
+        
+        try {
+            final UUID saleUuid = UUID.fromString(id);
+            final UUID itemUuid = UUID.fromString(itemId);
+            final FlashSaleResponseDto updated = service.updateFlashSaleItem(saleUuid, itemUuid, updateDto);
+            log.info("Updated flash sale item: {} in sale {}", itemId, id);
+            return ResponseEntity.ok(updated);
+        } catch (final IllegalArgumentException e) {
+            log.error("Invalid UUID format or validation error: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (final FlashSaleNotFoundException e) {
+            log.info("Flash sale not found with id: {}", id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (final FlashSaleItemNotFoundException e) {
+            log.info("Flash sale item not found with id: {} in sale {}", itemId, id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (final InsufficientResourcesException e) {
+            log.warn("Insufficient resources: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Remove a flash sale item from a sale.
+     * Only DRAFT sales can have items removed.
+     *
+     * @param id     the flash sale ID
+     * @param itemId the flash sale item ID
+     * @return ResponseEntity with no content on success, or 404 if not found, or 400 for status errors
+     */
+    @DeleteMapping("/flash_sale/{id}/items/{itemId}")
+    public ResponseEntity<FlashSaleResponseDto> removeFlashSaleItem(
+        @PathVariable final String id,
+        @PathVariable final String itemId) {
+        
+        log.info("Removing flash sale item: {} from sale {}", itemId, id);
+        
+        try {
+            final UUID saleUuid = UUID.fromString(id);
+            final UUID itemUuid = UUID.fromString(itemId);
+            final FlashSaleResponseDto updated = service.removeFlashSaleItem(saleUuid, itemUuid);
+            log.info("Removed flash sale item: {} from sale {}", itemId, id);
+            return ResponseEntity.ok(updated);
+        } catch (final IllegalArgumentException e) {
+            log.error("Invalid UUID format or status error: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (final FlashSaleNotFoundException e) {
+            log.info("Flash sale not found with id: {}", id);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (final FlashSaleItemNotFoundException e) {
+            log.info("Flash sale item not found with id: {} in sale {}", itemId, id);
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }

@@ -1,5 +1,6 @@
 package uk.co.aosd.flash.services;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,11 +19,14 @@ import uk.co.aosd.flash.domain.FlashSale;
 import uk.co.aosd.flash.domain.FlashSaleItem;
 import uk.co.aosd.flash.domain.Product;
 import uk.co.aosd.flash.domain.SaleStatus;
+import uk.co.aosd.flash.dto.AddFlashSaleItemDto;
 import uk.co.aosd.flash.dto.CreateSaleDto;
 import uk.co.aosd.flash.dto.FlashSaleItemDto;
 import uk.co.aosd.flash.dto.FlashSaleResponseDto;
 import uk.co.aosd.flash.dto.UpdateFlashSaleDto;
+import uk.co.aosd.flash.dto.UpdateFlashSaleItemDto;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
+import uk.co.aosd.flash.exc.FlashSaleItemNotFoundException;
 import uk.co.aosd.flash.exc.FlashSaleNotFoundException;
 import uk.co.aosd.flash.exc.InsufficientResourcesException;
 import uk.co.aosd.flash.exc.InvalidSaleTimesException;
@@ -418,6 +422,238 @@ public class FlashSalesService {
         // Delete the flash sale (cascade will handle items)
         sales.delete(sale);
         log.info("Deleted FlashSale: {}", id);
+    }
+
+    /**
+     * Add items to an existing flash sale.
+     * Only DRAFT sales can have items added.
+     *
+     * @param saleId the flash sale ID
+     * @param items  the items to add
+     * @return the updated flash sale DTO
+     * @throws FlashSaleNotFoundException if the sale is not found
+     * @throws IllegalArgumentException if the sale is not in DRAFT status
+     * @throws ProductNotFoundException if any product is not found
+     * @throws InsufficientResourcesException if there is not enough stock
+     * @throws IllegalArgumentException if a product is already in the sale
+     */
+    @Transactional
+    public FlashSaleResponseDto addItemsToFlashSale(final UUID saleId, @Valid final List<AddFlashSaleItemDto> items) {
+        log.info("Adding items to FlashSale: {}", saleId);
+        
+        final FlashSale sale = sales.findByIdWithItems(saleId)
+            .orElseThrow(() -> {
+                log.error("Flash sale not found: {}", saleId);
+                return new FlashSaleNotFoundException(saleId);
+            });
+        
+        // Validate status: Only DRAFT can have items added
+        if (sale.getStatus() != SaleStatus.DRAFT) {
+            log.error("Cannot add items to flash sale with status {}: {}", sale.getStatus(), saleId);
+            throw new IllegalArgumentException("Only DRAFT flash sales can have items added");
+        }
+        
+        final List<String> missingProducts = new ArrayList<>();
+        final List<Product> notEnoughStockProducts = new ArrayList<>();
+        final List<String> duplicateProducts = new ArrayList<>();
+        
+        for (final AddFlashSaleItemDto itemDto : items) {
+            final var maybeProduct = products.findById(UUID.fromString(itemDto.productId()));
+            maybeProduct.ifPresentOrElse(p -> {
+                // Check if product is already in the sale
+                if (this.items.existsByFlashSaleIdAndProductId(saleId, p.getId())) {
+                    duplicateProducts.add(itemDto.productId());
+                    return;
+                }
+                
+                // Validate stock availability
+                if (p.getReservedCount() + itemDto.allocatedStock() > p.getTotalPhysicalStock()) {
+                    notEnoughStockProducts.add(p);
+                    return;
+                }
+                
+                // Create flash sale item
+                final BigDecimal salePrice = itemDto.salePrice() != null ? itemDto.salePrice() : p.getBasePrice();
+                final var flashSaleItem = new FlashSaleItem(null, sale, p, itemDto.allocatedStock(), 0, salePrice);
+                this.items.save(flashSaleItem);
+                
+                // Update product reserved count
+                final int newReservedCount = p.getReservedCount() + itemDto.allocatedStock();
+                p.setReservedCount(newReservedCount);
+                products.save(p);
+                
+                log.debug("Added item for product {} to sale {}: allocatedStock={}, salePrice={}", 
+                    p.getId(), saleId, itemDto.allocatedStock(), salePrice);
+            }, () -> {
+                missingProducts.add(itemDto.productId());
+            });
+        }
+        
+        if (!missingProducts.isEmpty()) {
+            final String ids = missingProducts.stream().collect(Collectors.joining(", "));
+            log.error("Failed to add items to Flash Sale due to missing products: {}", ids);
+            throw new ProductNotFoundException(ids);
+        }
+        
+        if (!duplicateProducts.isEmpty()) {
+            final String ids = duplicateProducts.stream().collect(Collectors.joining(", "));
+            log.error("Failed to add items to Flash Sale due to duplicate products: {}", ids);
+            throw new IllegalArgumentException("Products already in sale: " + ids);
+        }
+        
+        if (!notEnoughStockProducts.isEmpty()) {
+            final String ids = notEnoughStockProducts.stream().map(Product::getId).map(Object::toString).collect(Collectors.joining(", "));
+            log.error("Failed to add items to Flash Sale due to not enough stock: {}", ids);
+            throw new InsufficientResourcesException(ids);
+        }
+        
+        log.info("Added {} item(s) to FlashSale: {}", items.size(), saleId);
+        
+        // Reload with items for response
+        return mapToResponseDto(sales.findByIdWithItems(saleId).orElse(sale));
+    }
+
+    /**
+     * Update a flash sale item.
+     * Only DRAFT sales can have items updated.
+     *
+     * @param saleId   the flash sale ID
+     * @param itemId   the flash sale item ID
+     * @param updateDto the update DTO
+     * @return the updated flash sale DTO
+     * @throws FlashSaleNotFoundException if the sale is not found
+     * @throws FlashSaleItemNotFoundException if the item is not found
+     * @throws IllegalArgumentException if the sale is not in DRAFT status or validation fails
+     * @throws InsufficientResourcesException if there is not enough stock
+     */
+    @Transactional
+    public FlashSaleResponseDto updateFlashSaleItem(final UUID saleId, final UUID itemId, @Valid final UpdateFlashSaleItemDto updateDto) {
+        log.info("Updating FlashSaleItem: {} in sale {}", itemId, saleId);
+        
+        final FlashSale sale = sales.findByIdWithItems(saleId)
+            .orElseThrow(() -> {
+                log.error("Flash sale not found: {}", saleId);
+                return new FlashSaleNotFoundException(saleId);
+            });
+        
+        // Validate status: Only DRAFT can have items updated
+        if (sale.getStatus() != SaleStatus.DRAFT) {
+            log.error("Cannot update items in flash sale with status {}: {}", sale.getStatus(), saleId);
+            throw new IllegalArgumentException("Only DRAFT flash sales can have items updated");
+        }
+        
+        final FlashSaleItem item = items.findByIdAndFlashSaleId(itemId, saleId)
+            .orElseThrow(() -> {
+                log.error("Flash sale item not found: {} in sale {}", itemId, saleId);
+                return new FlashSaleItemNotFoundException(itemId);
+            });
+        
+        final Product product = item.getProduct();
+        boolean updated = false;
+        
+        // Update allocatedStock if provided
+        if (updateDto.allocatedStock() != null) {
+            final int newAllocatedStock = updateDto.allocatedStock();
+            final int oldAllocatedStock = item.getAllocatedStock();
+            
+            // Validate: new allocatedStock must be >= soldCount
+            if (newAllocatedStock < item.getSoldCount()) {
+                log.error("Cannot reduce allocatedStock below soldCount: allocatedStock={}, soldCount={}", 
+                    newAllocatedStock, item.getSoldCount());
+                throw new IllegalArgumentException(
+                    String.format("Allocated stock (%d) cannot be less than sold count (%d)", 
+                        newAllocatedStock, item.getSoldCount()));
+            }
+            
+            if (newAllocatedStock != oldAllocatedStock) {
+                final int difference = newAllocatedStock - oldAllocatedStock;
+                
+                // Validate product has enough stock
+                if (product.getReservedCount() + difference > product.getTotalPhysicalStock()) {
+                    log.error("Insufficient stock to update item: currentReserved={}, difference={}, totalStock={}", 
+                        product.getReservedCount(), difference, product.getTotalPhysicalStock());
+                    throw new InsufficientResourcesException(product.getId().toString());
+                }
+                
+                item.setAllocatedStock(newAllocatedStock);
+                product.setReservedCount(product.getReservedCount() + difference);
+                products.save(product);
+                updated = true;
+                
+                log.debug("Updated allocatedStock for item {}: {} -> {}", itemId, oldAllocatedStock, newAllocatedStock);
+            }
+        }
+        
+        // Update salePrice if provided
+        if (updateDto.salePrice() != null && !updateDto.salePrice().equals(item.getSalePrice())) {
+            item.setSalePrice(updateDto.salePrice());
+            updated = true;
+            log.debug("Updated salePrice for item {}: {}", itemId, updateDto.salePrice());
+        }
+        
+        if (updated) {
+            items.save(item);
+            log.info("Updated FlashSaleItem: {} in sale {}", itemId, saleId);
+        }
+        
+        // Reload with items for response
+        return mapToResponseDto(sales.findByIdWithItems(saleId).orElse(sale));
+    }
+
+    /**
+     * Remove a flash sale item from a sale.
+     * Only DRAFT sales can have items removed.
+     *
+     * @param saleId the flash sale ID
+     * @param itemId the flash sale item ID
+     * @return the updated flash sale DTO
+     * @throws FlashSaleNotFoundException if the sale is not found
+     * @throws FlashSaleItemNotFoundException if the item is not found
+     * @throws IllegalArgumentException if the sale is not in DRAFT status
+     */
+    @Transactional
+    public FlashSaleResponseDto removeFlashSaleItem(final UUID saleId, final UUID itemId) {
+        log.info("Removing FlashSaleItem: {} from sale {}", itemId, saleId);
+        
+        final FlashSale sale = sales.findByIdWithItems(saleId)
+            .orElseThrow(() -> {
+                log.error("Flash sale not found: {}", saleId);
+                return new FlashSaleNotFoundException(saleId);
+            });
+        
+        // Validate status: Only DRAFT can have items removed
+        if (sale.getStatus() != SaleStatus.DRAFT) {
+            log.error("Cannot remove items from flash sale with status {}: {}", sale.getStatus(), saleId);
+            throw new IllegalArgumentException("Only DRAFT flash sales can have items removed");
+        }
+        
+        final FlashSaleItem item = items.findByIdAndFlashSaleId(itemId, saleId)
+            .orElseThrow(() -> {
+                log.error("Flash sale item not found: {} in sale {}", itemId, saleId);
+                return new FlashSaleItemNotFoundException(itemId);
+            });
+        
+        final Product product = item.getProduct();
+        
+        // Calculate stock to release (allocatedStock - soldCount)
+        final int stockToRelease = item.getAllocatedStock() - item.getSoldCount();
+        
+        if (stockToRelease > 0) {
+            // Update product reserved count
+            final int newReservedCount = product.getReservedCount() - stockToRelease;
+            product.setReservedCount(newReservedCount);
+            products.save(product);
+            
+            log.debug("Released {} units for product {} in sale {}", 
+                stockToRelease, product.getId(), saleId);
+        }
+        
+        // Delete the item
+        items.delete(item);
+        log.info("Removed FlashSaleItem: {} from sale {}", itemId, saleId);
+        
+        // Reload with items for response
+        return mapToResponseDto(sales.findByIdWithItems(saleId).orElse(sale));
     }
 
     /**

@@ -17,6 +17,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
+import uk.co.aosd.flash.exc.FlashSaleItemNotFoundException;
 import uk.co.aosd.flash.exc.FlashSaleNotFoundException;
 import uk.co.aosd.flash.exc.InsufficientResourcesException;
 import uk.co.aosd.flash.exc.InsufficientStockException;
@@ -224,6 +225,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleFlashSaleNotFoundException(final FlashSaleNotFoundException e) {
         log.warn("Flash sale not found: saleId={}", e.getSaleId());
         final String message = String.format("Flash sale with id '%s' not found", e.getSaleId());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(errorMapper.createErrorMap(message));
+    }
+
+    /**
+     * Handle flash sale item not found exceptions.
+     */
+    @ExceptionHandler(FlashSaleItemNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleFlashSaleItemNotFoundException(final FlashSaleItemNotFoundException e) {
+        log.warn("Flash sale item not found: itemId={}", e.getItemId());
+        final String message = String.format("Flash sale item with id '%s' not found", e.getItemId());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
             .body(errorMapper.createErrorMap(message));
     }
