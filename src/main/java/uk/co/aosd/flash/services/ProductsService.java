@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.aosd.flash.domain.Product;
 import uk.co.aosd.flash.dto.ProductDto;
+import uk.co.aosd.flash.dto.ProductStockDto;
+import uk.co.aosd.flash.dto.UpdateProductStockDto;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.ProductNotFoundException;
 import uk.co.aosd.flash.repository.ProductRepository;
@@ -34,6 +36,11 @@ public class ProductsService {
 
     private Function<Product, ProductDto> toProductDto = p -> {
         return new ProductDto(p.getId().toString(), p.getName(), p.getDescription(), p.getTotalPhysicalStock(), p.getBasePrice(), p.getReservedCount());
+    };
+
+    private Function<Product, ProductStockDto> toProductStockDto = p -> {
+        final int available = p.getTotalPhysicalStock() - p.getReservedCount();
+        return new ProductStockDto(p.getId().toString(), p.getTotalPhysicalStock(), p.getReservedCount(), available);
     };
 
     /**
@@ -171,6 +178,68 @@ public class ProductsService {
             log.error("Failed to delete product: " + id);
             log.error("Failed to delete product: " + e.getMessage());
             throw new ProductNotFoundException(id);
+        }
+    }
+
+    /**
+     * Get stock details for a product.
+     */
+    @Transactional(readOnly = true)
+    public ProductStockDto getProductStockById(final String id) throws ProductNotFoundException {
+        try {
+            log.info("Getting product stock: {}", id);
+            final var maybeProduct = repository.findById(UUID.fromString(id));
+            if (maybeProduct.isEmpty()) {
+                log.info("Product not found: {}", id);
+                throw new ProductNotFoundException(id);
+            }
+            return maybeProduct.map(toProductStockDto).orElseThrow(() -> new ProductNotFoundException(id));
+        } catch (final IllegalArgumentException e) {
+            log.error("Failed to get product stock: {}", id);
+            log.error("Failed to get product stock: {}", e.getMessage());
+            throw new ProductNotFoundException(id);
+        }
+    }
+
+    /**
+     * Update total physical stock for a product.
+     */
+    @Transactional
+    @CacheEvict(value = "products", key = "#id")
+    public ProductStockDto updateProductStock(final String id, @Valid final UpdateProductStockDto updateStock)
+        throws ProductNotFoundException {
+
+        try {
+            log.info("Updating product stock: {} -> {}", id, updateStock.totalPhysicalStock());
+            final var maybeProduct = repository.findById(UUID.fromString(id));
+            if (maybeProduct.isEmpty()) {
+                log.info("Product not found: {}", id);
+                throw new ProductNotFoundException(id);
+            }
+
+            final Product product = maybeProduct.get();
+
+            if (updateStock.totalPhysicalStock() < product.getReservedCount()) {
+                throw new IllegalArgumentException(
+                    String.format("Total physical stock (%d) cannot be less than reserved count (%d)",
+                        updateStock.totalPhysicalStock(), product.getReservedCount()));
+            }
+
+            product.setTotalPhysicalStock(updateStock.totalPhysicalStock());
+            repository.save(product);
+            return toProductStockDto.apply(product);
+        } catch (final IllegalArgumentException e) {
+            // This could be from UUID parsing or a business rule violation.
+            if (e.getMessage() != null && e.getMessage().contains("Total physical stock")) {
+                throw e;
+            }
+            log.error("Failed to update product stock: {}", id);
+            log.error("Failed to update product stock: {}", e.getMessage());
+            throw new ProductNotFoundException(id);
+        } catch (final ConstraintViolationException e) {
+            log.error("Failed to update product stock: {}", id);
+            log.error("Failed to update product stock: {}", e.getMessage());
+            throw e;
         }
     }
 

@@ -23,6 +23,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import uk.co.aosd.flash.dto.ProductDto;
+import uk.co.aosd.flash.dto.ProductStockDto;
+import uk.co.aosd.flash.dto.UpdateProductStockDto;
 import uk.co.aosd.flash.dto.ErrorResponseDto;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.ProductNotFoundException;
@@ -210,5 +212,62 @@ public class ProductRestApi {
         service.deleteProduct(id);
         log.info("Deleted product with id: " + id);
         return ResponseEntity.ok("Successfully deleted the product: " + id);
+    }
+
+    /**
+     * API for getting stock details for a product.
+     */
+    @GetMapping("/{id}/stock")
+    @Operation(summary = "Get product stock", description = "Returns stock details (physical, reserved, available) for a product.")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Stock details returned.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductStockDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Product not found.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
+    public ResponseEntity<ProductStockDto> getProductStock(
+        @Parameter(description = "Product identifier.", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
+        @PathVariable final String id) throws ProductNotFoundException {
+        return ResponseEntity.ok(service.getProductStockById(id));
+    }
+
+    /**
+     * API for updating total physical stock for a product.
+     */
+    @PutMapping("/{id}/stock")
+    @Operation(summary = "Update product stock", description = "Manually updates total physical stock for a product.")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Stock updated.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProductStockDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Product not found.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Validation error.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid stock value (e.g. less than reserved).",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
+    public ResponseEntity<ProductStockDto> updateProductStock(
+        @Parameter(description = "Product identifier.", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
+        @PathVariable final String id,
+        @Valid @RequestBody final UpdateProductStockDto updateStock) throws ProductNotFoundException {
+        return ResponseEntity.ok(service.updateProductStock(id, updateStock));
     }
 }

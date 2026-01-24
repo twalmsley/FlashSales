@@ -28,6 +28,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 import uk.co.aosd.flash.dto.ProductDto;
+import uk.co.aosd.flash.dto.ProductStockDto;
+import uk.co.aosd.flash.dto.UpdateProductStockDto;
 
 /**
  * Full stack test for the products REST API.
@@ -152,5 +154,61 @@ public class ProductRestApiFullStackTest {
                 .content(objectMapper.writeValueAsString(productDto1)))
             .andExpect(status().isBadRequest())
             .andReturn();
+    }
+
+    @Test
+    public void shouldGetAndUpdateProductStockSuccessfully() throws Exception {
+        //
+        // CREATE
+        //
+        final ProductDto productDto1 = new ProductDto(null, "Stock Product 1", "Stock product 1 description", 100,
+            BigDecimal.valueOf(9.99), 10);
+
+        final var response = mockMvc.perform(
+            post("/api/v1/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(productDto1)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        final String uri = response.getResponse().getHeader(HttpHeaders.LOCATION);
+        final String stockUri = uri + "/stock";
+
+        //
+        // GET stock and verify
+        //
+        final var stockResult = mockMvc.perform(get(stockUri)).andExpect(status().isOk()).andReturn();
+        final ProductStockDto stock = objectMapper.readValue(stockResult.getResponse().getContentAsString(), ProductStockDto.class);
+        assertNotNull(stock);
+        assertEquals(100, stock.totalPhysicalStock());
+        assertEquals(10, stock.reservedCount());
+        assertEquals(90, stock.availableStock());
+
+        //
+        // UPDATE stock (increase)
+        //
+        final UpdateProductStockDto updateStock = new UpdateProductStockDto(120);
+        final var updateResult = mockMvc.perform(
+            put(stockUri)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updateStock)))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final ProductStockDto updatedStock = objectMapper.readValue(updateResult.getResponse().getContentAsString(), ProductStockDto.class);
+        assertNotNull(updatedStock);
+        assertEquals(120, updatedStock.totalPhysicalStock());
+        assertEquals(10, updatedStock.reservedCount());
+        assertEquals(110, updatedStock.availableStock());
+
+        //
+        // UPDATE stock (below reserved) should fail
+        //
+        final UpdateProductStockDto invalidUpdate = new UpdateProductStockDto(5);
+        mockMvc.perform(
+            put(stockUri)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidUpdate)))
+            .andExpect(status().isBadRequest());
     }
 }
