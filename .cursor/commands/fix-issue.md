@@ -1,0 +1,1 @@
+Fetch issue details with gh issue view, find relevant code, implement a fix, and open a PR

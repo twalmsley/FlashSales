@@ -1,0 +1,15 @@
+---
+description: Require updated/new tests for every code change and a green full test suite
+alwaysApply: true
+---
+
+# Testing Discipline (Always)
+
+For **every code change** (including refactors and bug fixes):
+
+- **Update existing tests** affected by the change.
+- **Add new tests** to cover new behavior, bug fixes, and edge cases (including “empty/blank/null input” cases).
+- **Run the entire test suite** before considering the work done (project default, e.g. `mvn test`).
+- **Fix any failing tests** until the full suite is green. Don’t leave regressions for later.
+
+Do not “skip tests” (e.g. `-DskipTests`, `--no-tests`) to get a passing build.
