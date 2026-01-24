@@ -158,8 +158,10 @@ public class FlashSaleAdminRestApi {
      * List all flash sales with optional filters.
      *
      * @param status optional status filter
-     * @param startDate optional start date filter (ISO-8601 format)
-     * @param endDate optional end date filter (ISO-8601 format)
+     * @param startDate optional filter window start (ISO-8601 format). When provided, only sales whose time period
+     *                  overlaps the specified window are returned.
+     * @param endDate optional filter window end (ISO-8601 format). When provided, only sales whose time period
+     *                overlaps the specified window are returned.
      * @return ResponseEntity with list of flash sales
      */
     @GetMapping("/flash_sale")
@@ -181,9 +183,9 @@ public class FlashSaleAdminRestApi {
     public ResponseEntity<List<FlashSaleResponseDto>> getAllFlashSales(
         @Parameter(description = "Optional status filter.", schema = @Schema(implementation = SaleStatus.class), example = "DRAFT")
         @RequestParam(required = false) final String status,
-        @Parameter(description = "Optional start date/time filter (ISO-8601).", example = "2026-01-01T00:00:00Z")
+        @Parameter(description = "Optional filter window start (ISO-8601). Returns sales whose time period overlaps the window.", example = "2026-01-01T00:00:00Z")
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime startDate,
-        @Parameter(description = "Optional end date/time filter (ISO-8601).", example = "2026-12-31T23:59:59Z")
+        @Parameter(description = "Optional filter window end (ISO-8601). Returns sales whose time period overlaps the window.", example = "2026-12-31T23:59:59Z")
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime endDate) {
         
         log.info("Getting all flash sales with filters: status={}, startDate={}, endDate={}", status, startDate, endDate);

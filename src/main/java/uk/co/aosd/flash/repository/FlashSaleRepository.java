@@ -19,23 +19,32 @@ public interface FlashSaleRepository extends JpaRepository<FlashSale, UUID> {
     List<FlashSale> findByStatus(SaleStatus status);
 
     /**
-     * Find DRAFT sales with start time within the next N days from the given current time.
-     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading issues.
+     * Find DRAFT sales with start time within the next N days from the given
+     * current time.
+     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading
+     * issues.
      *
-     * @param status the sale status (should be DRAFT)
-     * @param currentTime the current time
-     * @param futureTime the future time (currentTime + N days)
+     * @param status
+     *            the sale status (should be DRAFT)
+     * @param currentTime
+     *            the current time
+     * @param futureTime
+     *            the future time (currentTime + N days)
      * @return list of draft sales within the time range
      */
     @Query("SELECT DISTINCT fs FROM FlashSale fs LEFT JOIN FETCH fs.items item LEFT JOIN FETCH item.product WHERE fs.status = :status AND fs.startTime >= :currentTime AND fs.startTime <= :futureTime ORDER BY fs.startTime ASC")
-    List<FlashSale> findDraftSalesWithinDays(@Param("status") SaleStatus status, @Param("currentTime") OffsetDateTime currentTime, @Param("futureTime") OffsetDateTime futureTime);
+    List<FlashSale> findDraftSalesWithinDays(@Param("status") SaleStatus status, @Param("currentTime") OffsetDateTime currentTime,
+        @Param("futureTime") OffsetDateTime futureTime);
 
     /**
      * Find DRAFT sales that are ready to be activated (start time has passed).
-     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading issues.
+     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading
+     * issues.
      *
-     * @param status the sale status (should be DRAFT)
-     * @param currentTime the current time
+     * @param status
+     *            the sale status (should be DRAFT)
+     * @param currentTime
+     *            the current time
      * @return list of draft sales ready to activate
      */
     @Query("SELECT DISTINCT fs FROM FlashSale fs LEFT JOIN FETCH fs.items item LEFT JOIN FETCH item.product WHERE fs.status = :status AND fs.startTime <= :currentTime ORDER BY fs.startTime ASC")
@@ -43,10 +52,13 @@ public interface FlashSaleRepository extends JpaRepository<FlashSale, UUID> {
 
     /**
      * Find ACTIVE sales that are ready to be completed (end time has passed).
-     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading issues.
+     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading
+     * issues.
      *
-     * @param status the sale status (should be ACTIVE)
-     * @param currentTime the current time
+     * @param status
+     *            the sale status (should be ACTIVE)
+     * @param currentTime
+     *            the current time
      * @return list of active sales ready to complete
      */
     @Query("SELECT DISTINCT fs FROM FlashSale fs LEFT JOIN FETCH fs.items item LEFT JOIN FETCH item.product WHERE fs.status = :status AND fs.endTime <= :currentTime ORDER BY fs.endTime ASC")
@@ -54,18 +66,25 @@ public interface FlashSaleRepository extends JpaRepository<FlashSale, UUID> {
 
     /**
      * Find all flash sales with optional filters for status and date range.
-     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading issues.
+     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading
+     * issues.
      *
-     * @param status optional status filter
-     * @param startDate optional start date filter (sales with startTime >= startDate)
-     * @param endDate optional end date filter (sales with endTime <= endDate)
+     * @param status
+     *            optional status filter
+     * @param startDate
+     *            optional filter window start (inclusive). When provided, only sales whose time period overlaps
+     *            the specified window are returned.
+     * @param endDate
+     *            optional filter window end (inclusive). When provided, only sales whose time period overlaps
+     *            the specified window are returned.
      * @return list of flash sales matching the filters, ordered by startTime
      */
     @Query("SELECT DISTINCT fs FROM FlashSale fs LEFT JOIN FETCH fs.items item LEFT JOIN FETCH item.product " +
-           "WHERE (:status IS NULL OR fs.status = :status) " +
-           "AND (:startDate IS NULL OR fs.startTime >= :startDate) " +
-           "AND (:endDate IS NULL OR fs.endTime <= :endDate) " +
-           "ORDER BY fs.startTime ASC")
+        "WHERE fs.status = COALESCE(:status, fs.status) " +
+        // overlap: saleEnd >= filterStart AND saleStart <= filterEnd (with open-ended window support)
+        "AND fs.endTime >= COALESCE(:startDate, fs.endTime) " +
+        "AND fs.startTime <= COALESCE(:endDate, fs.startTime) " +
+        "ORDER BY fs.startTime ASC")
     List<FlashSale> findAllWithFilters(
         @Param("status") SaleStatus status,
         @Param("startDate") OffsetDateTime startDate,
@@ -73,9 +92,11 @@ public interface FlashSaleRepository extends JpaRepository<FlashSale, UUID> {
 
     /**
      * Find a flash sale by ID with items and products eagerly loaded.
-     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading issues.
+     * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading
+     * issues.
      *
-     * @param id the flash sale ID
+     * @param id
+     *            the flash sale ID
      * @return optional flash sale with items and products loaded
      */
     @Query("SELECT DISTINCT fs FROM FlashSale fs LEFT JOIN FETCH fs.items item LEFT JOIN FETCH item.product WHERE fs.id = :id")

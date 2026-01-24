@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
@@ -14,6 +15,7 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,6 +75,14 @@ public class FlashSaleRestApiFullStackTest {
     public static void beforeAll() {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
+    }
+
+    @BeforeEach
+    public void beforeEach() {
+        // Ensure tests are isolated even when the Spring context / containers are reused.
+        itemsRepo.deleteAll();
+        salesRepo.deleteAll();
+        productsRepo.deleteAll();
     }
 
     /**
@@ -148,5 +158,113 @@ public class FlashSaleRestApiFullStackTest {
         maybeSavedProduct.ifPresent(savedProduct -> {
             assertEquals(20, savedProduct.getReservedCount());
         });
+    }
+
+    @Test
+    public void shouldListActiveSalesWhenFilteringByStatusOnlyWithNoDates() throws Exception {
+        //
+        // CREATE a product
+        //
+        final ProductDto productDto1 = new ProductDto(null, "Dummy Product 1", "Dummy product 1 description", 101,
+            BigDecimal.valueOf(99.99), 10);
+
+        final var response = mockMvc.perform(
+            post("/api/v1/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(productDto1)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        //
+        // GET the product
+        //
+        final String productUri = response.getResponse().getHeader(HttpHeaders.LOCATION);
+
+        final var result = mockMvc.perform(get(productUri)).andReturn();
+        final ProductDto product = objectMapper.readValue(result.getResponse().getContentAsString(), ProductDto.class);
+
+        //
+        // Create an ACTIVE flash sale for the product
+        //
+        final SaleProductDto saleProduct = new SaleProductDto(product.id(), 10);
+        final CreateSaleDto sale = new CreateSaleDto(null, "Test Sale", OffsetDateTime.of(2026, 01, 01, 12, 0, 0, 0, ZoneOffset.UTC),
+            OffsetDateTime.of(2026, 01, 01, 13, 0, 0, 0, ZoneOffset.UTC), SaleStatus.ACTIVE, List.of(saleProduct));
+
+        mockMvc.perform(
+            post("/api/v1/admin/flash_sale")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(sale)))
+            .andExpect(status().isCreated());
+
+        //
+        // List ACTIVE sales with no start/end date filters.
+        // This previously failed against Postgres due to typeless NULL parameters.
+        //
+        mockMvc.perform(get("/api/v1/admin/flash_sale")
+            .param("status", "ACTIVE"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].status").value("ACTIVE"));
+    }
+
+    @Test
+    public void shouldListOnlySalesWhoseTimePeriodOverlapsTheSpecifiedWindow() throws Exception {
+        //
+        // CREATE a product
+        //
+        final ProductDto productDto1 = new ProductDto(null, "Dummy Product 1", "Dummy product 1 description", 101,
+            BigDecimal.valueOf(99.99), 10);
+
+        final var response = mockMvc.perform(
+            post("/api/v1/products")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(productDto1)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        //
+        // GET the product
+        //
+        final String productUri = response.getResponse().getHeader(HttpHeaders.LOCATION);
+
+        final var result = mockMvc.perform(get(productUri)).andReturn();
+        final ProductDto product = objectMapper.readValue(result.getResponse().getContentAsString(), ProductDto.class);
+
+        final SaleProductDto saleProduct = new SaleProductDto(product.id(), 10);
+
+        // Sale A: 12:00-13:00 (overlaps window 12:30-12:45)
+        final CreateSaleDto saleA = new CreateSaleDto(null, "Sale A",
+            OffsetDateTime.of(2026, 01, 01, 12, 0, 0, 0, ZoneOffset.UTC),
+            OffsetDateTime.of(2026, 01, 01, 13, 0, 0, 0, ZoneOffset.UTC),
+            SaleStatus.ACTIVE, List.of(saleProduct));
+
+        // Sale B: 14:00-15:00 (does NOT overlap window 12:30-12:45)
+        final CreateSaleDto saleB = new CreateSaleDto(null, "Sale B",
+            OffsetDateTime.of(2026, 01, 01, 14, 0, 0, 0, ZoneOffset.UTC),
+            OffsetDateTime.of(2026, 01, 01, 15, 0, 0, 0, ZoneOffset.UTC),
+            SaleStatus.ACTIVE, List.of(saleProduct));
+
+        mockMvc.perform(
+            post("/api/v1/admin/flash_sale")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(saleA)))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(
+            post("/api/v1/admin/flash_sale")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(saleB)))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/v1/admin/flash_sale")
+            .param("status", "ACTIVE")
+            .param("startDate", "2026-01-01T12:30:00Z")
+            .param("endDate", "2026-01-01T12:45:00Z"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].title").value("Sale A"))
+            .andExpect(jsonPath("$[0].status").value("ACTIVE"));
     }
 }
