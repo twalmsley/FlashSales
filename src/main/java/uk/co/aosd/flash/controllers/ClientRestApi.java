@@ -20,11 +20,20 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import uk.co.aosd.flash.domain.OrderStatus;
 import uk.co.aosd.flash.dto.ClientActiveSaleDto;
 import uk.co.aosd.flash.dto.ClientDraftSaleDto;
 import uk.co.aosd.flash.dto.ClientProductDto;
 import uk.co.aosd.flash.dto.CreateOrderDto;
+import uk.co.aosd.flash.dto.ErrorResponseDto;
 import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.OrderResponseDto;
 import uk.co.aosd.flash.dto.ProductDto;
@@ -40,6 +49,10 @@ import uk.co.aosd.flash.services.ProductsService;
 @Profile("api-service")
 @RequestMapping("/api/v1/clients")
 @RequiredArgsConstructor
+@Tag(
+    name = "Client API",
+    description = "Client-facing endpoints for browsing sales and placing/viewing orders."
+)
 public class ClientRestApi {
 
     private static Logger log = LoggerFactory.getLogger(ClientRestApi.class.getName());
@@ -60,7 +73,25 @@ public class ClientRestApi {
      * @return maybe a ClientProductDto
      */
     @GetMapping("/products/{id}")
-    public ResponseEntity<Optional<ClientProductDto>> getProductById(@PathVariable final String id) {
+    @Operation(
+        summary = "Get product (client view)",
+        description = "Returns a simplified product view for clients."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Product found.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ClientProductDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Product not found.",
+            content = @Content
+        )
+    })
+    public ResponseEntity<Optional<ClientProductDto>> getProductById(
+        @Parameter(description = "Product identifier.", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
+        @PathVariable final String id) {
         // Logic to return a single product by ID
         final Optional<ProductDto> productById = service.getProductById(id);
         if (productById.isEmpty()) {
@@ -79,6 +110,18 @@ public class ClientRestApi {
      * @return List of active sales
      */
     @GetMapping("/sales/active")
+    @Operation(
+        summary = "List active sales",
+        description = "Returns all active flash sale items with remaining stock."
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "List of active sales.",
+        content = @Content(
+            mediaType = "application/json",
+            array = @ArraySchema(schema = @Schema(implementation = ClientActiveSaleDto.class))
+        )
+    )
     public ResponseEntity<List<ClientActiveSaleDto>> getActiveSales() {
         log.info("Fetching active sales");
         final List<ClientActiveSaleDto> activeSales = activeSalesService.getActiveSales();
@@ -94,7 +137,28 @@ public class ClientRestApi {
      * @return List of draft sales
      */
     @GetMapping("/sales/draft/{days}")
-    public ResponseEntity<List<ClientDraftSaleDto>> getDraftSales(@PathVariable final int days) {
+    @Operation(
+        summary = "List upcoming draft sales",
+        description = "Returns draft (upcoming) flash sales that start within the next N days."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "List of upcoming draft sales.",
+            content = @Content(
+                mediaType = "application/json",
+                array = @ArraySchema(schema = @Schema(implementation = ClientDraftSaleDto.class))
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid 'days' parameter.",
+            content = @Content
+        )
+    })
+    public ResponseEntity<List<ClientDraftSaleDto>> getDraftSales(
+        @Parameter(description = "Number of days to look ahead. Must be >= 0.", example = "7")
+        @PathVariable final int days) {
         log.info("Fetching draft sales within the next {} days", days);
         if (days < 0) {
             log.warn("Invalid days parameter: {}", days);
@@ -113,6 +177,32 @@ public class ClientRestApi {
      * @return OrderResponseDto with order status
      */
     @PostMapping("/orders")
+    @Operation(
+        summary = "Create order",
+        description = "Creates a new order against an active flash sale item."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "Order created.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Validation error.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Malformed request or business rule violation.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Unexpected server error.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
     public ResponseEntity<OrderResponseDto> createOrder(@Valid @RequestBody final CreateOrderDto createOrderDto) {
         log.info("Creating order for user {} for flash sale item {}", createOrderDto.userId(), createOrderDto.flashSaleItemId());
         try {
@@ -135,8 +225,31 @@ public class ClientRestApi {
      * @return OrderDetailDto with order details or 404 if not found
      */
     @GetMapping("/orders/{orderId}")
+    @Operation(
+        summary = "Get order by id",
+        description = "Returns order details. The userId query parameter is required to ensure the order belongs to the caller."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Order found.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderDetailDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid UUID format.",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Order not found.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
     public ResponseEntity<OrderDetailDto> getOrderById(
+        @Parameter(description = "Order identifier (UUID).", example = "2b8efb9f-6f89-4b2d-8c73-4b2f9d4d2e1a")
         @PathVariable final String orderId,
+        @Parameter(description = "User identifier (UUID).", example = "9b2b8c2c-2f53-4a57-a07e-0a2b2b1de3a9", required = true)
         @RequestParam final String userId) {
         log.info("Fetching order {} for user {}", orderId, userId);
         try {
@@ -168,10 +281,33 @@ public class ClientRestApi {
      * @return List of OrderDetailDto matching the criteria
      */
     @GetMapping("/orders")
+    @Operation(
+        summary = "List orders for a user",
+        description = "Returns a user's order history with optional status and date range filters."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "List of orders.",
+            content = @Content(
+                mediaType = "application/json",
+                array = @ArraySchema(schema = @Schema(implementation = OrderDetailDto.class))
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid parameters (UUID/status/date range).",
+            content = @Content
+        )
+    })
     public ResponseEntity<List<OrderDetailDto>> getOrders(
+        @Parameter(description = "User identifier (UUID).", example = "9b2b8c2c-2f53-4a57-a07e-0a2b2b1de3a9", required = true)
         @RequestParam final String userId,
+        @Parameter(description = "Optional status filter.", schema = @Schema(implementation = OrderStatus.class), example = "PAID")
         @RequestParam(required = false) final String status,
+        @Parameter(description = "Optional start date/time filter (ISO-8601).", example = "2026-01-01T00:00:00Z")
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime startDate,
+        @Parameter(description = "Optional end date/time filter (ISO-8601).", example = "2026-12-31T23:59:59Z")
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime endDate) {
         log.info("Fetching orders for user {} with filters: status={}, startDate={}, endDate={}",
             userId, status, startDate, endDate);
@@ -207,7 +343,30 @@ public class ClientRestApi {
      * @return ResponseEntity with success message
      */
     @PostMapping("/orders/{orderId}/refund")
-    public ResponseEntity<OrderResponseDto> refundOrder(@PathVariable final String orderId) {
+    @Operation(
+        summary = "Request refund",
+        description = "Requests a refund for a PAID order."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Refund request accepted/processed.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid order ID format or invalid state for refund.",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Order not found.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
+    public ResponseEntity<OrderResponseDto> refundOrder(
+        @Parameter(description = "Order identifier (UUID).", example = "2b8efb9f-6f89-4b2d-8c73-4b2f9d4d2e1a")
+        @PathVariable final String orderId) {
         log.info("Processing refund request for order {}", orderId);
         try {
             final UUID orderUuid = UUID.fromString(orderId);

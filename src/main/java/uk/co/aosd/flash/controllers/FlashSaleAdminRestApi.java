@@ -22,9 +22,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.headers.Header;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.AddFlashSaleItemDto;
 import uk.co.aosd.flash.dto.CreateSaleDto;
+import uk.co.aosd.flash.dto.ErrorResponseDto;
 import uk.co.aosd.flash.dto.FlashSaleResponseDto;
 import uk.co.aosd.flash.dto.UpdateFlashSaleDto;
 import uk.co.aosd.flash.dto.UpdateFlashSaleItemDto;
@@ -44,6 +54,10 @@ import uk.co.aosd.flash.services.FlashSalesService;
 @Profile("admin-service")
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
+@Tag(
+    name = "Flash Sales (Admin)",
+    description = "Admin endpoints for creating and managing flash sales and their items."
+)
 public class FlashSaleAdminRestApi {
 
     private static Logger log = LoggerFactory.getLogger(FlashSaleAdminRestApi.class.getName());
@@ -63,6 +77,37 @@ public class FlashSaleAdminRestApi {
      *             if the start time is after the end time.
      */
     @PostMapping("/flash_sale")
+    @Operation(
+        summary = "Create flash sale",
+        description = "Creates a new flash sale and returns a Location header pointing to the created resource."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "Flash sale created.",
+            headers = @Header(
+                name = "Location",
+                description = "URI of the created flash sale resource.",
+                schema = @Schema(type = "string")
+            ),
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Duplicate flash sale.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Validation error.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid sale times/duration or other invalid input.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
     public ResponseEntity<String> createSale(@Valid @RequestBody final CreateSaleDto sale)
         throws DuplicateEntityException, SaleDurationTooShortException, InvalidSaleTimesException {
 
@@ -82,7 +127,26 @@ public class FlashSaleAdminRestApi {
      * @return ResponseEntity with no content on success
      */
     @PostMapping("/flash_sale/{id}/cancel")
-    public ResponseEntity<Void> cancelSale(@PathVariable final String id) {
+    @Operation(
+        summary = "Cancel flash sale",
+        description = "Cancels a flash sale by id. Only DRAFT and ACTIVE sales can be cancelled."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Flash sale cancelled.", content = @Content),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid id or cancellation not permitted.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Flash sale not found.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
+    public ResponseEntity<Void> cancelSale(
+        @Parameter(description = "Flash sale identifier (UUID).", example = "5b3c3f18-2f88-4c38-8b35-9aa6d9b9f5af")
+        @PathVariable final String id) {
         log.info("Cancelling Flash Sale: {}", id);
         final var uuid = UUID.fromString(id);
         service.cancelFlashSale(uuid);
@@ -99,9 +163,27 @@ public class FlashSaleAdminRestApi {
      * @return ResponseEntity with list of flash sales
      */
     @GetMapping("/flash_sale")
+    @Operation(
+        summary = "List flash sales",
+        description = "Lists flash sales with optional status and date range filters."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "List of flash sales.",
+            content = @Content(
+                mediaType = "application/json",
+                array = @ArraySchema(schema = @Schema(implementation = FlashSaleResponseDto.class))
+            )
+        ),
+        @ApiResponse(responseCode = "400", description = "Invalid status or date filters.", content = @Content)
+    })
     public ResponseEntity<List<FlashSaleResponseDto>> getAllFlashSales(
+        @Parameter(description = "Optional status filter.", schema = @Schema(implementation = SaleStatus.class), example = "DRAFT")
         @RequestParam(required = false) final String status,
+        @Parameter(description = "Optional start date/time filter (ISO-8601).", example = "2026-01-01T00:00:00Z")
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime startDate,
+        @Parameter(description = "Optional end date/time filter (ISO-8601).", example = "2026-12-31T23:59:59Z")
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime endDate) {
         
         log.info("Getting all flash sales with filters: status={}, startDate={}, endDate={}", status, startDate, endDate);
@@ -128,7 +210,23 @@ public class FlashSaleAdminRestApi {
      * @return ResponseEntity with flash sale DTO, or 404 if not found
      */
     @GetMapping("/flash_sale/{id}")
-    public ResponseEntity<FlashSaleResponseDto> getFlashSaleById(@PathVariable final String id) {
+    @Operation(summary = "Get flash sale by id", description = "Returns flash sale details by id.")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Flash sale found.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = FlashSaleResponseDto.class))
+        ),
+        @ApiResponse(responseCode = "400", description = "Invalid UUID format.", content = @Content),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Flash sale not found.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
+    public ResponseEntity<FlashSaleResponseDto> getFlashSaleById(
+        @Parameter(description = "Flash sale identifier (UUID).", example = "5b3c3f18-2f88-4c38-8b35-9aa6d9b9f5af")
+        @PathVariable final String id) {
         log.info("Getting flash sale by ID: {}", id);
         
         try {
@@ -153,7 +251,22 @@ public class FlashSaleAdminRestApi {
      * @return ResponseEntity with updated flash sale DTO, or 404 if not found, or 400 for validation errors
      */
     @PutMapping("/flash_sale/{id}")
+    @Operation(summary = "Update flash sale", description = "Updates a flash sale by id.")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Flash sale updated.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = FlashSaleResponseDto.class))
+        ),
+        @ApiResponse(responseCode = "400", description = "Invalid input or invalid UUID format.", content = @Content),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Flash sale not found.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
     public ResponseEntity<FlashSaleResponseDto> updateFlashSale(
+        @Parameter(description = "Flash sale identifier (UUID).", example = "5b3c3f18-2f88-4c38-8b35-9aa6d9b9f5af")
         @PathVariable final String id,
         @Valid @RequestBody final UpdateFlashSaleDto updateDto) {
         
@@ -184,7 +297,22 @@ public class FlashSaleAdminRestApi {
      * @return ResponseEntity with no content on success, or 404 if not found, or 400 if not DRAFT status
      */
     @DeleteMapping("/flash_sale/{id}")
-    public ResponseEntity<Void> deleteFlashSale(@PathVariable final String id) {
+    @Operation(
+        summary = "Delete flash sale",
+        description = "Deletes a flash sale by id (only DRAFT status allowed)."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Flash sale deleted.", content = @Content),
+        @ApiResponse(responseCode = "400", description = "Invalid id or status error.", content = @Content),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Flash sale not found.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
+    public ResponseEntity<Void> deleteFlashSale(
+        @Parameter(description = "Flash sale identifier (UUID).", example = "5b3c3f18-2f88-4c38-8b35-9aa6d9b9f5af")
+        @PathVariable final String id) {
         log.info("Deleting flash sale: {}", id);
         
         try {
@@ -210,7 +338,31 @@ public class FlashSaleAdminRestApi {
      * @return ResponseEntity with updated flash sale DTO, or 404 if not found, or 400 for validation errors, or 409 for duplicate products
      */
     @PostMapping("/flash_sale/{id}/items")
+    @Operation(
+        summary = "Add flash sale items",
+        description = "Adds item(s) to a DRAFT flash sale."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "Items added.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = FlashSaleResponseDto.class))
+        ),
+        @ApiResponse(responseCode = "400", description = "Invalid input / insufficient resources.", content = @Content),
+        @ApiResponse(responseCode = "404", description = "Flash sale not found.", content = @Content),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Duplicate product already in sale.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Validation error.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
     public ResponseEntity<FlashSaleResponseDto> addItemsToFlashSale(
+        @Parameter(description = "Flash sale identifier (UUID).", example = "5b3c3f18-2f88-4c38-8b35-9aa6d9b9f5af")
         @PathVariable final String id,
         @Valid @RequestBody final List<AddFlashSaleItemDto> items) {
         
@@ -252,8 +404,28 @@ public class FlashSaleAdminRestApi {
      * @return ResponseEntity with updated flash sale DTO, or 404 if not found, or 400 for validation errors
      */
     @PutMapping("/flash_sale/{id}/items/{itemId}")
+    @Operation(
+        summary = "Update flash sale item",
+        description = "Updates a flash sale item inside a DRAFT sale."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Item updated.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = FlashSaleResponseDto.class))
+        ),
+        @ApiResponse(responseCode = "400", description = "Invalid UUID or invalid input.", content = @Content),
+        @ApiResponse(responseCode = "404", description = "Sale or item not found.", content = @Content),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Validation error.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
     public ResponseEntity<FlashSaleResponseDto> updateFlashSaleItem(
+        @Parameter(description = "Flash sale identifier (UUID).", example = "5b3c3f18-2f88-4c38-8b35-9aa6d9b9f5af")
         @PathVariable final String id,
+        @Parameter(description = "Flash sale item identifier (UUID).", example = "b1b7a3c0-8d3b-4d10-8cc1-3c5f88f4bb5a")
         @PathVariable final String itemId,
         @Valid @RequestBody final UpdateFlashSaleItemDto updateDto) {
         
@@ -289,8 +461,23 @@ public class FlashSaleAdminRestApi {
      * @return ResponseEntity with no content on success, or 404 if not found, or 400 for status errors
      */
     @DeleteMapping("/flash_sale/{id}/items/{itemId}")
+    @Operation(
+        summary = "Remove flash sale item",
+        description = "Removes a flash sale item from a DRAFT sale."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Item removed.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = FlashSaleResponseDto.class))
+        ),
+        @ApiResponse(responseCode = "400", description = "Invalid UUID or status error.", content = @Content),
+        @ApiResponse(responseCode = "404", description = "Sale or item not found.", content = @Content)
+    })
     public ResponseEntity<FlashSaleResponseDto> removeFlashSaleItem(
+        @Parameter(description = "Flash sale identifier (UUID).", example = "5b3c3f18-2f88-4c38-8b35-9aa6d9b9f5af")
         @PathVariable final String id,
+        @Parameter(description = "Flash sale item identifier (UUID).", example = "b1b7a3c0-8d3b-4d10-8cc1-3c5f88f4bb5a")
         @PathVariable final String itemId) {
         
         log.info("Removing flash sale item: {} from sale {}", itemId, id);
