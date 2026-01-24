@@ -437,6 +437,191 @@ public class OrderService {
     }
 
     /**
+     * Get all orders with optional filters for admin use.
+     * Results are ordered by createdAt descending (most recent first).
+     *
+     * @param status optional status filter
+     * @param startDate optional start date filter (inclusive)
+     * @param endDate optional end date filter (inclusive)
+     * @param userId optional user ID filter
+     * @return list of OrderDetailDto matching the criteria
+     * @throws IllegalArgumentException if date range is invalid (startDate > endDate)
+     */
+    public List<OrderDetailDto> getAllOrders(
+        final OrderStatus status,
+        final OffsetDateTime startDate,
+        final OffsetDateTime endDate,
+        final UUID userId) {
+
+        log.info("Fetching all orders with filters: status={}, startDate={}, endDate={}, userId={}",
+            status, startDate, endDate, userId);
+
+        // Validate date range if both dates are provided
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new IllegalArgumentException("Start date must be before or equal to end date");
+        }
+
+        final List<Order> orders = orderRepository.findAllWithFilters(status, startDate, endDate, userId);
+
+        log.info("Found {} orders", orders.size());
+        return orders.stream()
+            .map(this::mapToOrderDetailDto)
+            .toList();
+    }
+
+    /**
+     * Get order details by ID for admin use.
+     * Does not validate user ownership.
+     *
+     * @param orderId the order ID
+     * @return OrderDetailDto with complete order information
+     * @throws OrderNotFoundException if order doesn't exist
+     */
+    public OrderDetailDto getOrderByIdForAdmin(final UUID orderId) {
+        log.info("Fetching order {} for admin", orderId);
+
+        final Order order = orderRepository.findByIdForAdmin(orderId)
+            .orElseThrow(() -> {
+                log.warn("Order {} not found", orderId);
+                return new OrderNotFoundException(orderId);
+            });
+
+        return mapToOrderDetailDto(order);
+    }
+
+    /**
+     * Update order status with proper stock adjustments.
+     * Handles all valid status transitions and adjusts stock accordingly.
+     *
+     * @param orderId the order ID
+     * @param newStatus the new status to set
+     * @throws OrderNotFoundException if order doesn't exist
+     * @throws InvalidOrderStatusException if the transition is invalid
+     * @throws IllegalStateException if stock operations fail
+     */
+    @Transactional
+    public void updateOrderStatus(final UUID orderId, final OrderStatus newStatus) {
+        log.info("Updating order {} status", orderId);
+
+        // Load order with all related entities
+        final Order order = orderRepository.findByIdForAdmin(orderId)
+            .orElseThrow(() -> {
+                log.error("Order not found: {}", orderId);
+                return new OrderNotFoundException(orderId);
+            });
+
+        final OrderStatus currentStatus = order.getStatus();
+
+        // If status is unchanged, no-op
+        if (currentStatus == newStatus) {
+            log.info("Order {} already in status {}", orderId, newStatus);
+            return;
+        }
+
+        log.info("Transitioning order {} from {} to {}", orderId, currentStatus, newStatus);
+
+        // Handle stock adjustments based on transition
+        handleStatusTransition(order, currentStatus, newStatus);
+
+        // Update order status
+        order.setStatus(newStatus);
+        orderRepository.save(order);
+        log.info("Order {} status updated to {}", orderId, newStatus);
+    }
+
+    /**
+     * Handle stock adjustments for status transitions.
+     *
+     * @param order the order
+     * @param fromStatus the current status
+     * @param toStatus the new status
+     */
+    private void handleStatusTransition(final Order order, final OrderStatus fromStatus, final OrderStatus toStatus) {
+        final UUID orderId = order.getId();
+        final int quantity = order.getSoldQuantity();
+
+        // PENDING → PAID: No stock change (stock already reserved via soldCount)
+        if (fromStatus == OrderStatus.PENDING && toStatus == OrderStatus.PAID) {
+            log.debug("PENDING → PAID: No stock adjustment needed");
+            return;
+        }
+
+        // PAID → DISPATCHED: Decrement product stock (both totalPhysicalStock and reservedCount)
+        if (fromStatus == OrderStatus.PAID && toStatus == OrderStatus.DISPATCHED) {
+            log.debug("PAID → DISPATCHED: Decrementing product stock");
+            final int updated = productRepository.decrementStock(order.getProduct().getId(), quantity);
+            if (updated == 0) {
+                log.error("Failed to decrement stock for product {}", order.getProduct().getId());
+                throw new IllegalStateException("Failed to decrement product stock for dispatch");
+            }
+            return;
+        }
+
+        // PAID → REFUNDED: Decrement flash sale item soldCount
+        if (fromStatus == OrderStatus.PAID && toStatus == OrderStatus.REFUNDED) {
+            log.debug("PAID → REFUNDED: Decrementing flash sale item soldCount");
+            final int updated = flashSaleItemRepository.decrementSoldCount(
+                order.getFlashSaleItem().getId(), quantity);
+            if (updated == 0) {
+                log.error("Failed to decrement sold count for flash sale item {}", order.getFlashSaleItem().getId());
+                throw new IllegalStateException("Failed to decrement sold count for refund");
+            }
+            return;
+        }
+
+        // DISPATCHED → PAID: Increment product stock (reverse dispatch)
+        if (fromStatus == OrderStatus.DISPATCHED && toStatus == OrderStatus.PAID) {
+            log.debug("DISPATCHED → PAID: Incrementing product stock (reverse dispatch)");
+            final int updated = productRepository.incrementStock(order.getProduct().getId(), quantity);
+            if (updated == 0) {
+                log.error("Failed to increment stock for product {}", order.getProduct().getId());
+                throw new IllegalStateException("Failed to increment product stock for reverse dispatch");
+            }
+            return;
+        }
+
+        // REFUNDED → PAID: Increment flash sale item soldCount (reverse refund)
+        if (fromStatus == OrderStatus.REFUNDED && toStatus == OrderStatus.PAID) {
+            log.debug("REFUNDED → PAID: Incrementing flash sale item soldCount (reverse refund)");
+            final int updated = flashSaleItemRepository.incrementSoldCountForAdmin(
+                order.getFlashSaleItem().getId(), quantity);
+            if (updated == 0) {
+                log.error("Failed to increment sold count for flash sale item {}", order.getFlashSaleItem().getId());
+                throw new IllegalStateException("Failed to increment sold count for reverse refund");
+            }
+            return;
+        }
+
+        // PENDING → FAILED: Decrement flash sale item soldCount (release reserved stock)
+        if (fromStatus == OrderStatus.PENDING && toStatus == OrderStatus.FAILED) {
+            log.debug("PENDING → FAILED: Decrementing flash sale item soldCount");
+            final int updated = flashSaleItemRepository.decrementSoldCount(
+                order.getFlashSaleItem().getId(), quantity);
+            if (updated == 0) {
+                log.error("Failed to decrement sold count for flash sale item {}", order.getFlashSaleItem().getId());
+                throw new IllegalStateException("Failed to decrement sold count for failed order");
+            }
+            return;
+        }
+
+        // FAILED → PENDING: Increment flash sale item soldCount (re-reserve stock)
+        if (fromStatus == OrderStatus.FAILED && toStatus == OrderStatus.PENDING) {
+            log.debug("FAILED → PENDING: Incrementing flash sale item soldCount (re-reserve stock)");
+            final int updated = flashSaleItemRepository.incrementSoldCountForAdmin(
+                order.getFlashSaleItem().getId(), quantity);
+            if (updated == 0) {
+                log.error("Failed to increment sold count for flash sale item {}", order.getFlashSaleItem().getId());
+                throw new IllegalStateException("Failed to increment sold count for re-reserve");
+            }
+            return;
+        }
+
+        // Invalid transition
+        log.warn("Invalid status transition: {} → {} for order {}", fromStatus, toStatus, orderId);
+        throw new InvalidOrderStatusException(orderId, fromStatus, toStatus, "status update");
+    }
+
+    /**
      * Maps an Order entity to OrderDetailDto.
      *
      * @param order the order entity

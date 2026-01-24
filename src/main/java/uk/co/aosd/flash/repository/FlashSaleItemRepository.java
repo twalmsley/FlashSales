@@ -25,6 +25,20 @@ public interface FlashSaleItemRepository extends JpaRepository<FlashSaleItem, UU
     int incrementSoldCount(@Param("id") UUID id, @Param("increment") int increment);
 
     /**
+     * Increment the sold count for a flash sale item (admin operation).
+     * This version does not require the sale to be ACTIVE, allowing reverse transitions.
+     *
+     * @param id        the flash sale item ID
+     * @param increment the amount to increment
+     * @return the number of rows updated
+     */
+    @Modifying(clearAutomatically = true)
+    @Transactional
+    @Query("UPDATE FlashSaleItem f SET f.soldCount = f.soldCount + :increment "
+        + "WHERE f.id = :id AND f.soldCount + :increment <= f.allocatedStock")
+    int incrementSoldCountForAdmin(@Param("id") UUID id, @Param("increment") int increment);
+
+    /**
      * Decrement the sold count for a flash sale item.
      *
      * @param id        the flash sale item ID

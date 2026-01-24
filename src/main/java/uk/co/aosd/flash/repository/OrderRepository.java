@@ -122,4 +122,44 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
         @Param("status") OrderStatus status,
         @Param("startDate") OffsetDateTime startDate,
         @Param("endDate") OffsetDateTime endDate);
+
+    /**
+     * Find all orders with optional filters for admin use.
+     * All related entities (product, flashSaleItem, flashSale) are eagerly loaded.
+     * Results are ordered by createdAt descending (most recent first).
+     *
+     * @param status optional status filter
+     * @param startDate optional start date filter (inclusive)
+     * @param endDate optional end date filter (inclusive)
+     * @param userId optional user ID filter
+     * @return list of orders matching the criteria
+     */
+    @Query("SELECT DISTINCT o FROM Order o " +
+          "LEFT JOIN FETCH o.product p " +
+          "LEFT JOIN FETCH o.flashSaleItem fsi " +
+          "LEFT JOIN FETCH fsi.flashSale fs " +
+          "WHERE (:status IS NULL OR o.status = :status) " +
+          "AND (:startDate IS NULL OR o.createdAt >= :startDate) " +
+          "AND (:endDate IS NULL OR o.createdAt <= :endDate) " +
+          "AND (:userId IS NULL OR o.userId = :userId) " +
+          "ORDER BY o.createdAt DESC")
+    List<Order> findAllWithFilters(
+        @Param("status") OrderStatus status,
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate,
+        @Param("userId") UUID userId);
+
+    /**
+     * Find order by ID with all related entities eagerly loaded for admin view.
+     * Does not validate user ownership.
+     *
+     * @param id the order ID
+     * @return the order with all related entities
+     */
+    @Query("SELECT o FROM Order o " +
+          "LEFT JOIN FETCH o.product p " +
+          "LEFT JOIN FETCH o.flashSaleItem fsi " +
+          "LEFT JOIN FETCH fsi.flashSale fs " +
+          "WHERE o.id = :id")
+    Optional<Order> findByIdForAdmin(@Param("id") UUID id);
 }

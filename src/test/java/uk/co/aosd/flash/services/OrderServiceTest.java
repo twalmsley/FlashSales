@@ -465,4 +465,350 @@ public class OrderServiceTest {
         assertNotNull(result);
         assertTrue(result.isEmpty());
     }
+
+    // Admin methods tests
+
+    @Test
+    public void shouldGetAllOrdersWithoutFilters() {
+        final UUID orderId1 = UUID.randomUUID();
+        final UUID orderId2 = UUID.randomUUID();
+        final OffsetDateTime now = OffsetDateTime.now();
+
+        final Order order1 = new Order();
+        order1.setId(orderId1);
+        order1.setUserId(userId);
+        order1.setFlashSaleItem(flashSaleItem);
+        order1.setProduct(product);
+        order1.setSoldPrice(BigDecimal.valueOf(79.99));
+        order1.setSoldQuantity(5);
+        order1.setStatus(OrderStatus.PAID);
+        order1.setCreatedAt(now.minusDays(1));
+
+        final Order order2 = new Order();
+        order2.setId(orderId2);
+        order2.setUserId(userId);
+        order2.setFlashSaleItem(flashSaleItem);
+        order2.setProduct(product);
+        order2.setSoldPrice(BigDecimal.valueOf(89.99));
+        order2.setSoldQuantity(3);
+        order2.setStatus(OrderStatus.PENDING);
+        order2.setCreatedAt(now);
+
+        Mockito.when(orderRepository.findAllWithFilters(null, null, null, null))
+            .thenReturn(List.of(order2, order1));
+
+        final List<OrderDetailDto> result = orderService.getAllOrders(null, null, null, null);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(orderId2, result.get(0).orderId());
+        assertEquals(orderId1, result.get(1).orderId());
+    }
+
+    @Test
+    public void shouldGetAllOrdersWithStatusFilter() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.PAID);
+        order.setCreatedAt(OffsetDateTime.now());
+
+        Mockito.when(orderRepository.findAllWithFilters(OrderStatus.PAID, null, null, null))
+            .thenReturn(List.of(order));
+
+        final List<OrderDetailDto> result = orderService.getAllOrders(OrderStatus.PAID, null, null, null);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(OrderStatus.PAID, result.get(0).status());
+    }
+
+    @Test
+    public void shouldGetAllOrdersWithAllFilters() {
+        final UUID filterUserId = UUID.randomUUID();
+        final UUID orderId = UUID.randomUUID();
+        final OffsetDateTime startDate = OffsetDateTime.now().minusDays(7);
+        final OffsetDateTime endDate = OffsetDateTime.now();
+
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(filterUserId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.PAID);
+        order.setCreatedAt(OffsetDateTime.now().minusDays(3));
+
+        Mockito.when(orderRepository.findAllWithFilters(OrderStatus.PAID, startDate, endDate, filterUserId))
+            .thenReturn(List.of(order));
+
+        final List<OrderDetailDto> result = orderService.getAllOrders(OrderStatus.PAID, startDate, endDate, filterUserId);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(OrderStatus.PAID, result.get(0).status());
+    }
+
+    @Test
+    public void shouldGetOrderByIdForAdminSuccessfully() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.PAID);
+        order.setCreatedAt(OffsetDateTime.now());
+
+        Mockito.when(orderRepository.findByIdForAdmin(orderId)).thenReturn(Optional.of(order));
+
+        final OrderDetailDto result = orderService.getOrderByIdForAdmin(orderId);
+
+        assertNotNull(result);
+        assertEquals(orderId, result.orderId());
+        assertEquals(OrderStatus.PAID, result.status());
+    }
+
+    @Test
+    public void shouldFailGetOrderByIdForAdminWhenNotFound() {
+        final UUID orderId = UUID.randomUUID();
+        Mockito.when(orderRepository.findByIdForAdmin(orderId)).thenReturn(Optional.empty());
+
+        assertThrows(OrderNotFoundException.class, () -> {
+            orderService.getOrderByIdForAdmin(orderId);
+        });
+    }
+
+    // updateOrderStatus tests
+
+    @Test
+    public void shouldUpdateStatusFromPendingToPaid() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.PENDING);
+
+        Mockito.when(orderRepository.findByIdForAdmin(orderId)).thenReturn(Optional.of(order));
+        Mockito.when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+        orderService.updateOrderStatus(orderId, OrderStatus.PAID);
+
+        assertEquals(OrderStatus.PAID, order.getStatus());
+        Mockito.verify(orderRepository).save(order);
+    }
+
+    @Test
+    public void shouldUpdateStatusFromPaidToDispatched() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.PAID);
+
+        Mockito.when(orderRepository.findByIdForAdmin(orderId)).thenReturn(Optional.of(order));
+        Mockito.when(productRepository.decrementStock(productId, 5)).thenReturn(1);
+        Mockito.when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+        orderService.updateOrderStatus(orderId, OrderStatus.DISPATCHED);
+
+        assertEquals(OrderStatus.DISPATCHED, order.getStatus());
+        Mockito.verify(productRepository).decrementStock(productId, 5);
+        Mockito.verify(orderRepository).save(order);
+    }
+
+    @Test
+    public void shouldUpdateStatusFromPaidToRefunded() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.PAID);
+
+        Mockito.when(orderRepository.findByIdForAdmin(orderId)).thenReturn(Optional.of(order));
+        Mockito.when(flashSaleItemRepository.decrementSoldCount(flashSaleItemId, 5)).thenReturn(1);
+        Mockito.when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+        orderService.updateOrderStatus(orderId, OrderStatus.REFUNDED);
+
+        assertEquals(OrderStatus.REFUNDED, order.getStatus());
+        Mockito.verify(flashSaleItemRepository).decrementSoldCount(flashSaleItemId, 5);
+        Mockito.verify(orderRepository).save(order);
+    }
+
+    @Test
+    public void shouldUpdateStatusFromDispatchedToPaid() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.DISPATCHED);
+
+        Mockito.when(orderRepository.findByIdForAdmin(orderId)).thenReturn(Optional.of(order));
+        Mockito.when(productRepository.incrementStock(productId, 5)).thenReturn(1);
+        Mockito.when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+        orderService.updateOrderStatus(orderId, OrderStatus.PAID);
+
+        assertEquals(OrderStatus.PAID, order.getStatus());
+        Mockito.verify(productRepository).incrementStock(productId, 5);
+        Mockito.verify(orderRepository).save(order);
+    }
+
+    @Test
+    public void shouldUpdateStatusFromRefundedToPaid() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.REFUNDED);
+
+        Mockito.when(orderRepository.findByIdForAdmin(orderId)).thenReturn(Optional.of(order));
+        Mockito.when(flashSaleItemRepository.incrementSoldCountForAdmin(flashSaleItemId, 5)).thenReturn(1);
+        Mockito.when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+        orderService.updateOrderStatus(orderId, OrderStatus.PAID);
+
+        assertEquals(OrderStatus.PAID, order.getStatus());
+        Mockito.verify(flashSaleItemRepository).incrementSoldCountForAdmin(flashSaleItemId, 5);
+        Mockito.verify(orderRepository).save(order);
+    }
+
+    @Test
+    public void shouldUpdateStatusFromPendingToFailed() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.PENDING);
+
+        Mockito.when(orderRepository.findByIdForAdmin(orderId)).thenReturn(Optional.of(order));
+        Mockito.when(flashSaleItemRepository.decrementSoldCount(flashSaleItemId, 5)).thenReturn(1);
+        Mockito.when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+        orderService.updateOrderStatus(orderId, OrderStatus.FAILED);
+
+        assertEquals(OrderStatus.FAILED, order.getStatus());
+        Mockito.verify(flashSaleItemRepository).decrementSoldCount(flashSaleItemId, 5);
+        Mockito.verify(orderRepository).save(order);
+    }
+
+    @Test
+    public void shouldUpdateStatusFromFailedToPending() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.FAILED);
+
+        Mockito.when(orderRepository.findByIdForAdmin(orderId)).thenReturn(Optional.of(order));
+        Mockito.when(flashSaleItemRepository.incrementSoldCountForAdmin(flashSaleItemId, 5)).thenReturn(1);
+        Mockito.when(orderRepository.save(any(Order.class))).thenReturn(order);
+
+        orderService.updateOrderStatus(orderId, OrderStatus.PENDING);
+
+        assertEquals(OrderStatus.PENDING, order.getStatus());
+        Mockito.verify(flashSaleItemRepository).incrementSoldCountForAdmin(flashSaleItemId, 5);
+        Mockito.verify(orderRepository).save(order);
+    }
+
+    @Test
+    public void shouldNotUpdateWhenStatusUnchanged() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setStatus(OrderStatus.PAID);
+
+        Mockito.when(orderRepository.findByIdForAdmin(orderId)).thenReturn(Optional.of(order));
+
+        orderService.updateOrderStatus(orderId, OrderStatus.PAID);
+
+        assertEquals(OrderStatus.PAID, order.getStatus());
+        Mockito.verify(orderRepository, Mockito.never()).save(any(Order.class));
+    }
+
+    @Test
+    public void shouldFailUpdateStatusWhenOrderNotFound() {
+        final UUID orderId = UUID.randomUUID();
+        Mockito.when(orderRepository.findByIdForAdmin(orderId)).thenReturn(Optional.empty());
+
+        assertThrows(OrderNotFoundException.class, () -> {
+            orderService.updateOrderStatus(orderId, OrderStatus.DISPATCHED);
+        });
+    }
+
+    @Test
+    public void shouldFailUpdateStatusForInvalidTransition() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.DISPATCHED);
+
+        Mockito.when(orderRepository.findByIdForAdmin(orderId)).thenReturn(Optional.of(order));
+
+        assertThrows(InvalidOrderStatusException.class, () -> {
+            orderService.updateOrderStatus(orderId, OrderStatus.PENDING);
+        });
+    }
+
+    @Test
+    public void shouldFailUpdateStatusWhenStockOperationFails() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.PAID);
+
+        Mockito.when(orderRepository.findByIdForAdmin(orderId)).thenReturn(Optional.of(order));
+        Mockito.when(productRepository.decrementStock(productId, 5)).thenReturn(0); // Stock operation fails
+
+        assertThrows(IllegalStateException.class, () -> {
+            orderService.updateOrderStatus(orderId, OrderStatus.DISPATCHED);
+        });
+    }
 }

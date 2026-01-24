@@ -27,4 +27,19 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
         + "p.reservedCount = p.reservedCount - :quantity "
         + "WHERE p.id = :id AND p.totalPhysicalStock >= :quantity AND p.reservedCount >= :quantity")
     int decrementStock(@Param("id") UUID id, @Param("quantity") int quantity);
+
+    /**
+     * Increment both total physical stock and reserved count for a product.
+     * Used for reverse transitions (e.g., DISPATCHED → PAID).
+     *
+     * @param id       the product ID
+     * @param quantity the quantity to increment
+     * @return the number of rows updated
+     */
+    @Modifying(clearAutomatically = true)
+    @Transactional
+    @Query("UPDATE Product p SET p.totalPhysicalStock = p.totalPhysicalStock + :quantity, "
+        + "p.reservedCount = p.reservedCount + :quantity "
+        + "WHERE p.id = :id")
+    int incrementStock(@Param("id") UUID id, @Param("quantity") int quantity);
 }
