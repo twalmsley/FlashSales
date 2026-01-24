@@ -1,6 +1,5 @@
 package uk.co.aosd.flash.controllers;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -11,7 +10,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -92,7 +90,7 @@ public class FlashSaleAdminRestApiManagementTest {
         Mockito.when(salesService.getAllFlashSales(SaleStatus.DRAFT, null, null)).thenReturn(sales);
 
         mockMvc.perform(get("/api/v1/admin/flash_sale")
-                .param("status", "DRAFT"))
+            .param("status", "DRAFT"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$.length()").value(1))
@@ -111,8 +109,8 @@ public class FlashSaleAdminRestApiManagementTest {
         Mockito.when(salesService.getAllFlashSales(null, startDate, endDate)).thenReturn(sales);
 
         mockMvc.perform(get("/api/v1/admin/flash_sale")
-                .param("startDate", "2026-01-01T00:00:00Z")
-                .param("endDate", "2026-01-31T23:59:59Z"))
+            .param("startDate", "2026-01-01T00:00:00Z")
+            .param("endDate", "2026-01-31T23:59:59Z"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$.length()").value(1));
@@ -130,9 +128,9 @@ public class FlashSaleAdminRestApiManagementTest {
         Mockito.when(salesService.getAllFlashSales(SaleStatus.DRAFT, startDate, endDate)).thenReturn(sales);
 
         mockMvc.perform(get("/api/v1/admin/flash_sale")
-                .param("status", "DRAFT")
-                .param("startDate", "2026-01-01T00:00:00Z")
-                .param("endDate", "2026-01-31T23:59:59Z"))
+            .param("status", "DRAFT")
+            .param("startDate", "2026-01-01T00:00:00Z")
+            .param("endDate", "2026-01-31T23:59:59Z"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$.length()").value(1))
@@ -144,7 +142,7 @@ public class FlashSaleAdminRestApiManagementTest {
     @Test
     public void shouldReturn400ForInvalidStatusEnumValue() throws Exception {
         mockMvc.perform(get("/api/v1/admin/flash_sale")
-                .param("status", "INVALID_STATUS"))
+            .param("status", "INVALID_STATUS"))
             .andExpect(status().isBadRequest());
 
         verify(salesService, times(0)).getAllFlashSales(Mockito.any(), Mockito.any(), Mockito.any());
@@ -205,8 +203,8 @@ public class FlashSaleAdminRestApiManagementTest {
         Mockito.when(salesService.updateFlashSale(saleUuid, updateDto)).thenReturn(updatedSale);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + saleId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.title").value("New Title"));
 
@@ -225,8 +223,8 @@ public class FlashSaleAdminRestApiManagementTest {
         Mockito.when(salesService.updateFlashSale(saleUuid, updateDto)).thenReturn(updatedSale);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + saleId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isOk());
 
         verify(salesService, times(1)).updateFlashSale(saleUuid, updateDto);
@@ -244,8 +242,8 @@ public class FlashSaleAdminRestApiManagementTest {
         Mockito.when(salesService.updateFlashSale(saleUuid, updateDto)).thenReturn(updatedSale);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + saleId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.title").value("New Title"));
 
@@ -262,8 +260,8 @@ public class FlashSaleAdminRestApiManagementTest {
             .when(salesService).updateFlashSale(saleUuid, updateDto);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + saleId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isNotFound());
 
         verify(salesService, times(1)).updateFlashSale(saleUuid, updateDto);
@@ -275,8 +273,8 @@ public class FlashSaleAdminRestApiManagementTest {
         final UpdateFlashSaleDto updateDto = new UpdateFlashSaleDto("New Title", null, null);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + invalidSaleId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isBadRequest());
 
         verify(salesService, times(0)).updateFlashSale(Mockito.any(UUID.class), Mockito.any(UpdateFlashSaleDto.class));
@@ -294,8 +292,8 @@ public class FlashSaleAdminRestApiManagementTest {
             .when(salesService).updateFlashSale(saleUuid, updateDto);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + saleId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isBadRequest());
 
         verify(salesService, times(1)).updateFlashSale(saleUuid, updateDto);
@@ -313,8 +311,8 @@ public class FlashSaleAdminRestApiManagementTest {
             .when(salesService).updateFlashSale(saleUuid, updateDto);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + saleId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isBadRequest());
 
         verify(salesService, times(1)).updateFlashSale(saleUuid, updateDto);

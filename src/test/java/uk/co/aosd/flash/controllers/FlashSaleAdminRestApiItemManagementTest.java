@@ -1,7 +1,5 @@
 package uk.co.aosd.flash.controllers;
 
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -79,8 +77,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
         Mockito.when(salesService.addItemsToFlashSale(saleUuid, List.of(itemDto))).thenReturn(updatedSale);
 
         mockMvc.perform(post("/api/v1/admin/flash_sale/" + saleId + "/items")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(List.of(itemDto))))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(List.of(itemDto))))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").value(saleId));
 
@@ -97,8 +95,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
             .when(salesService).addItemsToFlashSale(saleUuid, List.of(itemDto));
 
         mockMvc.perform(post("/api/v1/admin/flash_sale/" + saleId + "/items")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(List.of(itemDto))))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(List.of(itemDto))))
             .andExpect(status().isNotFound());
 
         verify(salesService, times(1)).addItemsToFlashSale(saleUuid, List.of(itemDto));
@@ -114,8 +112,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
             .when(salesService).addItemsToFlashSale(saleUuid, List.of(itemDto));
 
         mockMvc.perform(post("/api/v1/admin/flash_sale/" + saleId + "/items")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(List.of(itemDto))))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(List.of(itemDto))))
             .andExpect(status().isBadRequest());
 
         verify(salesService, times(1)).addItemsToFlashSale(saleUuid, List.of(itemDto));
@@ -131,8 +129,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
             .when(salesService).addItemsToFlashSale(saleUuid, List.of(itemDto));
 
         mockMvc.perform(post("/api/v1/admin/flash_sale/" + saleId + "/items")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(List.of(itemDto))))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(List.of(itemDto))))
             .andExpect(status().isBadRequest());
 
         verify(salesService, times(1)).addItemsToFlashSale(saleUuid, List.of(itemDto));
@@ -148,8 +146,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
             .when(salesService).addItemsToFlashSale(saleUuid, List.of(itemDto));
 
         mockMvc.perform(post("/api/v1/admin/flash_sale/" + saleId + "/items")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(List.of(itemDto))))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(List.of(itemDto))))
             .andExpect(status().isBadRequest());
 
         verify(salesService, times(1)).addItemsToFlashSale(saleUuid, List.of(itemDto));
@@ -165,8 +163,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
             .when(salesService).addItemsToFlashSale(saleUuid, List.of(itemDto));
 
         mockMvc.perform(post("/api/v1/admin/flash_sale/" + saleId + "/items")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(List.of(itemDto))))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(List.of(itemDto))))
             .andExpect(status().isConflict());
 
         verify(salesService, times(1)).addItemsToFlashSale(saleUuid, List.of(itemDto));
@@ -178,8 +176,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
         final var itemDto = new AddFlashSaleItemDto(UUID.randomUUID().toString(), 30, null);
 
         mockMvc.perform(post("/api/v1/admin/flash_sale/" + invalidSaleId + "/items")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(List.of(itemDto))))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(List.of(itemDto))))
             .andExpect(status().isBadRequest());
 
         verify(salesService, times(0)).addItemsToFlashSale(Mockito.any(UUID.class), Mockito.any());
@@ -199,8 +197,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
         Mockito.when(salesService.updateFlashSaleItem(saleUuid, itemUuid, updateDto)).thenReturn(updatedSale);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + saleId + "/items/" + itemId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(saleId));
 
@@ -219,8 +217,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
         Mockito.when(salesService.updateFlashSaleItem(saleUuid, itemUuid, updateDto)).thenReturn(updatedSale);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + saleId + "/items/" + itemId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isOk());
 
         verify(salesService, times(1)).updateFlashSaleItem(saleUuid, itemUuid, updateDto);
@@ -238,8 +236,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
         Mockito.when(salesService.updateFlashSaleItem(saleUuid, itemUuid, updateDto)).thenReturn(updatedSale);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + saleId + "/items/" + itemId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isOk());
 
         verify(salesService, times(1)).updateFlashSaleItem(saleUuid, itemUuid, updateDto);
@@ -257,8 +255,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
             .when(salesService).updateFlashSaleItem(saleUuid, itemUuid, updateDto);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + saleId + "/items/" + itemId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isNotFound());
 
         verify(salesService, times(1)).updateFlashSaleItem(saleUuid, itemUuid, updateDto);
@@ -276,8 +274,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
             .when(salesService).updateFlashSaleItem(saleUuid, itemUuid, updateDto);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + saleId + "/items/" + itemId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isNotFound());
 
         verify(salesService, times(1)).updateFlashSaleItem(saleUuid, itemUuid, updateDto);
@@ -295,8 +293,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
             .when(salesService).updateFlashSaleItem(saleUuid, itemUuid, updateDto);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + saleId + "/items/" + itemId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isBadRequest());
 
         verify(salesService, times(1)).updateFlashSaleItem(saleUuid, itemUuid, updateDto);
@@ -314,8 +312,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
             .when(salesService).updateFlashSaleItem(saleUuid, itemUuid, updateDto);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + saleId + "/items/" + itemId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isBadRequest());
 
         verify(salesService, times(1)).updateFlashSaleItem(saleUuid, itemUuid, updateDto);
@@ -328,8 +326,8 @@ public class FlashSaleAdminRestApiItemManagementTest {
         final var updateDto = new UpdateFlashSaleItemDto(50, null);
 
         mockMvc.perform(put("/api/v1/admin/flash_sale/" + invalidSaleId + "/items/" + itemId)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(updateDto)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(updateDto)))
             .andExpect(status().isBadRequest());
 
         verify(salesService, times(0)).updateFlashSaleItem(Mockito.any(UUID.class), Mockito.any(UUID.class), Mockito.any());

@@ -16,6 +16,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import uk.co.aosd.flash.domain.FlashSale;
 import uk.co.aosd.flash.domain.FlashSaleItem;
 import uk.co.aosd.flash.domain.Order;
@@ -32,7 +33,6 @@ import uk.co.aosd.flash.exc.SaleNotActiveException;
 import uk.co.aosd.flash.repository.FlashSaleItemRepository;
 import uk.co.aosd.flash.repository.OrderRepository;
 import uk.co.aosd.flash.repository.ProductRepository;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 /**
  * Test the Order Service.
@@ -78,9 +78,9 @@ public class OrderServiceTest {
         flashSaleId = UUID.randomUUID();
 
         product = new Product(productId, "Test Product", "Description", 100, BigDecimal.valueOf(99.99), 10);
-        flashSale = new FlashSale(flashSaleId, "Test Sale", 
-            OffsetDateTime.now().minusHours(1), 
-            OffsetDateTime.now().plusHours(1), 
+        flashSale = new FlashSale(flashSaleId, "Test Sale",
+            OffsetDateTime.now().minusHours(1),
+            OffsetDateTime.now().plusHours(1),
             SaleStatus.ACTIVE, null);
         flashSaleItem = new FlashSaleItem(flashSaleItemId, flashSale, product, 50, 10, BigDecimal.valueOf(79.99));
     }
@@ -280,7 +280,6 @@ public class OrderServiceTest {
     @Test
     public void shouldGetOrderByIdSuccessfully() {
         final UUID orderId = UUID.randomUUID();
-        final UUID differentUserId = UUID.randomUUID();
         final Order order = new Order();
         order.setId(orderId);
         order.setUserId(userId);
@@ -323,7 +322,6 @@ public class OrderServiceTest {
     @Test
     public void shouldFailGetOrderByIdWhenOrderBelongsToDifferentUser() {
         final UUID orderId = UUID.randomUUID();
-        final UUID differentUserId = UUID.randomUUID();
         Mockito.when(orderRepository.findByIdAndUserId(orderId, userId)).thenReturn(Optional.empty());
 
         assertThrows(OrderNotFoundException.class, () -> {
