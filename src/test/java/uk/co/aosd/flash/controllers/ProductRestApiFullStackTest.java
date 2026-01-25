@@ -20,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
@@ -30,6 +31,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
+import uk.co.aosd.flash.config.TestSecurityConfig;
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.dto.ProductStockDto;
 import uk.co.aosd.flash.dto.UpdateProductStockDto;
@@ -41,6 +43,7 @@ import uk.co.aosd.flash.dto.UpdateProductStockDto;
 @SpringBootTest
 @Testcontainers
 @EnableCaching
+@Import(TestSecurityConfig.class)
 @ActiveProfiles({"test", "admin-service", "api-service"})
 public class ProductRestApiFullStackTest {
 
