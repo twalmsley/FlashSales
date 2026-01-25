@@ -19,27 +19,36 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import uk.co.aosd.flash.config.TestSecurityConfig;
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
+import uk.co.aosd.flash.services.JwtTokenProvider;
 import uk.co.aosd.flash.services.ProductsService;
 
 /**
  * A Slice Test for getting all products via the Products REST API.
  */
-@WebMvcTest(ProductRestApi.class)
-@Import({ ErrorMapper.class, GlobalExceptionHandler.class })
+@WebMvcTest(controllers = ProductRestApi.class)
+@AutoConfigureMockMvc(addFilters = false)
+@Import({ ErrorMapper.class, GlobalExceptionHandler.class, TestSecurityConfig.class })
+@ActiveProfiles({"test", "admin-service"})
 @Testcontainers
 public class ProductRestApiGetAllProductsTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
 
     @MockitoBean
     private ProductsService productsService;

@@ -22,11 +22,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.co.aosd.flash.config.TestSecurityConfig;
 import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.FlashSaleItemDto;
 import uk.co.aosd.flash.dto.FlashSaleResponseDto;
@@ -37,18 +40,24 @@ import uk.co.aosd.flash.exc.FlashSaleNotFoundException;
 import uk.co.aosd.flash.exc.InvalidSaleTimesException;
 import uk.co.aosd.flash.exc.SaleDurationTooShortException;
 import uk.co.aosd.flash.services.FlashSalesService;
+import uk.co.aosd.flash.services.JwtTokenProvider;
 
 /**
  * Flash Sale Admin REST API test for management endpoints.
  */
-@WebMvcTest(FlashSaleAdminRestApi.class)
-@Import({ ErrorMapper.class, GlobalExceptionHandler.class })
+@WebMvcTest(controllers = FlashSaleAdminRestApi.class)
+@AutoConfigureMockMvc(addFilters = false)
+@Import({ ErrorMapper.class, GlobalExceptionHandler.class, TestSecurityConfig.class })
+@ActiveProfiles({"test", "admin-service"})
 public class FlashSaleAdminRestApiManagementTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     private static ObjectMapper objectMapper;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
 
     @MockitoBean
     private FlashSalesService salesService;

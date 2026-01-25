@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -76,6 +77,7 @@ public class FlashSaleAdminRestApi {
      * @throws InvalidSaleTimesException
      *             if the start time is after the end time.
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @PostMapping("/flash_sale")
     @Operation(
         summary = "Create flash sale",
@@ -126,6 +128,7 @@ public class FlashSaleAdminRestApi {
      * @param id the flash sale ID to cancel
      * @return ResponseEntity with no content on success
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @PostMapping("/flash_sale/{id}/cancel")
     @Operation(
         summary = "Cancel flash sale",
@@ -164,6 +167,7 @@ public class FlashSaleAdminRestApi {
      *                overlaps the specified window are returned.
      * @return ResponseEntity with list of flash sales
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @GetMapping("/flash_sale")
     @Operation(
         summary = "List flash sales",
@@ -211,6 +215,7 @@ public class FlashSaleAdminRestApi {
      * @param id the flash sale ID
      * @return ResponseEntity with flash sale DTO, or 404 if not found
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @GetMapping("/flash_sale/{id}")
     @Operation(summary = "Get flash sale by id", description = "Returns flash sale details by id.")
     @ApiResponses(value = {
@@ -252,6 +257,7 @@ public class FlashSaleAdminRestApi {
      * @param updateDto the update DTO
      * @return ResponseEntity with updated flash sale DTO, or 404 if not found, or 400 for validation errors
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @PutMapping("/flash_sale/{id}")
     @Operation(summary = "Update flash sale", description = "Updates a flash sale by id.")
     @ApiResponses(value = {
@@ -298,6 +304,7 @@ public class FlashSaleAdminRestApi {
      * @param id the flash sale ID
      * @return ResponseEntity with no content on success, or 404 if not found, or 400 if not DRAFT status
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @DeleteMapping("/flash_sale/{id}")
     @Operation(
         summary = "Delete flash sale",
@@ -339,6 +346,7 @@ public class FlashSaleAdminRestApi {
      * @param items the items to add
      * @return ResponseEntity with updated flash sale DTO, or 404 if not found, or 400 for validation errors, or 409 for duplicate products
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @PostMapping("/flash_sale/{id}/items")
     @Operation(
         summary = "Add flash sale items",
@@ -405,6 +413,7 @@ public class FlashSaleAdminRestApi {
      * @param updateDto the update DTO
      * @return ResponseEntity with updated flash sale DTO, or 404 if not found, or 400 for validation errors
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @PutMapping("/flash_sale/{id}/items/{itemId}")
     @Operation(
         summary = "Update flash sale item",
@@ -462,6 +471,7 @@ public class FlashSaleAdminRestApi {
      * @param itemId the flash sale item ID
      * @return ResponseEntity with no content on success, or 404 if not found, or 400 for status errors
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @DeleteMapping("/flash_sale/{id}/items/{itemId}")
     @Operation(
         summary = "Remove flash sale item",

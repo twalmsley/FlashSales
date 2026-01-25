@@ -19,23 +19,29 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.co.aosd.flash.config.TestSecurityConfig;
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
+import uk.co.aosd.flash.services.JwtTokenProvider;
 import uk.co.aosd.flash.services.ProductsService;
 
 /**
  * Tests for creating a product.
  */
-@WebMvcTest(ProductRestApi.class)
-@Import({ ErrorMapper.class, GlobalExceptionHandler.class })
+@WebMvcTest(controllers = ProductRestApi.class)
+@AutoConfigureMockMvc(addFilters = false)
+@Import({ ErrorMapper.class, GlobalExceptionHandler.class, TestSecurityConfig.class })
+@ActiveProfiles({"test", "admin-service"})
 public class ProductRestApiCreateProductTest {
 
     @Autowired
@@ -44,6 +50,9 @@ public class ProductRestApiCreateProductTest {
     @MockitoBean
     private ProductsService productsService;
 
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
+
     private static ObjectMapper objectMapper;
 
     @BeforeAll
@@ -51,7 +60,6 @@ public class ProductRestApiCreateProductTest {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
     }
-
 
     @BeforeEach
     public void beforeEach() {

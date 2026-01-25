@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -61,6 +62,7 @@ public class AdminOrderRestApi {
      * @param userId optional user ID filter
      * @return ResponseEntity with list of orders
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @GetMapping("/orders")
     @Operation(
         summary = "List all orders",
@@ -171,6 +173,7 @@ public class AdminOrderRestApi {
      * @param updateDto the update DTO containing the new status
      * @return ResponseEntity with no content on success, or error response
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @PutMapping("/orders/{id}/status")
     @Operation(
         summary = "Update order status",

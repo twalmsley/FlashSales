@@ -11,6 +11,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -251,6 +252,33 @@ public class GlobalExceptionHandler {
             e.getOperation(), e.getCurrentStatus(), e.getRequiredStatus());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(errorMapper.createErrorMap(message));
+    }
+
+    /**
+     * Handle authentication failures (bad credentials).
+     */
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<Map<String, String>> handleBadCredentialsException(final BadCredentialsException e) {
+        log.warn("Authentication failed: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(errorMapper.createErrorMap("Invalid credentials"));
+    }
+
+    /**
+     * Handle illegal state exceptions (e.g., user not authenticated).
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalStateException(final IllegalStateException e) {
+        // Check if it's an authentication-related error
+        if (e.getMessage() != null && e.getMessage().contains("not authenticated")) {
+            log.warn("Unauthorized access: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(errorMapper.createErrorMap("Authentication required"));
+        }
+        // For other IllegalStateException, treat as internal server error
+        log.error("Illegal state error: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(errorMapper.createErrorMap("An unexpected error occurred. Please contact support if the problem persists."));
     }
 
     /**

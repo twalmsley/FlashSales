@@ -87,7 +87,7 @@ public class OrderServiceTest {
 
     @Test
     public void shouldCreateOrderSuccessfully() {
-        final CreateOrderDto createOrderDto = new CreateOrderDto(userId, flashSaleItemId, 5);
+        final CreateOrderDto createOrderDto = new CreateOrderDto(flashSaleItemId, 5);
 
         Mockito.when(flashSaleItemRepository.findById(flashSaleItemId)).thenReturn(Optional.of(flashSaleItem));
         Mockito.when(flashSaleItemRepository.incrementSoldCount(flashSaleItemId, 5)).thenReturn(1);
@@ -97,7 +97,7 @@ public class OrderServiceTest {
             return order;
         });
 
-        final OrderResponseDto response = orderService.createOrder(createOrderDto);
+        final OrderResponseDto response = orderService.createOrder(createOrderDto, userId);
 
         assertNotNull(response);
         assertNotNull(response.orderId());
@@ -108,25 +108,25 @@ public class OrderServiceTest {
 
     @Test
     public void shouldFailWhenSaleHasEnded() {
-        final CreateOrderDto createOrderDto = new CreateOrderDto(userId, flashSaleItemId, 5);
+        final CreateOrderDto createOrderDto = new CreateOrderDto(flashSaleItemId, 5);
         flashSale.setEndTime(OffsetDateTime.now().minusHours(1));
 
         Mockito.when(flashSaleItemRepository.findById(flashSaleItemId)).thenReturn(Optional.of(flashSaleItem));
 
         assertThrows(SaleNotActiveException.class, () -> {
-            orderService.createOrder(createOrderDto);
+            orderService.createOrder(createOrderDto, userId);
         });
     }
 
     @Test
     public void shouldFailWhenInsufficientStock() {
-        final CreateOrderDto createOrderDto = new CreateOrderDto(userId, flashSaleItemId, 50);
+        final CreateOrderDto createOrderDto = new CreateOrderDto(flashSaleItemId, 50);
         flashSaleItem.setSoldCount(45); // Only 5 available, but requesting 50
 
         Mockito.when(flashSaleItemRepository.findById(flashSaleItemId)).thenReturn(Optional.of(flashSaleItem));
 
         assertThrows(InsufficientStockException.class, () -> {
-            orderService.createOrder(createOrderDto);
+            orderService.createOrder(createOrderDto, userId);
         });
     }
 

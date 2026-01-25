@@ -12,16 +12,9 @@ import jakarta.validation.constraints.Positive;
  */
 @Schema(
     name = "CreateOrder",
-    description = "Request body for placing an order against an active flash sale item."
+    description = "Request body for placing an order against an active flash sale item. User ID is extracted from JWT token."
 )
 public record CreateOrderDto(
-    @Schema(
-        description = "User identifier placing the order.",
-        example = "9b2b8c2c-2f53-4a57-a07e-0a2b2b1de3a9"
-    )
-    @NotNull(message = "User ID is required")
-    UUID userId,
-    
     @Schema(
         description = "Flash sale item identifier being purchased.",
         example = "b1b7a3c0-8d3b-4d10-8cc1-3c5f88f4bb5a"

@@ -14,29 +14,38 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import uk.co.aosd.flash.config.TestSecurityConfig;
 import uk.co.aosd.flash.dto.ProductStockDto;
 import uk.co.aosd.flash.dto.UpdateProductStockDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
 import uk.co.aosd.flash.exc.ProductNotFoundException;
+import uk.co.aosd.flash.services.JwtTokenProvider;
 import uk.co.aosd.flash.services.ProductsService;
 
 /**
  * Slice tests for product stock endpoints.
  */
-@WebMvcTest(ProductRestApi.class)
-@Import({ ErrorMapper.class, GlobalExceptionHandler.class })
+@WebMvcTest(controllers = ProductRestApi.class)
+@AutoConfigureMockMvc(addFilters = false)
+@Import({ ErrorMapper.class, GlobalExceptionHandler.class, TestSecurityConfig.class })
+@ActiveProfiles({"test", "admin-service"})
 @Testcontainers
 public class ProductRestApiStockTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
 
     @MockitoBean
     private ProductsService productsService;
@@ -118,4 +127,3 @@ public class ProductRestApiStockTest {
         verify(productsService, times(1)).updateProductStock(uuid, updateDto);
     }
 }
-

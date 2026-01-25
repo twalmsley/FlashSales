@@ -37,6 +37,7 @@ import uk.co.aosd.flash.dto.ErrorResponseDto;
 import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.OrderResponseDto;
 import uk.co.aosd.flash.dto.ProductDto;
+import uk.co.aosd.flash.security.SecurityUtils;
 import uk.co.aosd.flash.services.ActiveSalesService;
 import uk.co.aosd.flash.services.DraftSalesService;
 import uk.co.aosd.flash.services.OrderService;
@@ -204,9 +205,10 @@ public class ClientRestApi {
         )
     })
     public ResponseEntity<OrderResponseDto> createOrder(@Valid @RequestBody final CreateOrderDto createOrderDto) {
-        log.info("Creating order for user {} for flash sale item {}", createOrderDto.userId(), createOrderDto.flashSaleItemId());
+        final UUID userId = SecurityUtils.getCurrentUserId();
+        log.info("Creating order for user {} for flash sale item {}", userId, createOrderDto.flashSaleItemId());
         try {
-            final OrderResponseDto response = orderService.createOrder(createOrderDto);
+            final OrderResponseDto response = orderService.createOrder(createOrderDto, userId);
             log.info("Order created successfully: {}", response.orderId());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (final Exception e) {
@@ -220,14 +222,12 @@ public class ClientRestApi {
      *
      * @param orderId
      *            the order ID
-     * @param userId
-     *            the user ID (required query parameter)
      * @return OrderDetailDto with order details or 404 if not found
      */
     @GetMapping("/orders/{orderId}")
     @Operation(
         summary = "Get order by id",
-        description = "Returns order details. The userId query parameter is required to ensure the order belongs to the caller."
+        description = "Returns order details for the authenticated user."
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -248,18 +248,16 @@ public class ClientRestApi {
     })
     public ResponseEntity<OrderDetailDto> getOrderById(
         @Parameter(description = "Order identifier (UUID).", example = "2b8efb9f-6f89-4b2d-8c73-4b2f9d4d2e1a")
-        @PathVariable final String orderId,
-        @Parameter(description = "User identifier (UUID).", example = "9b2b8c2c-2f53-4a57-a07e-0a2b2b1de3a9", required = true)
-        @RequestParam final String userId) {
+        @PathVariable final String orderId) {
+        final UUID userId = SecurityUtils.getCurrentUserId();
         log.info("Fetching order {} for user {}", orderId, userId);
         try {
             final UUID orderUuid = UUID.fromString(orderId);
-            final UUID userUuid = UUID.fromString(userId);
-            final OrderDetailDto orderDetail = orderService.getOrderById(orderUuid, userUuid);
+            final OrderDetailDto orderDetail = orderService.getOrderById(orderUuid, userId);
             log.info("Fetched order {} for user {}", orderId, userId);
             return ResponseEntity.ok(orderDetail);
         } catch (final IllegalArgumentException e) {
-            log.error("Invalid UUID format: orderId={}, userId={}", orderId, userId);
+            log.error("Invalid UUID format: orderId={}", orderId);
             return ResponseEntity.badRequest().build();
         } catch (final Exception e) {
             log.error("Failed to fetch order {} for user {}", orderId, userId, e);
@@ -270,8 +268,6 @@ public class ClientRestApi {
     /**
      * Get user's order history with optional filters.
      *
-     * @param userId
-     *            the user ID (required query parameter)
      * @param status
      *            optional status filter (PENDING, PAID, FAILED, REFUNDED, DISPATCHED)
      * @param startDate
@@ -283,7 +279,7 @@ public class ClientRestApi {
     @GetMapping("/orders")
     @Operation(
         summary = "List orders for a user",
-        description = "Returns a user's order history with optional status and date range filters."
+        description = "Returns the authenticated user's order history with optional status and date range filters."
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -296,23 +292,21 @@ public class ClientRestApi {
         ),
         @ApiResponse(
             responseCode = "400",
-            description = "Invalid parameters (UUID/status/date range).",
+            description = "Invalid parameters (status/date range).",
             content = @Content
         )
     })
     public ResponseEntity<List<OrderDetailDto>> getOrders(
-        @Parameter(description = "User identifier (UUID).", example = "9b2b8c2c-2f53-4a57-a07e-0a2b2b1de3a9", required = true)
-        @RequestParam final String userId,
         @Parameter(description = "Optional status filter.", schema = @Schema(implementation = OrderStatus.class), example = "PAID")
         @RequestParam(required = false) final String status,
         @Parameter(description = "Optional start date/time filter (ISO-8601).", example = "2026-01-01T00:00:00Z")
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime startDate,
         @Parameter(description = "Optional end date/time filter (ISO-8601).", example = "2026-12-31T23:59:59Z")
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime endDate) {
+        final UUID userId = SecurityUtils.getCurrentUserId();
         log.info("Fetching orders for user {} with filters: status={}, startDate={}, endDate={}",
             userId, status, startDate, endDate);
         try {
-            final UUID userUuid = UUID.fromString(userId);
             OrderStatus orderStatus = null;
             if (status != null && !status.isEmpty()) {
                 try {
@@ -323,11 +317,11 @@ public class ClientRestApi {
                 }
             }
 
-            final List<OrderDetailDto> orders = orderService.getOrdersByUser(userUuid, orderStatus, startDate, endDate);
+            final List<OrderDetailDto> orders = orderService.getOrdersByUser(userId, orderStatus, startDate, endDate);
             log.info("Fetched {} orders for user {}", orders.size(), userId);
             return ResponseEntity.ok(orders);
         } catch (final IllegalArgumentException e) {
-            log.error("Invalid UUID format or date range: userId={}, error={}", userId, e.getMessage());
+            log.error("Invalid date range: error={}", e.getMessage());
             return ResponseEntity.badRequest().build();
         } catch (final Exception e) {
             log.error("Failed to fetch orders for user {}", userId, e);
@@ -367,9 +361,12 @@ public class ClientRestApi {
     public ResponseEntity<OrderResponseDto> refundOrder(
         @Parameter(description = "Order identifier (UUID).", example = "2b8efb9f-6f89-4b2d-8c73-4b2f9d4d2e1a")
         @PathVariable final String orderId) {
-        log.info("Processing refund request for order {}", orderId);
+        final UUID userId = SecurityUtils.getCurrentUserId();
+        log.info("Processing refund request for order {} by user {}", orderId, userId);
         try {
             final UUID orderUuid = UUID.fromString(orderId);
+            // Validate ownership before processing refund
+            orderService.getOrderById(orderUuid, userId);
             orderService.handleRefund(orderUuid);
             log.info("Refund processed successfully for order {}", orderId);
             return ResponseEntity.ok(new OrderResponseDto(orderUuid, null, "Refund processed successfully"));

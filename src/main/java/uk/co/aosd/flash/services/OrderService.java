@@ -52,13 +52,14 @@ public class OrderService {
      * creates a PENDING order, increments sold count, and queues the order for processing.
      *
      * @param createOrderDto the order creation DTO
+     * @param userId the user ID (extracted from JWT token)
      * @return OrderResponseDto with order status
      * @throws SaleNotActiveException      if the sale has ended
      * @throws InsufficientStockException if there's not enough stock
      */
     @Transactional
-    public OrderResponseDto createOrder(@Valid final CreateOrderDto createOrderDto) {
-        log.info("Creating order for user {} for flash sale item {}", createOrderDto.userId(), createOrderDto.flashSaleItemId());
+    public OrderResponseDto createOrder(@Valid final CreateOrderDto createOrderDto, final UUID userId) {
+        log.info("Creating order for user {} for flash sale item {}", userId, createOrderDto.flashSaleItemId());
 
         // Load flash sale item with flash sale
         final FlashSaleItem flashSaleItem = flashSaleItemRepository.findById(createOrderDto.flashSaleItemId())
@@ -109,7 +110,7 @@ public class OrderService {
 
         // Create order AFTER successful increment
         final Order order = new Order();
-        order.setUserId(createOrderDto.userId());
+        order.setUserId(userId);
         order.setFlashSaleItem(flashSaleItem);
         order.setProduct(flashSaleItem.getProduct());
         order.setSoldPrice(flashSaleItem.getSalePrice());
@@ -121,7 +122,7 @@ public class OrderService {
         log.info("Created order: {}", savedOrder.getId());
 
         // Send order confirmation notification
-        notificationService.sendOrderConfirmation(createOrderDto.userId(), savedOrder.getId());
+        notificationService.sendOrderConfirmation(userId, savedOrder.getId());
 
         // Queue order for processing AFTER transaction commits
         // This ensures the order is visible in the database when the consumer processes it

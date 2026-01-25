@@ -15,8 +15,8 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,6 +25,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -46,6 +48,7 @@ import uk.co.aosd.flash.repository.ProductRepository;
 @SpringBootTest
 @Testcontainers
 @EnableCaching
+@ActiveProfiles({"test", "admin-service", "api-service"})
 public class FlashSaleRestApiFullStackTest {
 
     @Container
@@ -79,10 +82,18 @@ public class FlashSaleRestApiFullStackTest {
 
     @BeforeEach
     public void beforeEach() {
-        // Ensure tests are isolated even when the Spring context / containers are reused.
+        // Ensure tests are isolated even when the Spring context / containers are
+        // reused.
         itemsRepo.deleteAll();
         salesRepo.deleteAll();
         productsRepo.deleteAll();
+    }
+
+    private org.springframework.test.web.servlet.request.RequestPostProcessor withAdminUser() {
+        final UUID adminUserId = UUID.randomUUID();
+        return SecurityMockMvcRequestPostProcessors.authentication(
+            new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                adminUserId, null, java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN_USER"))));
     }
 
     /**
@@ -98,6 +109,7 @@ public class FlashSaleRestApiFullStackTest {
 
         final var response = mockMvc.perform(
             post("/api/v1/products")
+                .with(withAdminUser())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(productDto1)))
             .andExpect(status().isCreated())
@@ -109,7 +121,8 @@ public class FlashSaleRestApiFullStackTest {
         final String productUri = response.getResponse().getHeader(HttpHeaders.LOCATION);
 
         final var result = mockMvc.perform(
-            get(productUri))
+            get(productUri)
+                .with(withAdminUser()))
             .andReturn();
         final ProductDto product = objectMapper.readValue(result.getResponse().getContentAsString(), ProductDto.class);
 
@@ -122,6 +135,7 @@ public class FlashSaleRestApiFullStackTest {
 
         final var createFlashSaleResult = mockMvc.perform(
             post("/api/v1/admin/flash_sale")
+                .with(withAdminUser())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(sale)))
             .andExpect(status().isCreated())
@@ -170,6 +184,7 @@ public class FlashSaleRestApiFullStackTest {
 
         final var response = mockMvc.perform(
             post("/api/v1/products")
+                .with(withAdminUser())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(productDto1)))
             .andExpect(status().isCreated())
@@ -180,7 +195,8 @@ public class FlashSaleRestApiFullStackTest {
         //
         final String productUri = response.getResponse().getHeader(HttpHeaders.LOCATION);
 
-        final var result = mockMvc.perform(get(productUri)).andReturn();
+        final var result = mockMvc.perform(get(productUri)
+            .with(withAdminUser())).andReturn();
         final ProductDto product = objectMapper.readValue(result.getResponse().getContentAsString(), ProductDto.class);
 
         //
@@ -192,6 +208,7 @@ public class FlashSaleRestApiFullStackTest {
 
         mockMvc.perform(
             post("/api/v1/admin/flash_sale")
+                .with(withAdminUser())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(sale)))
             .andExpect(status().isCreated());
@@ -201,6 +218,7 @@ public class FlashSaleRestApiFullStackTest {
         // This previously failed against Postgres due to typeless NULL parameters.
         //
         mockMvc.perform(get("/api/v1/admin/flash_sale")
+            .with(withAdminUser())
             .param("status", "ACTIVE"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
@@ -218,6 +236,7 @@ public class FlashSaleRestApiFullStackTest {
 
         final var response = mockMvc.perform(
             post("/api/v1/products")
+                .with(withAdminUser())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(productDto1)))
             .andExpect(status().isCreated())
@@ -228,7 +247,8 @@ public class FlashSaleRestApiFullStackTest {
         //
         final String productUri = response.getResponse().getHeader(HttpHeaders.LOCATION);
 
-        final var result = mockMvc.perform(get(productUri)).andReturn();
+        final var result = mockMvc.perform(get(productUri)
+            .with(withAdminUser())).andReturn();
         final ProductDto product = objectMapper.readValue(result.getResponse().getContentAsString(), ProductDto.class);
 
         final SaleProductDto saleProduct = new SaleProductDto(product.id(), 10);
@@ -247,17 +267,20 @@ public class FlashSaleRestApiFullStackTest {
 
         mockMvc.perform(
             post("/api/v1/admin/flash_sale")
+                .with(withAdminUser())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(saleA)))
             .andExpect(status().isCreated());
 
         mockMvc.perform(
             post("/api/v1/admin/flash_sale")
+                .with(withAdminUser())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(saleB)))
             .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/v1/admin/flash_sale")
+            .with(withAdminUser())
             .param("status", "ACTIVE")
             .param("startDate", "2026-01-01T12:30:00Z")
             .param("endDate", "2026-01-01T12:45:00Z"))

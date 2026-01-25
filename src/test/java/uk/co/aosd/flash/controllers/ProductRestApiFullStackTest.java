@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -21,6 +22,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -38,6 +41,7 @@ import uk.co.aosd.flash.dto.UpdateProductStockDto;
 @SpringBootTest
 @Testcontainers
 @EnableCaching
+@ActiveProfiles({"test", "admin-service", "api-service"})
 public class ProductRestApiFullStackTest {
 
     @Container
@@ -58,6 +62,13 @@ public class ProductRestApiFullStackTest {
     public static void beforeAll() {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
+    }
+
+    private org.springframework.test.web.servlet.request.RequestPostProcessor withAdminUser() {
+        final UUID adminUserId = UUID.randomUUID();
+        return SecurityMockMvcRequestPostProcessors.authentication(
+            new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                adminUserId, null, java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN_USER"))));
     }
 
     /**
@@ -84,7 +95,8 @@ public class ProductRestApiFullStackTest {
         final String uri = response.getResponse().getHeader(HttpHeaders.LOCATION);
 
         final var result = mockMvc.perform(
-            get(uri))
+            get(uri)
+                .with(withAdminUser()))
             .andReturn();
 
         final ProductDto product = objectMapper.readValue(result.getResponse().getContentAsString(), ProductDto.class);
@@ -102,6 +114,7 @@ public class ProductRestApiFullStackTest {
 
         mockMvc.perform(
             put(uri)
+                .with(withAdminUser())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updatedProductDto)))
             .andExpect(status().isOk());
@@ -110,7 +123,8 @@ public class ProductRestApiFullStackTest {
         // GET and verify
         //
         final var result2 = mockMvc.perform(
-            get(uri))
+            get(uri)
+                .with(withAdminUser()))
             .andReturn();
 
         final ProductDto productDto2 = objectMapper.readValue(result2.getResponse().getContentAsString(), ProductDto.class);
@@ -126,14 +140,16 @@ public class ProductRestApiFullStackTest {
         // DELETE
         //
         mockMvc.perform(
-            delete(uri))
+            delete(uri)
+                .with(withAdminUser()))
             .andExpect(status().isOk());
 
         //
         // GET and verify
         //
         mockMvc.perform(
-            get(uri))
+            get(uri)
+                .with(withAdminUser()))
             .andExpect(status().isNotFound());
     }
 
@@ -150,6 +166,7 @@ public class ProductRestApiFullStackTest {
 
         mockMvc.perform(
             post("/api/v1/products")
+                .with(withAdminUser())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(productDto1)))
             .andExpect(status().isBadRequest())
@@ -177,7 +194,7 @@ public class ProductRestApiFullStackTest {
         //
         // GET stock and verify
         //
-        final var stockResult = mockMvc.perform(get(stockUri)).andExpect(status().isOk()).andReturn();
+        final var stockResult = mockMvc.perform(get(stockUri).with(withAdminUser())).andExpect(status().isOk()).andReturn();
         final ProductStockDto stock = objectMapper.readValue(stockResult.getResponse().getContentAsString(), ProductStockDto.class);
         assertNotNull(stock);
         assertEquals(100, stock.totalPhysicalStock());
@@ -190,6 +207,7 @@ public class ProductRestApiFullStackTest {
         final UpdateProductStockDto updateStock = new UpdateProductStockDto(120);
         final var updateResult = mockMvc.perform(
             put(stockUri)
+                .with(withAdminUser())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateStock)))
             .andExpect(status().isOk())
@@ -207,6 +225,7 @@ public class ProductRestApiFullStackTest {
         final UpdateProductStockDto invalidUpdate = new UpdateProductStockDto(5);
         mockMvc.perform(
             put(stockUri)
+                .with(withAdminUser())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(invalidUpdate)))
             .andExpect(status().isBadRequest());

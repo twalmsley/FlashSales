@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -50,6 +51,7 @@ public class ProductRestApi {
     /**
      * API for creating a product.
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @PostMapping
     @Operation(
         summary = "Create product",
@@ -116,6 +118,7 @@ public class ProductRestApi {
     /**
      * API for getting a specific product by id.
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @GetMapping("/{id}")
     @Operation(summary = "Get product by id", description = "Returns a single product by id.")
     @ApiResponses(value = {
@@ -146,6 +149,7 @@ public class ProductRestApi {
     /**
      * API for updating a product.
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @PutMapping("/{id}")
     @Operation(summary = "Update product", description = "Updates an existing product by id.")
     @ApiResponses(value = {
@@ -187,6 +191,7 @@ public class ProductRestApi {
     /**
      * API for deleting a product.
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete product", description = "Deletes a product by id.")
     @ApiResponses(value = {
@@ -240,6 +245,7 @@ public class ProductRestApi {
     /**
      * API for updating total physical stock for a product.
      */
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @PutMapping("/{id}/stock")
     @Operation(summary = "Update product stock", description = "Manually updates total physical stock for a product.")
     @ApiResponses(value = {

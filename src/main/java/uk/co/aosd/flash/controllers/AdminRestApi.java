@@ -2,6 +2,7 @@ package uk.co.aosd.flash.controllers;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,6 +29,7 @@ public class AdminRestApi {
     public AdminRestApi() {
     }
 
+    @PreAuthorize("hasRole('ADMIN_USER')")
     @GetMapping("admin_api_status")
     @Operation(
         summary = "Admin API status",

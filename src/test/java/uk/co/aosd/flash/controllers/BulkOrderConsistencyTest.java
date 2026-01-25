@@ -33,6 +33,8 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.GenericContainer;
@@ -64,6 +66,7 @@ import uk.co.aosd.flash.repository.ProductRepository;
 @SpringBootTest
 @Testcontainers
 @EnableCaching
+@ActiveProfiles({"test", "admin-service", "api-service"})
 @TestPropertySource(properties = {
         "app.payment.success-rate=0.85",
         "app.payment.always-succeed=false",
@@ -220,10 +223,13 @@ public class BulkOrderConsistencyTest {
                     final FlashSaleItem randomItem = testSaleItems.get(random.nextInt(testSaleItems.size()));
                     final int quantity = 1 + random.nextInt(5); // Random quantity 1-5
 
-                    final CreateOrderDto orderDto = new CreateOrderDto(userId, randomItem.getId(), quantity);
+                    final CreateOrderDto orderDto = new CreateOrderDto(randomItem.getId(), quantity);
 
                     final var result = mockMvc.perform(
                         post("/api/v1/clients/orders")
+                            .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                                    userId, null, java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER")))))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(orderDto)))
                         .andReturn();

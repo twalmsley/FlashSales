@@ -23,11 +23,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import uk.co.aosd.flash.config.TestSecurityConfig;
 import uk.co.aosd.flash.domain.OrderStatus;
 import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.UpdateOrderStatusDto;
@@ -35,19 +38,25 @@ import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
 import uk.co.aosd.flash.exc.InvalidOrderStatusException;
 import uk.co.aosd.flash.exc.OrderNotFoundException;
+import uk.co.aosd.flash.services.JwtTokenProvider;
 import uk.co.aosd.flash.services.OrderService;
 
 /**
  * Admin Order REST API test.
  */
-@WebMvcTest(AdminOrderRestApi.class)
-@Import({ ErrorMapper.class, GlobalExceptionHandler.class })
+@WebMvcTest(controllers = AdminOrderRestApi.class)
+@AutoConfigureMockMvc(addFilters = false)
+@Import({ ErrorMapper.class, GlobalExceptionHandler.class, TestSecurityConfig.class })
+@ActiveProfiles({"test", "admin-service"})
 public class AdminOrderRestApiTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     private static ObjectMapper objectMapper;
+
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
 
     @MockitoBean
     private OrderService orderService;
