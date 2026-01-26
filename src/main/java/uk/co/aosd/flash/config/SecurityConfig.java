@@ -3,7 +3,7 @@ package uk.co.aosd.flash.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -15,12 +15,15 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.context.annotation.Profile;
+import uk.co.aosd.flash.security.CustomAuthenticationSuccessHandler;
 import uk.co.aosd.flash.security.JwtAuthenticationEntryPoint;
 import uk.co.aosd.flash.security.JwtAuthenticationFilter;
 import uk.co.aosd.flash.services.JwtTokenProvider;
 
 /**
- * Spring Security configuration for JWT-based authentication.
+ * Spring Security configuration supporting both JWT-based authentication (for API)
+ * and form-based authentication (for UI).
  * Follows Spring Boot 4 best practices with component-based configuration.
  */
 @Configuration
@@ -31,15 +34,22 @@ import uk.co.aosd.flash.services.JwtTokenProvider;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final CustomAuthenticationSuccessHandler authenticationSuccessHandler;
 
+    /**
+     * Security filter chain for API endpoints (JWT-based, stateless).
+     * This chain handles all /api/** requests.
+     */
     @Bean
-    public SecurityFilterChain securityFilterChain(final HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain apiSecurityFilterChain(final HttpSecurity http) throws Exception {
         http
+            .securityMatcher("/api/**")
             // Disable CSRF for stateless JWT-based API
             .csrf(AbstractHttpConfigurer::disable)
             // Configure stateless session management
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // Configure security headers (defaults are enabled by Spring Security)
+            // Configure security headers
             .headers(headers -> headers
                 .frameOptions(frameOptions -> frameOptions.deny())
                 .contentTypeOptions(contentTypeOptions -> {
@@ -48,18 +58,77 @@ public class SecurityConfig {
                     .maxAgeInSeconds(31536000)))
             // Configure authorization rules
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
+                // Public API endpoints
                 .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                // Admin endpoints require ADMIN_USER role
+                // Admin API endpoints require ADMIN_USER role
                 .requestMatchers("/api/v1/admin/**", "/api/v1/products/**").hasRole("ADMIN_USER")
-                // All other endpoints require authentication
+                // All other API endpoints require authentication
                 .anyRequest().authenticated())
             // Configure exception handling
             .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint()))
             // Add JWT filter before username/password authentication filter
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    /**
+     * Security filter chain for UI endpoints (form-based, stateful).
+     * This chain handles all non-API requests.
+     */
+    @Bean
+    @Order(2)
+    public SecurityFilterChain webSecurityFilterChain(final HttpSecurity http) throws Exception {
+        http
+            .securityMatcher("/**")
+            // Enable CSRF for form submissions
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/api/**") // API endpoints are handled by apiSecurityFilterChain
+            )
+            // Configure stateful session management for UI
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                .sessionFixation().changeSessionId() // Prevent session fixation attacks
+            )
+            // Configure security headers
+            .headers(headers -> headers
+                .frameOptions(frameOptions -> frameOptions.deny())
+                .contentTypeOptions(contentTypeOptions -> {
+                })
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .maxAgeInSeconds(31536000)))
+            // Configure authorization rules
+            .authorizeHttpRequests(auth -> auth
+                // Public UI pages
+                .requestMatchers("/", "/login", "/register", "/sales", "/sales/**", "/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                // Admin UI pages require ADMIN_USER role
+                .requestMatchers("/admin/**").hasRole("ADMIN_USER")
+                // All other UI pages require authentication
+                .anyRequest().authenticated())
+            // Configure form login
+            .formLogin(form -> form
+                .loginPage("/login")
+                .loginProcessingUrl("/login")
+                .usernameParameter("username")
+                .passwordParameter("password")
+                .successHandler(authenticationSuccessHandler)
+                .failureUrl("/login?error=true")
+                .permitAll()
+            )
+            // Configure logout
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/")
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID")
+                .permitAll()
+            )
+            // Configure exception handling
+            .exceptionHandling(ex -> ex
+                .accessDeniedPage("/403")
+            );
 
         return http.build();
     }

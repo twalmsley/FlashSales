@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
+import org.springframework.security.core.userdetails.UserDetails;
 
 /**
  * Utility class for extracting security context information.
@@ -19,6 +20,8 @@ public final class SecurityUtils {
 
     /**
      * Get the current authenticated user's ID from SecurityContext.
+     * Supports both JWT authentication (UUID principal) and form login (UserDetails principal).
+     * For form login, requires UserService to look up user ID from username.
      *
      * @return user ID
      * @throws IllegalStateException
@@ -35,10 +38,51 @@ public final class SecurityUtils {
                 throw new IllegalStateException("User is not authenticated - authentication.getPrincipal is null");
             }
         }
+        
+        // Handle JWT authentication (UUID principal)
         if (authentication.getPrincipal() instanceof UUID) {
             return (UUID) authentication.getPrincipal();
         }
-        throw new IllegalStateException("Unexpected authentication principal type");
+        
+        // Handle form login (UserDetails principal)
+        if (authentication.getPrincipal() instanceof UserDetails) {
+            // For form login, try to get user ID from session or look it up
+            final var session = org.springframework.web.context.request.RequestContextHolder
+                .getRequestAttributes();
+            if (session instanceof org.springframework.web.context.request.ServletRequestAttributes) {
+                final var request = ((org.springframework.web.context.request.ServletRequestAttributes) session)
+                    .getRequest();
+                final var userId = (UUID) request.getSession().getAttribute("userId");
+                if (userId != null) {
+                    return userId;
+                }
+            }
+            throw new IllegalStateException("Form login detected but user ID not in session. Use getCurrentUsername() and look up user ID.");
+        }
+        
+        throw new IllegalStateException("Unexpected authentication principal type: " + authentication.getPrincipal().getClass().getName());
+    }
+
+    /**
+     * Get the current authenticated user's username from SecurityContext.
+     * Works with both JWT and form login.
+     *
+     * @return username
+     * @throws IllegalStateException if user is not authenticated
+     */
+    public static String getCurrentUsername() {
+        final Authentication authentication = securityStrategy.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal() == null) {
+            throw new IllegalStateException("User is not authenticated");
+        }
+        
+        if (authentication.getPrincipal() instanceof UserDetails) {
+            return ((UserDetails) authentication.getPrincipal()).getUsername();
+        }
+        
+        // For JWT with UUID principal, we can't get username directly
+        // Controllers using JWT should use getCurrentUserId() instead
+        throw new IllegalStateException("Cannot get username from UUID principal. Use getCurrentUserId() for JWT authentication.");
     }
 
     /**

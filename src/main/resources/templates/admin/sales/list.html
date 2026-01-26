@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/base :: head(pageTitle='Flash Sales')}"></head>
+<body>
+    <nav th:replace="~{layout/base :: nav}"></nav>
+    
+    <main class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Flash Sales</h1>
+            <a th:href="@{/admin/sales/new}" class="btn btn-primary">New Flash Sale</a>
+        </div>
+        
+        <div th:if="${sales != null and !sales.isEmpty()}">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="sale : ${sales}">
+                        <td th:text="${sale.id()}">ID</td>
+                        <td th:text="${sale.title()}">Title</td>
+                        <td><span class="badge" th:text="${sale.status()}">Status</span></td>
+                        <td th:text="${#temporals.format(sale.startTime(), 'yyyy-MM-dd HH:mm')}">Start</td>
+                        <td th:text="${#temporals.format(sale.endTime(), 'yyyy-MM-dd HH:mm')}">End</td>
+                        <td><a th:href="@{/admin/sales/{id}(id=${sale.id()})}" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${sales == null or sales.isEmpty()}" class="alert alert-info">
+            No flash sales found.
+        </div>
+    </main>
+
+    <footer th:replace="~{layout/base :: footer}"></footer>
+    <script th:replace="~{layout/base :: scripts}"></script>
+</body>
+</html>

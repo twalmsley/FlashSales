@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/base :: head(pageTitle='Server Error')}"></head>
+<body>
+    <nav th:replace="~{layout/base :: nav}"></nav>
+    
+    <main class="container mt-4">
+        <div class="text-center">
+            <h1>500 - Server Error</h1>
+            <p class="lead">Something went wrong on our end. Please try again later.</p>
+            <a th:href="@{/}" class="btn btn-primary">Go Home</a>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout/base :: footer}"></footer>
+    <script th:replace="~{layout/base :: scripts}"></script>
+</body>
+</html>

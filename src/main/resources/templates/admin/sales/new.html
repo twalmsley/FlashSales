@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{layout/base :: head(pageTitle='New Flash Sale')}"></head>
+<body>
+    <nav th:replace="~{layout/base :: nav}"></nav>
+    
+    <main class="container mt-4">
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:text="${success}">Success message</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${error}">Error message</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <h1>New Flash Sale</h1>
+        <form th:action="@{/admin/sales}" method="post" th:object="${createSaleDto}">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <div class="mb-3">
+                <label for="title" class="form-label">Title</label>
+                <input type="text" class="form-control" id="title" th:field="*{title}" required>
+                <div th:if="${#fields.hasErrors('title')}" class="text-danger" th:errors="*{title}">Error</div>
+            </div>
+            <div class="mb-3">
+                <label for="startTime" class="form-label">Start Time</label>
+                <input type="datetime-local" class="form-control" id="startTime" th:field="*{startTime}" required>
+                <div th:if="${#fields.hasErrors('startTime')}" class="text-danger" th:errors="*{startTime}">Error</div>
+            </div>
+            <div class="mb-3">
+                <label for="endTime" class="form-label">End Time</label>
+                <input type="datetime-local" class="form-control" id="endTime" th:field="*{endTime}" required>
+                <div th:if="${#fields.hasErrors('endTime')}" class="text-danger" th:errors="*{endTime}">Error</div>
+            </div>
+            <div class="mb-3">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-control" id="status" th:field="*{status}">
+                    <option value="DRAFT">DRAFT</option>
+                    <option value="ACTIVE">ACTIVE</option>
+                </select>
+                <div th:if="${#fields.hasErrors('status')}" class="text-danger" th:errors="*{status}">Error</div>
+            </div>
+            <p class="text-muted">Note: Products can be added to the sale after creation.</p>
+            <button type="submit" class="btn btn-primary">Create Flash Sale</button>
+            <a th:href="@{/admin/sales}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </main>
+
+    <footer th:replace="~{layout/base :: footer}"></footer>
+    <script th:replace="~{layout/base :: scripts}"></script>
+</body>
+</html>

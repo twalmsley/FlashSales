@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/base :: head(pageTitle='Product Details')}"></head>
+<body>
+    <nav th:replace="~{layout/base :: nav}"></nav>
+    
+    <main class="container mt-4">
+        <div th:if="${product}">
+            <h1 th:text="${product.name()}">Product Name</h1>
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Product Information</h5>
+                    <p class="card-text">
+                        <strong>ID:</strong> <span th:text="${product.id()}">ID</span><br>
+                        <strong>Description:</strong> <span th:text="${product.description()}">Description</span><br>
+                        <strong>Base Price:</strong> $<span th:text="${#numbers.formatDecimal(product.basePrice(), 1, 2)}">0.00</span><br>
+                        <strong>Total Physical Stock:</strong> <span th:text="${product.totalPhysicalStock()}">0</span><br>
+                        <strong>Reserved Count:</strong> <span th:text="${product.reservedCount()}">0</span>
+                    </p>
+                    <a th:href="@{/admin/products}" class="btn btn-secondary">Back to Products</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout/base :: footer}"></footer>
+    <script th:replace="~{layout/base :: scripts}"></script>
+</body>
+</html>
