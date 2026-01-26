@@ -33,7 +33,7 @@
             <div sec:authorize="isAuthenticated()" class="card">
                 <div class="card-body">
                     <h5 class="card-title">Place Order</h5>
-                    <form th:action="@{/sales/{id}/order(id=${sale.itemId()})}" method="post" th:object="${createOrderDto}">
+                    <form th:action="@{/sales/{id}/order(id=${sale.flashSaleItemId()})}" method="post" th:object="${createOrderDto}">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                         <input type="hidden" th:field="*{flashSaleItemId}"/>
                         <div class="mb-3">
