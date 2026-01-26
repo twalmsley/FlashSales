@@ -174,9 +174,9 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      * @return total revenue, or 0 if no matching orders
      */
     @Query("SELECT COALESCE(SUM(o.soldPrice * o.soldQuantity), 0) FROM Order o " +
-          "WHERE (:status IS NULL OR o.status = :status) " +
-          "AND (:startDate IS NULL OR o.createdAt >= :startDate) " +
-          "AND (:endDate IS NULL OR o.createdAt <= :endDate)")
+          "WHERE o.status = COALESCE(:status, o.status) " +
+          "AND o.createdAt >= COALESCE(:startDate, o.createdAt) " +
+          "AND o.createdAt <= COALESCE(:endDate, o.createdAt)")
     BigDecimal calculateTotalRevenue(
         @Param("status") OrderStatus status,
         @Param("startDate") OffsetDateTime startDate,
@@ -192,8 +192,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      */
     @Query("SELECT COUNT(o) FROM Order o " +
           "WHERE o.status = :status " +
-          "AND (:startDate IS NULL OR o.createdAt >= :startDate) " +
-          "AND (:endDate IS NULL OR o.createdAt <= :endDate)")
+          "AND o.createdAt >= COALESCE(:startDate, o.createdAt) " +
+          "AND o.createdAt <= COALESCE(:endDate, o.createdAt)")
     Long countOrdersByStatus(
         @Param("status") OrderStatus status,
         @Param("startDate") OffsetDateTime startDate,
@@ -208,8 +208,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      */
     @Query("SELECT COALESCE(SUM(o.soldPrice * o.soldQuantity) / NULLIF(COUNT(o), 0), 0) FROM Order o " +
           "WHERE o.status = 'PAID' " +
-          "AND (:startDate IS NULL OR o.createdAt >= :startDate) " +
-          "AND (:endDate IS NULL OR o.createdAt <= :endDate)")
+          "AND o.createdAt >= COALESCE(:startDate, o.createdAt) " +
+          "AND o.createdAt <= COALESCE(:endDate, o.createdAt)")
     BigDecimal calculateAverageOrderValue(
         @Param("startDate") OffsetDateTime startDate,
         @Param("endDate") OffsetDateTime endDate);
@@ -266,8 +266,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      * @return total quantity ordered
      */
     @Query("SELECT COALESCE(SUM(o.soldQuantity), 0) FROM Order o " +
-          "WHERE (:startDate IS NULL OR o.createdAt >= :startDate) " +
-          "AND (:endDate IS NULL OR o.createdAt <= :endDate)")
+          "WHERE o.createdAt >= COALESCE(:startDate, o.createdAt) " +
+          "AND o.createdAt <= COALESCE(:endDate, o.createdAt)")
     Long calculateTotalOrderQuantity(
         @Param("startDate") OffsetDateTime startDate,
         @Param("endDate") OffsetDateTime endDate);
@@ -282,8 +282,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      */
     @Query("SELECT COALESCE(SUM(o.soldPrice * o.soldQuantity), 0) FROM Order o " +
           "WHERE o.product.id = :productId AND o.status = 'PAID' " +
-          "AND (:startDate IS NULL OR o.createdAt >= :startDate) " +
-          "AND (:endDate IS NULL OR o.createdAt <= :endDate)")
+          "AND o.createdAt >= COALESCE(:startDate, o.createdAt) " +
+          "AND o.createdAt <= COALESCE(:endDate, o.createdAt)")
     BigDecimal calculateRevenueForProduct(
         @Param("productId") UUID productId,
         @Param("startDate") OffsetDateTime startDate,
@@ -299,8 +299,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      */
     @Query("SELECT COALESCE(SUM(o.soldQuantity), 0) FROM Order o " +
           "WHERE o.product.id = :productId AND o.status = 'PAID' " +
-          "AND (:startDate IS NULL OR o.createdAt >= :startDate) " +
-          "AND (:endDate IS NULL OR o.createdAt <= :endDate)")
+          "AND o.createdAt >= COALESCE(:startDate, o.createdAt) " +
+          "AND o.createdAt <= COALESCE(:endDate, o.createdAt)")
     Long calculateQuantityForProduct(
         @Param("productId") UUID productId,
         @Param("startDate") OffsetDateTime startDate,
