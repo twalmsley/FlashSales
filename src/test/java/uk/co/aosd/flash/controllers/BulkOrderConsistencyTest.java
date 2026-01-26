@@ -43,6 +43,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.rabbitmq.RabbitMQContainer;
 import org.testcontainers.utility.DockerImageName;
+import uk.co.aosd.flash.config.TestSecurityConfig;
 import uk.co.aosd.flash.domain.FlashSale;
 import uk.co.aosd.flash.domain.FlashSaleItem;
 import uk.co.aosd.flash.domain.OrderStatus;
@@ -63,15 +64,11 @@ import uk.co.aosd.flash.repository.ProductRepository;
  * database integrity.
  */
 @AutoConfigureMockMvc
-@SpringBootTest
+@SpringBootTest(classes = TestSecurityConfig.class)
 @Testcontainers
 @EnableCaching
-@ActiveProfiles({"test", "admin-service", "api-service"})
-@TestPropertySource(properties = {
-        "app.payment.success-rate=0.85",
-        "app.payment.always-succeed=false",
-        "app.payment.always-fail=false"
-})
+@ActiveProfiles({ "test", "admin-service", "api-service" })
+@TestPropertySource(properties = { "app.payment.success-rate=0.85", "app.payment.always-succeed=false", "app.payment.always-fail=false" })
 public class BulkOrderConsistencyTest {
 
     @Container

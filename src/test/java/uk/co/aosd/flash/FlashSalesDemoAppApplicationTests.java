@@ -4,14 +4,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import uk.co.aosd.flash.config.TestSecurityConfig;
 
-@Import(TestcontainersConfiguration.class)
+@Import({ TestcontainersConfiguration.class, TestSecurityConfig.class })
 @SpringBootTest
-@ActiveProfiles({"test", "admin-service", "api-service"})
+@ActiveProfiles({ "test", "admin-service", "api-service" })
 class FlashSalesDemoAppApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+    @Test
+    void contextLoads() {
+    }
 
 }

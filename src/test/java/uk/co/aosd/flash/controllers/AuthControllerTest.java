@@ -7,16 +7,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.aosd.flash.config.TestSecurityConfig;
 import uk.co.aosd.flash.domain.User;
 import uk.co.aosd.flash.domain.UserRole;
 import uk.co.aosd.flash.dto.AuthResponseDto;
@@ -30,15 +34,15 @@ import uk.co.aosd.flash.util.TestJwtUtils;
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles({"test", "admin-service", "api-service"})
+@Import(TestSecurityConfig.class)
+@ActiveProfiles({ "test", "admin-service", "api-service" })
 @Transactional
 public class AuthControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private static ObjectMapper objectMapper;
 
     @Autowired
     private UserRepository userRepository;
@@ -49,6 +53,12 @@ public class AuthControllerTest {
     private static final String TEST_USERNAME = "testuser";
     private static final String TEST_EMAIL = "test@example.com";
     private static final String TEST_PASSWORD = "TestPassword123!";
+
+    @BeforeAll
+    public static void beforeAll() {
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+    }
 
     @BeforeEach
     void setUp() {

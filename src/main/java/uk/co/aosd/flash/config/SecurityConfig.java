@@ -10,7 +10,6 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -43,11 +42,10 @@ public class SecurityConfig {
             // Configure security headers (defaults are enabled by Spring Security)
             .headers(headers -> headers
                 .frameOptions(frameOptions -> frameOptions.deny())
-                .contentTypeOptions(contentTypeOptions -> {})
+                .contentTypeOptions(contentTypeOptions -> {
+                })
                 .httpStrictTransportSecurity(hsts -> hsts
-                    .maxAgeInSeconds(31536000)
-                )
-            )
+                    .maxAgeInSeconds(31536000)))
             // Configure authorization rules
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
@@ -57,8 +55,7 @@ public class SecurityConfig {
                 // Admin endpoints require ADMIN_USER role
                 .requestMatchers("/api/v1/admin/**", "/api/v1/products/**").hasRole("ADMIN_USER")
                 // All other endpoints require authentication
-                .anyRequest().authenticated()
-            )
+                .anyRequest().authenticated())
             // Configure exception handling
             .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint()))
             // Add JWT filter before username/password authentication filter
