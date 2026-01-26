@@ -1,5 +1,9 @@
 package uk.co.aosd.flash.controllers.web;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -20,16 +24,11 @@ import uk.co.aosd.flash.dto.CreateSaleDto;
 import uk.co.aosd.flash.dto.FlashSaleResponseDto;
 import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.ProductDto;
-import uk.co.aosd.flash.dto.UpdateFlashSaleDto;
 import uk.co.aosd.flash.dto.UpdateOrderStatusDto;
 import uk.co.aosd.flash.services.AnalyticsService;
 import uk.co.aosd.flash.services.FlashSalesService;
 import uk.co.aosd.flash.services.OrderService;
 import uk.co.aosd.flash.services.ProductsService;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Web controller for admin management pages.
@@ -66,7 +65,7 @@ public class AdminWebController {
         @Valid @ModelAttribute final ProductDto productDto,
         final BindingResult bindingResult,
         final RedirectAttributes redirectAttributes) {
-        
+
         if (bindingResult.hasErrors()) {
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.productDto", bindingResult);
             redirectAttributes.addFlashAttribute("productDto", productDto);
@@ -102,7 +101,7 @@ public class AdminWebController {
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime startDate,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime endDate,
         final Model model) {
-        
+
         final SaleStatus saleStatus = status != null ? SaleStatus.valueOf(status) : null;
         final List<FlashSaleResponseDto> sales = flashSalesService.getAllFlashSales(saleStatus, startDate, endDate);
         model.addAttribute("sales", sales);
@@ -113,7 +112,8 @@ public class AdminWebController {
     @GetMapping("/sales/new")
     public String newSale(final Model model) {
         if (!model.containsAttribute("createSaleDto")) {
-            model.addAttribute("createSaleDto", new CreateSaleDto("", "", OffsetDateTime.now().plusHours(1), OffsetDateTime.now().plusHours(2), SaleStatus.DRAFT, java.util.Collections.emptyList()));
+            model.addAttribute("createSaleDto", new CreateSaleDto("", "", OffsetDateTime.now().plusHours(1), OffsetDateTime.now().plusHours(2),
+                SaleStatus.DRAFT, java.util.Collections.emptyList()));
         }
         model.addAttribute("products", productsService.getAllProducts());
         return "admin/sales/new";
@@ -124,7 +124,7 @@ public class AdminWebController {
         @Valid @ModelAttribute final CreateSaleDto createSaleDto,
         final BindingResult bindingResult,
         final RedirectAttributes redirectAttributes) {
-        
+
         if (bindingResult.hasErrors()) {
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.createSaleDto", bindingResult);
             redirectAttributes.addFlashAttribute("createSaleDto", createSaleDto);
@@ -163,8 +163,9 @@ public class AdminWebController {
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime startDate,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime endDate,
         final Model model) {
-        
-        final uk.co.aosd.flash.domain.OrderStatus orderStatus = status != null && !status.isEmpty() ? uk.co.aosd.flash.domain.OrderStatus.valueOf(status) : null;
+
+        final uk.co.aosd.flash.domain.OrderStatus orderStatus = status != null && !status.isEmpty() ? uk.co.aosd.flash.domain.OrderStatus.valueOf(status)
+            : null;
         final List<OrderDetailDto> orders = orderService.getAllOrders(orderStatus, startDate, endDate, null);
         model.addAttribute("orders", orders);
         model.addAttribute("statusFilter", status);
@@ -192,7 +193,7 @@ public class AdminWebController {
         @Valid @ModelAttribute final UpdateOrderStatusDto updateOrderStatusDto,
         final BindingResult bindingResult,
         final RedirectAttributes redirectAttributes) {
-        
+
         if (bindingResult.hasErrors()) {
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.updateOrderStatusDto", bindingResult);
             redirectAttributes.addFlashAttribute("updateOrderStatusDto", updateOrderStatusDto);
@@ -217,10 +218,10 @@ public class AdminWebController {
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime startDate,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime endDate,
         final Model model) {
-        
+
         final var defaultStartDate = startDate != null ? startDate : OffsetDateTime.now().minusMonths(1);
         final var defaultEndDate = endDate != null ? endDate : OffsetDateTime.now();
-        
+
         model.addAttribute("salesMetrics", analyticsService.getSalesMetrics(defaultStartDate, defaultEndDate));
         model.addAttribute("revenueMetrics", analyticsService.getRevenueMetrics(defaultStartDate, defaultEndDate));
         model.addAttribute("orderStatistics", analyticsService.getOrderStatistics(defaultStartDate, defaultEndDate));

@@ -3,7 +3,6 @@ package uk.co.aosd.flash.services;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import uk.co.aosd.flash.domain.OrderStatus;
 import uk.co.aosd.flash.domain.Product;
 import uk.co.aosd.flash.domain.SaleStatus;
@@ -42,8 +40,10 @@ public class AnalyticsService {
     /**
      * Get sales performance metrics.
      *
-     * @param startDate optional start date filter
-     * @param endDate optional end date filter
+     * @param startDate
+     *            optional start date filter
+     * @param endDate
+     *            optional end date filter
      * @return sales metrics DTO
      */
     @Transactional(readOnly = true)
@@ -99,8 +99,10 @@ public class AnalyticsService {
     /**
      * Get revenue metrics.
      *
-     * @param startDate optional start date filter
-     * @param endDate optional end date filter
+     * @param startDate
+     *            optional start date filter
+     * @param endDate
+     *            optional end date filter
      * @return revenue metrics DTO
      */
     @Transactional(readOnly = true)
@@ -218,8 +220,10 @@ public class AnalyticsService {
     /**
      * Get order statistics.
      *
-     * @param startDate optional start date filter
-     * @param endDate optional end date filter
+     * @param startDate
+     *            optional start date filter
+     * @param endDate
+     *            optional end date filter
      * @return order statistics DTO
      */
     @Transactional(readOnly = true)
