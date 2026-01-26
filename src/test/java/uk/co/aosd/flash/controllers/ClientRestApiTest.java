@@ -32,11 +32,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.co.aosd.flash.config.TestSecurityConfig;
 import uk.co.aosd.flash.domain.OrderStatus;
+import uk.co.aosd.flash.domain.UserRole;
 import uk.co.aosd.flash.dto.*;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
 import uk.co.aosd.flash.exc.OrderNotFoundException;
 import uk.co.aosd.flash.services.*;
+import uk.co.aosd.flash.util.TestJwtUtils;
 
 /**
  * Admin API Web Test.
@@ -76,6 +78,7 @@ public class ClientRestApiTest {
     @BeforeEach
     public void beforeEach() {
         Mockito.reset(productsService, activeSalesService, draftSalesService, orderService);
+        TestJwtUtils.clearSecurityContext();
     }
 
     @Test
@@ -284,6 +287,10 @@ public class ClientRestApiTest {
 
         final String requestBody = objectMapper.writeValueAsString(createOrderDto);
 
+        // Set up SecurityContext directly since @AutoConfigureMockMvc(addFilters = false) disables filter chain
+        // This ensures SecurityContextHolder has the authentication that SecurityUtils.getCurrentUserId() reads
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+        
         final var result = mockMvc.perform(post("/api/v1/clients/orders")
             .with(user(userId.toString()).roles("USER"))
             .with(csrf())
@@ -308,6 +315,8 @@ public class ClientRestApiTest {
             new OrderDetailDto(orderId, userId, UUID.randomUUID(), "Product", UUID.randomUUID(), UUID.randomUUID(), "Sale",
                 BigDecimal.valueOf(79.99), 5, BigDecimal.valueOf(399.95), OrderStatus.PAID, OffsetDateTime.now()));
 
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
         mockMvc.perform(post("/api/v1/clients/orders/" + orderId + "/refund")
             .with(user(userId.toString()).roles("USER"))
             .with(csrf())
@@ -320,7 +329,12 @@ public class ClientRestApiTest {
 
     @Test
     public void shouldReturnBadRequestForInvalidOrderId() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
         mockMvc.perform(post("/api/v1/clients/orders/invalid-uuid/refund")
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest())
             .andReturn();
@@ -351,6 +365,8 @@ public class ClientRestApiTest {
 
         Mockito.when(orderService.getOrderById(orderId, userId)).thenReturn(orderDetail);
 
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
         final var result = mockMvc.perform(get("/api/v1/clients/orders/" + orderId)
             .with(user(userId.toString()).roles("USER"))
             .with(csrf())
@@ -380,6 +396,8 @@ public class ClientRestApiTest {
         Mockito.when(orderService.getOrderById(orderId, userId))
             .thenThrow(new OrderNotFoundException(orderId));
 
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
         mockMvc.perform(get("/api/v1/clients/orders/" + orderId)
             .with(user(userId.toString()).roles("USER"))
             .with(csrf())
@@ -391,6 +409,8 @@ public class ClientRestApiTest {
     @Test
     public void shouldReturnBadRequestForInvalidOrderIdFormat() throws Exception {
         final UUID userId = UUID.randomUUID();
+
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
 
         mockMvc.perform(get("/api/v1/clients/orders/invalid-uuid")
             .with(user(userId.toString()).roles("USER"))
@@ -439,6 +459,8 @@ public class ClientRestApiTest {
 
         Mockito.when(orderService.getOrdersByUser(userId, null, null, null)).thenReturn(orders);
 
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
         final var result = mockMvc.perform(get("/api/v1/clients/orders")
             .with(user(userId.toString()).roles("USER"))
             .with(csrf())
@@ -478,6 +500,8 @@ public class ClientRestApiTest {
         final List<OrderDetailDto> orders = List.of(order);
 
         Mockito.when(orderService.getOrdersByUser(userId, OrderStatus.PAID, null, null)).thenReturn(orders);
+
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
 
         final var result = mockMvc.perform(get("/api/v1/clients/orders")
             .with(user(userId.toString()).roles("USER"))
@@ -522,6 +546,8 @@ public class ClientRestApiTest {
 
         Mockito.when(orderService.getOrdersByUser(userId, null, startDate, endDate)).thenReturn(orders);
 
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
         final var result = mockMvc.perform(get("/api/v1/clients/orders")
             .with(user(userId.toString()).roles("USER"))
             .with(csrf())
@@ -565,6 +591,8 @@ public class ClientRestApiTest {
 
         Mockito.when(orderService.getOrdersByUser(userId, OrderStatus.PAID, startDate, endDate)).thenReturn(orders);
 
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
         final var result = mockMvc.perform(get("/api/v1/clients/orders")
             .with(user(userId.toString()).roles("USER"))
             .with(csrf())
@@ -588,6 +616,8 @@ public class ClientRestApiTest {
     public void shouldReturnBadRequestForInvalidStatus() throws Exception {
         final UUID userId = UUID.randomUUID();
 
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
         mockMvc.perform(get("/api/v1/clients/orders")
             .with(user(userId.toString()).roles("USER"))
             .with(csrf())
@@ -606,6 +636,8 @@ public class ClientRestApiTest {
         Mockito.when(orderService.getOrdersByUser(userId, null, startDate, endDate))
             .thenThrow(new IllegalArgumentException("Start date must be before or equal to end date"));
 
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
         mockMvc.perform(get("/api/v1/clients/orders")
             .with(user(userId.toString()).roles("USER"))
             .with(csrf())
@@ -621,6 +653,8 @@ public class ClientRestApiTest {
         final UUID userId = UUID.randomUUID();
 
         Mockito.when(orderService.getOrdersByUser(userId, null, null, null)).thenReturn(List.of());
+
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
 
         final var result = mockMvc.perform(get("/api/v1/clients/orders")
             .with(user(userId.toString()).roles("USER"))
