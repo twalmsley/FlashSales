@@ -1,1 +1,1 @@
-Fetch issue details with gh issue view, create a new branch and check it out, find relevant code, implement a fix, and open a PR
+Fetch issue details with gh issue view, including comments, create a new branch and check it out, find relevant code, implement a fix, and open a PR
