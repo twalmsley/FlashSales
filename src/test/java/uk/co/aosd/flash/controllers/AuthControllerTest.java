@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -20,6 +21,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 import uk.co.aosd.flash.config.TestSecurityConfig;
 import uk.co.aosd.flash.domain.User;
 import uk.co.aosd.flash.domain.UserRole;
@@ -34,10 +40,20 @@ import uk.co.aosd.flash.util.TestJwtUtils;
  */
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
+@Testcontainers
 @Import(TestSecurityConfig.class)
 @ActiveProfiles({ "test", "admin-service", "api-service" })
 @Transactional
 public class AuthControllerTest {
+
+    @Container
+    @ServiceConnection
+    public static PostgreSQLContainer postgreSQLContainer = new PostgreSQLContainer("postgres");
+
+    @Container
+    @ServiceConnection(name = "redis")
+    @SuppressWarnings("resource")
+    public static GenericContainer<?> redisContainer = new GenericContainer<>(DockerImageName.parse("redis:latest")).withExposedPorts(6379);
 
     @Autowired
     private MockMvc mockMvc;
