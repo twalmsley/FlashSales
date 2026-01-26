@@ -31,9 +31,11 @@ This application provides a complete flash sale management system with separate 
 ### Orders
 - **Orders** track customer purchases with:
   - User ID and flash sale item reference
-  - Order status: `PENDING`, `PAID`, `FAILED`, or `REFUNDED`
+  - Product ID, sold price, and sold quantity
+  - Order status: `PENDING`, `PAID`, `FAILED`, `REFUNDED`, or `DISPATCHED`
   - Unique constraint: one purchase per user per flash sale item
   - Automatic timestamp tracking
+  - Status transitions: PENDING → PAID → DISPATCHED (or PENDING → FAILED, PAID → REFUNDED)
 
 ### Stock Management
 - Products maintain `total_physical_stock` and `reserved_count`
@@ -45,22 +47,48 @@ This application provides a complete flash sale management system with separate 
 
 ## REST APIs
 
+### Authentication APIs (Public)
+
+All authentication endpoints are public and do not require authentication:
+- `POST /api/v1/auth/register` - Register a new user account (returns JWT token)
+- `POST /api/v1/auth/login` - Authenticate user with username/email and password (returns JWT token)
+- `GET /api/v1/auth/me` - Get current authenticated user information (requires authentication)
+
 ### Admin APIs (`admin-service` profile)
+
+All admin endpoints require `ADMIN_USER` role and JWT authentication.
 
 #### Products
 - `POST /api/v1/products` - Create a new product
-- `GET /api/v1/products` - Get all products
-- `GET /api/v1/products/{id}` - Get product by ID
+- `GET /api/v1/products` - Get all products (public, no auth required)
+- `GET /api/v1/products/{id}` - Get product by ID (requires ADMIN_USER)
 - `PUT /api/v1/products/{id}` - Update product
 - `DELETE /api/v1/products/{id}` - Delete product
+- `GET /api/v1/products/{id}/stock` - Get product stock details (physical, reserved, available)
+- `PUT /api/v1/products/{id}/stock` - Update product total physical stock
 
 #### Flash Sales
 - `POST /api/v1/admin/flash_sale` - Create a new flash sale
   - Validates sale duration and time ranges
   - Prevents duplicate sales
+- `GET /api/v1/admin/flash_sale` - List all flash sales with optional status and date filters
+- `GET /api/v1/admin/flash_sale/{id}` - Get flash sale details by ID
+- `PUT /api/v1/admin/flash_sale/{id}` - Update flash sale
+- `DELETE /api/v1/admin/flash_sale/{id}` - Delete flash sale (only DRAFT status)
+- `POST /api/v1/admin/flash_sale/{id}/cancel` - Cancel flash sale (DRAFT or ACTIVE status)
+- `POST /api/v1/admin/flash_sale/{id}/items` - Add items to a DRAFT flash sale
+- `PUT /api/v1/admin/flash_sale/{id}/items/{itemId}` - Update flash sale item (DRAFT sales only)
+- `DELETE /api/v1/admin/flash_sale/{id}/items/{itemId}` - Remove flash sale item (DRAFT sales only)
 - `GET /api/v1/admin/admin_api_status` - Check admin API status
 
+#### Orders (Admin)
+- `GET /api/v1/admin/orders` - List all orders with optional filters (status, date range, user ID)
+- `GET /api/v1/admin/orders/{id}` - Get order details by ID (admin view)
+- `PUT /api/v1/admin/orders/{id}/status` - Update order status with proper stock adjustments
+
 ### Client APIs (`api-service` profile)
+
+All client endpoints require JWT authentication (except where noted).
 
 #### Products
 - `GET /api/v1/clients/products/{id}` - Get product details (client view)
@@ -68,6 +96,12 @@ This application provides a complete flash sale management system with separate 
 #### Sales
 - `GET /api/v1/clients/sales/active` - Get all active flash sales with remaining stock
 - `GET /api/v1/clients/sales/draft/{days}` - Get draft sales scheduled within the next N days
+
+#### Orders
+- `POST /api/v1/clients/orders` - Create a new order for an active flash sale item
+- `GET /api/v1/clients/orders` - Get user's order history with optional filters (status, date range)
+- `GET /api/v1/clients/orders/{orderId}` - Get order details by ID (user's own orders only)
+- `POST /api/v1/clients/orders/{orderId}/refund` - Request refund for a PAID order
 
 ## Technology Stack
 
@@ -89,6 +123,7 @@ The application uses PostgreSQL with the following key tables:
 2. **flash_sales** - Flash sale event metadata
 3. **flash_sale_items** - Product-to-sale mappings with inventory allocation
 4. **orders** - Purchase records
+5. **users** - User accounts with authentication credentials and roles
 
 ### Caching Strategy
 
@@ -138,6 +173,24 @@ Flyway automatically applies database migrations on startup:
 - `V1__CreateTables.sql` - Initial schema with products, flash sales, items, and orders
 - `V2__ReservedQuantityForProducts.sql` - Adds reserved_count to products
 - `V3__RemainingActiveStockView.sql` - Creates view for active sales with remaining stock
+- `V4__AddOrderFields.sql` - Adds product_id, sold_price, and sold_quantity to orders table
+- `V5__AddDispatchedOrderStatus.sql` - Adds DISPATCHED status to order_status enum
+- `V6__AddOrderUserIndexes.sql` - Adds indexes on user_id and composite indexes for efficient order queries
+- `V7__CreateUsersTable.sql` - Creates users table for authentication with username, email, password, and roles
+
+## Authentication & Security
+
+The application uses JWT (JSON Web Token) based authentication:
+
+- **User Registration**: Users can register with username, email, and password
+- **User Roles**: Supports `USER` and `ADMIN_USER` roles
+- **JWT Tokens**: Stateless authentication using JWT tokens in the `Authorization: Bearer <token>` header
+- **Password Security**: Passwords are hashed using BCrypt with strength 12
+- **Protected Endpoints**: 
+  - Admin endpoints require `ADMIN_USER` role
+  - Client endpoints require authentication (except public product browsing)
+  - Authentication endpoints are public
+- **Security Headers**: Includes HSTS, frame options, and content type options
 
 ## Key Features
 
@@ -147,6 +200,8 @@ Flyway automatically applies database migrations on startup:
 - **Status Tracking**: Comprehensive status enums for sales and orders
 - **Time-based Queries**: Efficient discovery of active and upcoming sales
 - **API Separation**: Distinct admin and client APIs for different use cases
+- **Authentication**: JWT-based stateless authentication with role-based access control
+- **Order Processing**: Asynchronous order processing with RabbitMQ for payment and dispatch workflows
 
 ## Testing
 

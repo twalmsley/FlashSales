@@ -13,7 +13,17 @@ graph TB
         ClientAPI --> |"GET /sales/active"| ActiveSalesService
         ClientAPI --> |"GET /sales/draft/{days}"| DraftSalesService
         ClientAPI --> |"POST /orders"| OrderService
+        ClientAPI --> |"GET /orders"| OrderService
+        ClientAPI --> |"GET /orders/{id}"| OrderService
         ClientAPI --> |"POST /orders/{id}/refund"| OrderService
+    end
+    
+    %% API Layer - Authentication
+    subgraph "API Layer - Authentication (Public)"
+        AuthAPI[AuthController<br/>/api/v1/auth]
+        AuthAPI --> |"POST /register"| UserService
+        AuthAPI --> |"POST /login"| UserService
+        AuthAPI --> |"GET /me"| UserService
     end
     
     %% API Layer - Admin APIs
@@ -21,20 +31,24 @@ graph TB
         AdminAPI[AdminRestApi<br/>/api/v1/admin]
         FlashSaleAdminAPI[FlashSaleAdminRestApi<br/>/api/v1/admin]
         ProductAPI[ProductRestApi<br/>/api/v1/products]
+        AdminOrderAPI[AdminOrderRestApi<br/>/api/v1/admin]
         
-        FlashSaleAdminAPI --> |"POST /flash_sale"| FlashSalesService
-        ProductAPI --> |"CRUD operations"| ProductsService
+        FlashSaleAdminAPI --> |"CRUD + items management"| FlashSalesService
+        ProductAPI --> |"CRUD + stock management"| ProductsService
+        AdminOrderAPI --> |"List, get, update status"| OrderService
     end
     
     %% Service Layer
     subgraph "Service Layer"
-        ProductsService[ProductsService<br/>- createProduct<br/>- getAllProducts<br/>- getProductById<br/>- updateProduct<br/>- deleteProduct]
-        FlashSalesService[FlashSalesService<br/>- createFlashSale<br/>- activateDraftSales<br/>- completeActiveSales]
+        ProductsService[ProductsService<br/>- createProduct<br/>- getAllProducts<br/>- getProductById<br/>- updateProduct<br/>- deleteProduct<br/>- getProductStockById<br/>- updateProductStock]
+        FlashSalesService[FlashSalesService<br/>- createFlashSale<br/>- getAllFlashSales<br/>- getFlashSaleById<br/>- updateFlashSale<br/>- deleteFlashSale<br/>- cancelFlashSale<br/>- addItemsToFlashSale<br/>- updateFlashSaleItem<br/>- removeFlashSaleItem<br/>- activateDraftSales<br/>- completeActiveSales]
         ActiveSalesService[ActiveSalesService<br/>- getActiveSales<br/>@Cacheable activeSales]
         DraftSalesService[DraftSalesService<br/>- getDraftSalesWithinDays<br/>@Cacheable draftSales]
-        OrderService[OrderService<br/>- createOrder<br/>- processOrderPayment<br/>- handleRefund<br/>- processFailedPayment<br/>- processDispatch]
+        OrderService[OrderService<br/>- createOrder<br/>- getOrderById<br/>- getOrderByIdForAdmin<br/>- getOrdersByUser<br/>- getAllOrders<br/>- updateOrderStatus<br/>- processOrderPayment<br/>- handleRefund<br/>- processFailedPayment<br/>- processDispatch]
         PaymentService[PaymentService<br/>- processPayment<br/>Mock payment processor]
         NotificationService[NotificationService<br/>- sendOrderConfirmation<br/>- sendPaymentFailedNotification<br/>- sendRefundNotification<br/>- sendDispatchNotification]
+        UserService[UserService<br/>- register<br/>- authenticate<br/>- findById]
+        JwtTokenProvider[JwtTokenProvider<br/>- generateToken<br/>- validateToken<br/>- getUserIdFromToken]
     end
     
     %% Scheduled Jobs
@@ -87,8 +101,9 @@ graph TB
         Product[Product<br/>- id: UUID<br/>- name<br/>- description<br/>- basePrice<br/>- totalPhysicalStock<br/>- reservedCount]
         FlashSale[FlashSale<br/>- id: UUID<br/>- title<br/>- startTime<br/>- endTime<br/>- status: DRAFT/ACTIVE/COMPLETED/CANCELLED]
         FlashSaleItem[FlashSaleItem<br/>- id: UUID<br/>- allocatedStock<br/>- soldCount<br/>- salePrice]
-        Order[Order<br/>- id: UUID<br/>- userId<br/>- status: PENDING/PAID/FAILED/REFUNDED/DISPATCHED<br/>- soldPrice<br/>- soldQuantity]
+        Order[Order<br/>- id: UUID<br/>- userId<br/>- productId<br/>- flashSaleItemId<br/>- status: PENDING/PAID/FAILED/REFUNDED/DISPATCHED<br/>- soldPrice<br/>- soldQuantity]
         RemainingActiveStock[RemainingActiveStock<br/>Database View<br/>Active sales with remaining stock]
+        User[User<br/>- id: UUID<br/>- username<br/>- email<br/>- password (hashed)<br/>- roles]
     end
     
     %% Database
@@ -97,6 +112,7 @@ graph TB
         FlashSalesTable[(flash_sales table)]
         FlashSaleItemsTable[(flash_sale_items table)]
         OrdersTable[(orders table)]
+        UsersTable[(users table)]
         RemainingActiveStockView[(remaining_active_stock view)]
     end
     
@@ -119,12 +135,15 @@ graph TB
     OrderService --> ProductRepo
     OrderService --> PaymentService
     OrderService --> NotificationService
+    UserService --> UserRepo
+    AuthAPI --> JwtTokenProvider
     
     %% Repository to Domain connections
     ProductRepo --> Product
     FlashSaleRepo --> FlashSale
     FlashSaleItemRepo --> FlashSaleItem
     OrderRepo --> Order
+    UserRepo --> User
     RemainingActiveStockRepo --> RemainingActiveStock
     
     %% Domain to Database connections
@@ -132,6 +151,7 @@ graph TB
     FlashSale --> FlashSalesTable
     FlashSaleItem --> FlashSaleItemsTable
     Order --> OrdersTable
+    User --> UsersTable
     RemainingActiveStock --> RemainingActiveStockView
     
     %% Cache connections
@@ -151,9 +171,12 @@ graph TB
     
     %% External connections
     Client --> ClientAPI
+    Client --> AuthAPI
     Admin --> AdminAPI
     Admin --> FlashSaleAdminAPI
     Admin --> ProductAPI
+    Admin --> AdminOrderAPI
+    Admin --> AuthAPI
     
     %% Styling
     classDef apiLayer fill:#e1f5ff,stroke:#01579b,stroke-width:2px
@@ -165,11 +188,11 @@ graph TB
     classDef queueLayer fill:#e0f2f1,stroke:#004d40,stroke-width:2px
     classDef jobLayer fill:#f1f8e9,stroke:#33691e,stroke-width:2px
     
-    class ClientAPI,AdminAPI,FlashSaleAdminAPI,ProductAPI apiLayer
-    class ProductsService,FlashSalesService,ActiveSalesService,DraftSalesService,OrderService,PaymentService,NotificationService serviceLayer
-    class ProductRepo,FlashSaleRepo,FlashSaleItemRepo,OrderRepo,RemainingActiveStockRepo repositoryLayer
-    class Product,FlashSale,FlashSaleItem,Order,RemainingActiveStock domainLayer
-    class ProductsTable,FlashSalesTable,FlashSaleItemsTable,OrdersTable,RemainingActiveStockView databaseLayer
+    class ClientAPI,AdminAPI,FlashSaleAdminAPI,ProductAPI,AdminOrderAPI,AuthAPI apiLayer
+    class ProductsService,FlashSalesService,ActiveSalesService,DraftSalesService,OrderService,PaymentService,NotificationService,UserService,JwtTokenProvider serviceLayer
+    class ProductRepo,FlashSaleRepo,FlashSaleItemRepo,OrderRepo,UserRepo,RemainingActiveStockRepo repositoryLayer
+    class Product,FlashSale,FlashSaleItem,Order,User,RemainingActiveStock domainLayer
+    class ProductsTable,FlashSalesTable,FlashSaleItemsTable,OrdersTable,UsersTable,RemainingActiveStockView databaseLayer
     class ProductsCache,ActiveSalesCache,DraftSalesCache cacheLayer
     class OrderExchange,ProcessingQueue,DispatchQueue,PaymentFailedQueue,RefundQueue,OrderProcessingConsumer,DispatchConsumer,FailedPaymentConsumer,RefundConsumer queueLayer
     class ActivateJob,CompleteJob jobLayer
@@ -317,19 +340,23 @@ erDiagram
 ## Key Architecture Components
 
 ### 1. **API Layer**
-- **ClientRestApi**: Client-facing endpoints for browsing products, sales, and creating orders
+- **ClientRestApi**: Client-facing endpoints for browsing products, sales, creating/viewing orders, and refunds
 - **AdminRestApi**: Admin status check
-- **FlashSaleAdminRestApi**: Flash sale creation
-- **ProductRestApi**: Product CRUD operations
+- **FlashSaleAdminRestApi**: Complete flash sale CRUD operations and item management
+- **ProductRestApi**: Product CRUD operations and stock management
+- **AdminOrderRestApi**: Admin order management with filtering and status updates
+- **AuthController**: User registration, login, and current user information
 
 ### 2. **Service Layer**
-- **ProductsService**: Product management with Redis caching
-- **FlashSalesService**: Flash sale creation and lifecycle management
+- **ProductsService**: Product management with Redis caching, including stock management
+- **FlashSalesService**: Complete flash sale lifecycle management (CRUD, cancellation, item management)
 - **ActiveSalesService**: Query active sales (cached)
 - **DraftSalesService**: Query upcoming draft sales (cached)
-- **OrderService**: Order creation, payment processing, dispatch, refunds
+- **OrderService**: Order creation, retrieval, payment processing, dispatch, refunds, and status management
 - **PaymentService**: Mock payment processor (configurable success rate)
 - **NotificationService**: User notifications (currently logs)
+- **UserService**: User registration, authentication, and user information retrieval
+- **JwtTokenProvider**: JWT token generation, validation, and claims extraction
 
 ### 3. **Scheduled Jobs (Quartz)**
 - **ActivateDraftSalesJob**: Runs every 30s, transitions DRAFT → ACTIVE
@@ -342,14 +369,16 @@ erDiagram
 - **order.refund**: Refund notifications
 
 ### 5. **Data Layer**
-- **PostgreSQL**: Primary database with Flyway migrations
+- **PostgreSQL**: Primary database with Flyway migrations (V1-V7)
 - **Redis**: Caching layer (1-minute TTL for products, active sales, draft sales)
-- **JPA Repositories**: Data access layer
+- **JPA Repositories**: Data access layer (ProductRepository, FlashSaleRepository, FlashSaleItemRepository, OrderRepository, UserRepository, RemainingActiveStockRepository)
 
 ### 6. **Key Features**
 - **Atomic Stock Management**: Uses database-level increments to prevent overselling
 - **Transaction Safety**: Messages queued after transaction commit
 - **Caching Strategy**: Redis cache for high-traffic read operations
-- **Status Lifecycle**: DRAFT → ACTIVE → COMPLETED with scheduled jobs
-- **Order Status Flow**: PENDING → PAID → DISPATCHED (or FAILED/REFUNDED)
+- **Status Lifecycle**: DRAFT → ACTIVE → COMPLETED with scheduled jobs (or CANCELLED)
+- **Order Status Flow**: PENDING → PAID → DISPATCHED (or PENDING → FAILED, PAID → REFUNDED)
 - **Stock Tracking**: Multi-level (product.reservedCount, flashSaleItem.allocatedStock, flashSaleItem.soldCount)
+- **Authentication**: JWT-based stateless authentication with role-based access control (USER, ADMIN_USER)
+- **Security**: BCrypt password hashing, security headers (HSTS, frame options), CSRF disabled for stateless API
