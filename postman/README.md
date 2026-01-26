@@ -28,15 +28,82 @@ Make sure your application is running:
 
 The default port is `8080` (configured in the environment).
 
-### 3. Recommended Testing Workflow
+### 3. Authentication
 
-#### Step 1: Create a Product (Admin API)
+**IMPORTANT**: Most endpoints require authentication. You need to authenticate before using the API.
+
+#### Step 1: Register or Login
+
+The collection includes authentication endpoints in the **Authentication** folder:
+
+1. **Register** - Create a new user account
+   - Uses `username`, `email`, and `password` from environment variables
+   - Automatically saves the JWT token to `jwtToken` environment variable
+   - Default credentials are pre-configured in the environment
+
+2. **Login** - Authenticate with existing credentials
+   - Uses `username` (or email) and `password` from environment variables
+   - Automatically saves the JWT token to `jwtToken` environment variable
+
+#### Step 2: Token is Automatically Used
+
+The collection is configured to automatically add the JWT token to all protected endpoints:
+- The token is sent in the `Authorization` header as `Bearer <token>`
+- Public endpoints (like `/api/v1/auth/**`) don't require the token
+- The token is automatically retrieved from the `jwtToken` environment variable
+
+#### Step 3: Admin Endpoints
+
+For **Admin APIs** (product management, flash sale creation), you need a user with `ADMIN_USER` role:
+- Regular registration creates users with `USER` role
+- Admin users must be created directly in the database or through a database migration
+- Once you have an admin user, login with those credentials to get an admin token
+
+#### Authentication Flow Example
+
+1. **Register** (or **Login** if you already have an account)
+   ```json
+   POST /api/v1/auth/register
+   {
+       "username": "testuser",
+       "email": "test@example.com",
+       "password": "TestPassword123!"
+   }
+   ```
+   Response includes a `token` field - this is automatically saved to the environment.
+
+2. **Use Protected Endpoints**
+   - The JWT token is automatically added to all requests
+   - No manual configuration needed!
+
+3. **Check Current User** (optional)
+   - Use **Get Current User** to verify your authentication
+   - Returns your user information including role
+
+#### Environment Variables for Authentication
+
+- `jwtToken`: Automatically set after login/register (don't set manually)
+- `username`: Your username (default: "testuser")
+- `email`: Your email (default: "test@example.com")
+- `password`: Your password (default: "TestPassword123!")
+- `userId`: Automatically set after login/register
+- `userRole`: Automatically set after login/register (USER or ADMIN_USER)
+
+### 4. Recommended Testing Workflow
+
+**Before starting**: Make sure you've authenticated (see Step 3 above). For admin operations, you need an admin user.
+
+#### Step 1: Authenticate (if not already done)
+1. Use **Authentication > Login** or **Authentication > Register**
+2. The JWT token will be automatically saved
+
+#### Step 2: Create a Product (Admin API)
 1. Use **Admin APIs > Create Product**
 2. The request body is pre-filled with example data
 3. Send the request
 4. The product ID will be automatically saved to the `productId` environment variable (from the `Location` header)
 
-#### Step 2: Create a Flash Sale (Admin API)
+#### Step 3: Create a Flash Sale (Admin API)
 1. Use **Admin APIs > Create Flash Sale**
 2. **IMPORTANT**: Update the `startTime` and `endTime` in the request body:
    - `startTime`: Set to a future time (e.g., 1 hour from now)
@@ -47,19 +114,19 @@ The default port is `8080` (configured in the environment).
 5. The sale will be created with status `DRAFT`
 6. The sale ID will be automatically saved to the `saleId` environment variable
 
-#### Step 3: Wait for Sale to Become Active
+#### Step 4: Wait for Sale to Become Active
 - The sale will automatically become `ACTIVE` when `startTime` is reached
 - The scheduled job runs every 30 seconds to activate sales
 - You can check the application logs to see when it activates
 
-#### Step 4: Get Active Sales (Client API)
+#### Step 5: Get Active Sales (Client API)
 1. Use **Client APIs > Get Active Sales**
 2. This will show all active sales with remaining stock
 3. **The `flashSaleItemId` is now included in the response!**
 4. The test script will automatically extract and save the first `flashSaleItemId` to the environment variable
 5. If you need a different item, manually copy the `flashSaleItemId` from the response and update the environment variable
 
-#### Step 5: Create an Order (Client API)
+#### Step 6: Create an Order (Client API)
 1. Use **Client APIs > Create Order**
 2. The request body should already have:
    - `userId`: A UUID (default is set in environment)
@@ -69,7 +136,7 @@ The default port is `8080` (configured in the environment).
 4. The order will be created with status `PENDING`
 5. The order ID will be automatically saved to `orderId` environment variable
 
-#### Step 6: Monitor Order Processing
+#### Step 7: Monitor Order Processing
 - Check application logs to see:
   - Payment processing
   - Status changes (PENDING → PAID → DISPATCHED)
@@ -77,7 +144,7 @@ The default port is `8080` (configured in the environment).
 - The order is processed asynchronously via RabbitMQ
 - You can check RabbitMQ management UI at `http://localhost:15672` (username: `rabbit`, password: `rabbit`)
 
-#### Step 7: Refund Order (Client API) - Optional
+#### Step 8: Refund Order (Client API) - Optional
 1. Use **Client APIs > Refund Order**
 2. This requires the order to be in `PAID` status
 3. The `orderId` should already be set from Step 5
@@ -85,12 +152,23 @@ The default port is `8080` (configured in the environment).
 
 ## Environment Variables
 
+### API Configuration
 - `baseUrl`: API base URL (default: http://localhost:8080)
-- `userId`: User ID for creating orders (UUID format)
+
+### Authentication (auto-set after login/register)
+- `jwtToken`: JWT authentication token (automatically set, don't edit manually)
+- `userId`: Current user ID (automatically set)
+- `username`: Username for login/register (default: "testuser")
+- `email`: Email for registration (default: "test@example.com")
+- `password`: Password for login/register (default: "TestPassword123!")
+- `userRole`: User role - USER or ADMIN_USER (automatically set)
+
+### API Workflow Variables (auto-set during testing)
 - `productId`: Product ID (auto-set after creating a product)
 - `flashSaleItemId`: Flash sale item ID (auto-set after getting active sales)
 - `orderId`: Order ID (auto-set after creating an order)
 - `saleId`: Flash sale ID (auto-set after creating a flash sale)
+- `hasActiveSales`: Whether active sales exist (auto-set)
 
 ## Example Request Bodies
 
@@ -198,6 +276,22 @@ The application logs all operations at INFO level, including:
 
 ## Troubleshooting
 
+### 401 Unauthorized
+- **Problem**: You're not authenticated or your token has expired
+- **Solution**: 
+  1. Use **Authentication > Login** to get a new token
+  2. Make sure the `jwtToken` environment variable is set
+  3. Check that the token is being sent (look at request headers in Postman)
+  4. Verify your credentials are correct
+
+### 403 Forbidden
+- **Problem**: Your user doesn't have the required role (e.g., trying to access admin endpoints with a regular user)
+- **Solution**: 
+  1. Admin endpoints require `ADMIN_USER` role
+  2. Regular registration creates users with `USER` role
+  3. You need to create an admin user in the database or use existing admin credentials
+  4. Check your `userRole` environment variable after login
+
 ### 404 Not Found
 - Check that the ID exists and is correct
 - Verify the endpoint URL is correct
@@ -234,12 +328,13 @@ The application logs all operations at INFO level, including:
 
 ## Quick Test Sequence
 
-1. **Create Product** → `productId` auto-saved
-2. **Create Flash Sale** (with future times) → `saleId` auto-saved → wait for activation
-3. **Get Active Sales** → `flashSaleItemId` auto-saved (from response)
-4. **Create Order** → `orderId` auto-saved
-5. **Check logs** for order processing (payment, dispatch, etc.)
-6. **Refund Order** (optional, requires PAID status)
+1. **Authenticate** → **Login** or **Register** → `jwtToken` auto-saved
+2. **Create Product** (Admin API) → `productId` auto-saved
+3. **Create Flash Sale** (Admin API, with future times) → `saleId` auto-saved → wait for activation
+4. **Get Active Sales** (Client API) → `flashSaleItemId` auto-saved (from response)
+5. **Create Order** (Client API) → `orderId` auto-saved
+6. **Check logs** for order processing (payment, dispatch, etc.)
+7. **Refund Order** (optional, requires PAID status)
 
 ## Running Postman Tests
 
