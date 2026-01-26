@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
-    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
-
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
             <providers>
                 <timestamp>
@@ -34,23 +33,8 @@
         </encoder>
     </appender>
 
-    <logger name="uk.co.aosd.flash" level="DEBUG" />
-
-    <logger name="org.hibernate.SQL" level="DEBUG" />
-    <logger name="org.hibernate.orm.jdbc.bind" level="TRACE" />
-    <logger name="org.hibernate.tool.schema" level="INFO" />
-
-    <logger name="io.lettuce.core" level="INFO" />
-
-    <logger name="org.springframework.web" level="INFO" />
-    <logger name="org.springframework.test" level="DEBUG" />
-    <logger name="org.springframework.transaction" level="DEBUG" />
-
-    <logger name="org.testcontainers" level="INFO" />
-    <logger name="com.github.dockerjava" level="WARN" />
-
     <root level="INFO">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="CONSOLE" />
     </root>
 
 </configuration>
