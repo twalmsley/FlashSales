@@ -103,7 +103,7 @@ graph TB
         FlashSaleItem[FlashSaleItem<br/>- id: UUID<br/>- allocatedStock<br/>- soldCount<br/>- salePrice]
         Order[Order<br/>- id: UUID<br/>- userId<br/>- productId<br/>- flashSaleItemId<br/>- status: PENDING/PAID/FAILED/REFUNDED/DISPATCHED<br/>- soldPrice<br/>- soldQuantity]
         RemainingActiveStock[RemainingActiveStock<br/>Database View<br/>Active sales with remaining stock]
-        User[User<br/>- id: UUID<br/>- username<br/>- email<br/>- password (hashed)<br/>- roles]
+        User["User<br/>- id: UUID<br/>- username<br/>- email<br/>- password: hashed<br/>- roles"]
     end
     
     %% Database
