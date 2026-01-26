@@ -2,6 +2,8 @@ package uk.co.aosd.flash.controllers;
 
 // Static imports for the fluent API (crucial for readability)
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -30,21 +32,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.co.aosd.flash.config.TestSecurityConfig;
 import uk.co.aosd.flash.domain.OrderStatus;
-import uk.co.aosd.flash.dto.ClientActiveSaleDto;
-import uk.co.aosd.flash.dto.ClientDraftSaleDto;
-import uk.co.aosd.flash.dto.ClientProductDto;
-import uk.co.aosd.flash.dto.CreateOrderDto;
-import uk.co.aosd.flash.dto.OrderDetailDto;
-import uk.co.aosd.flash.dto.OrderResponseDto;
-import uk.co.aosd.flash.dto.ProductDto;
+import uk.co.aosd.flash.dto.*;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
 import uk.co.aosd.flash.exc.OrderNotFoundException;
-import uk.co.aosd.flash.services.ActiveSalesService;
-import uk.co.aosd.flash.services.DraftSalesService;
-import uk.co.aosd.flash.services.JwtTokenProvider;
-import uk.co.aosd.flash.services.OrderService;
-import uk.co.aosd.flash.services.ProductsService;
+import uk.co.aosd.flash.services.*;
 
 /**
  * Admin API Web Test.
@@ -84,13 +76,6 @@ public class ClientRestApiTest {
     @BeforeEach
     public void beforeEach() {
         Mockito.reset(productsService, activeSalesService, draftSalesService, orderService);
-    }
-
-    private org.springframework.test.web.servlet.request.RequestPostProcessor withUser(final UUID userId) {
-        final var authentication = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-            userId, null, java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER")));
-        authentication.setAuthenticated(true);
-        return org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication(authentication);
     }
 
     @Test
@@ -300,7 +285,8 @@ public class ClientRestApiTest {
         final String requestBody = objectMapper.writeValueAsString(createOrderDto);
 
         final var result = mockMvc.perform(post("/api/v1/clients/orders")
-            .with(withUser(userId))
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
             .contentType(MediaType.APPLICATION_JSON)
             .content(requestBody)
             .accept(MediaType.APPLICATION_JSON))
@@ -323,7 +309,8 @@ public class ClientRestApiTest {
                 BigDecimal.valueOf(79.99), 5, BigDecimal.valueOf(399.95), OrderStatus.PAID, OffsetDateTime.now()));
 
         mockMvc.perform(post("/api/v1/clients/orders/" + orderId + "/refund")
-            .with(withUser(userId))
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andReturn();
@@ -365,7 +352,8 @@ public class ClientRestApiTest {
         Mockito.when(orderService.getOrderById(orderId, userId)).thenReturn(orderDetail);
 
         final var result = mockMvc.perform(get("/api/v1/clients/orders/" + orderId)
-            .with(withUser(userId))
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andReturn();
@@ -393,7 +381,8 @@ public class ClientRestApiTest {
             .thenThrow(new OrderNotFoundException(orderId));
 
         mockMvc.perform(get("/api/v1/clients/orders/" + orderId)
-            .with(withUser(userId))
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound())
             .andReturn();
@@ -404,7 +393,8 @@ public class ClientRestApiTest {
         final UUID userId = UUID.randomUUID();
 
         mockMvc.perform(get("/api/v1/clients/orders/invalid-uuid")
-            .with(withUser(userId))
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest())
             .andReturn();
@@ -450,7 +440,8 @@ public class ClientRestApiTest {
         Mockito.when(orderService.getOrdersByUser(userId, null, null, null)).thenReturn(orders);
 
         final var result = mockMvc.perform(get("/api/v1/clients/orders")
-            .with(withUser(userId))
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andReturn();
@@ -489,7 +480,8 @@ public class ClientRestApiTest {
         Mockito.when(orderService.getOrdersByUser(userId, OrderStatus.PAID, null, null)).thenReturn(orders);
 
         final var result = mockMvc.perform(get("/api/v1/clients/orders")
-            .with(withUser(userId))
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
             .param("status", "PAID")
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -531,7 +523,8 @@ public class ClientRestApiTest {
         Mockito.when(orderService.getOrdersByUser(userId, null, startDate, endDate)).thenReturn(orders);
 
         final var result = mockMvc.perform(get("/api/v1/clients/orders")
-            .with(withUser(userId))
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
             .param("startDate", startDate.toString())
             .param("endDate", endDate.toString())
             .accept(MediaType.APPLICATION_JSON))
@@ -573,7 +566,8 @@ public class ClientRestApiTest {
         Mockito.when(orderService.getOrdersByUser(userId, OrderStatus.PAID, startDate, endDate)).thenReturn(orders);
 
         final var result = mockMvc.perform(get("/api/v1/clients/orders")
-            .with(withUser(userId))
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
             .param("status", "PAID")
             .param("startDate", startDate.toString())
             .param("endDate", endDate.toString())
@@ -595,7 +589,8 @@ public class ClientRestApiTest {
         final UUID userId = UUID.randomUUID();
 
         mockMvc.perform(get("/api/v1/clients/orders")
-            .with(withUser(userId))
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
             .param("status", "INVALID_STATUS")
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest())
@@ -612,7 +607,8 @@ public class ClientRestApiTest {
             .thenThrow(new IllegalArgumentException("Start date must be before or equal to end date"));
 
         mockMvc.perform(get("/api/v1/clients/orders")
-            .with(withUser(userId))
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
             .param("startDate", startDate.toString())
             .param("endDate", endDate.toString())
             .accept(MediaType.APPLICATION_JSON))
@@ -627,7 +623,8 @@ public class ClientRestApiTest {
         Mockito.when(orderService.getOrdersByUser(userId, null, null, null)).thenReturn(List.of());
 
         final var result = mockMvc.perform(get("/api/v1/clients/orders")
-            .with(withUser(userId))
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andReturn();

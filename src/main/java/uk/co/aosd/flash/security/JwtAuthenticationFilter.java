@@ -58,8 +58,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 
                 log.debug("Set authentication for user: {} (ID: {})", username, userId);
+            } else {
+                // Clear SecurityContext if token is invalid or missing
+                SecurityContextHolder.clearContext();
             }
         } catch (final Exception e) {
+            // Clear SecurityContext on any authentication error
+            SecurityContextHolder.clearContext();
             log.error("Cannot set user authentication: {}", e.getMessage());
         }
         

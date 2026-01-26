@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,6 +22,7 @@ import uk.co.aosd.flash.services.JwtTokenProvider;
 
 /**
  * Spring Security configuration for JWT-based authentication.
+ * Follows Spring Boot 4 best practices with component-based configuration.
  */
 @Configuration
 @EnableWebSecurity
@@ -29,14 +31,24 @@ import uk.co.aosd.flash.services.JwtTokenProvider;
 @Profile("!test")
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Bean
     public SecurityFilterChain securityFilterChain(final HttpSecurity http) throws Exception {
         http
+            // Disable CSRF for stateless JWT-based API
             .csrf(AbstractHttpConfigurer::disable)
+            // Configure stateless session management
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // Configure security headers (defaults are enabled by Spring Security)
+            .headers(headers -> headers
+                .frameOptions(frameOptions -> frameOptions.deny())
+                .contentTypeOptions(contentTypeOptions -> {})
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .maxAgeInSeconds(31536000)
+                )
+            )
+            // Configure authorization rules
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
                 .requestMatchers("/api/v1/auth/**").permitAll()
@@ -47,15 +59,18 @@ public class SecurityConfig {
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
-            .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            // Configure exception handling
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint()))
+            // Add JWT filter before username/password authentication filter
+            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // Use BCrypt with strength 12 (recommended for Spring Boot 4)
+        return new BCryptPasswordEncoder(12);
     }
 
     @Bean
@@ -64,12 +79,12 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtAuthenticationEntryPoint createJwtAuthenticationEntryPoint() {
+    public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint() {
         return new JwtAuthenticationEntryPoint();
     }
 
     @Bean
-    public JwtAuthenticationFilter getJwtAuthenticationFilter(final JwtTokenProvider jwtTokenProvider) {
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
         return new JwtAuthenticationFilter(jwtTokenProvider);
     }
 }
