@@ -1,5 +1,6 @@
 package uk.co.aosd.flash.repository;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -162,4 +163,146 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
           "LEFT JOIN FETCH fsi.flashSale fs " +
           "WHERE o.id = :id")
     Optional<Order> findByIdForAdmin(@Param("id") UUID id);
+
+    /**
+     * Calculate total revenue from orders with optional status and date range filters.
+     * Revenue is calculated as SUM(soldPrice * soldQuantity) for matching orders.
+     *
+     * @param status optional status filter (null for all statuses)
+     * @param startDate optional start date filter (null for no lower bound)
+     * @param endDate optional end date filter (null for no upper bound)
+     * @return total revenue, or 0 if no matching orders
+     */
+    @Query("SELECT COALESCE(SUM(o.soldPrice * o.soldQuantity), 0) FROM Order o " +
+          "WHERE (:status IS NULL OR o.status = :status) " +
+          "AND (:startDate IS NULL OR o.createdAt >= :startDate) " +
+          "AND (:endDate IS NULL OR o.createdAt <= :endDate)")
+    BigDecimal calculateTotalRevenue(
+        @Param("status") OrderStatus status,
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate);
+
+    /**
+     * Count orders by status with optional date range filter.
+     *
+     * @param status the order status
+     * @param startDate optional start date filter (null for no lower bound)
+     * @param endDate optional end date filter (null for no upper bound)
+     * @return count of orders matching the criteria
+     */
+    @Query("SELECT COUNT(o) FROM Order o " +
+          "WHERE o.status = :status " +
+          "AND (:startDate IS NULL OR o.createdAt >= :startDate) " +
+          "AND (:endDate IS NULL OR o.createdAt <= :endDate)")
+    Long countOrdersByStatus(
+        @Param("status") OrderStatus status,
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate);
+
+    /**
+     * Calculate average order value (total revenue / number of paid orders).
+     *
+     * @param startDate optional start date filter (null for no lower bound)
+     * @param endDate optional end date filter (null for no upper bound)
+     * @return average order value, or 0 if no paid orders
+     */
+    @Query("SELECT COALESCE(SUM(o.soldPrice * o.soldQuantity) / NULLIF(COUNT(o), 0), 0) FROM Order o " +
+          "WHERE o.status = 'PAID' " +
+          "AND (:startDate IS NULL OR o.createdAt >= :startDate) " +
+          "AND (:endDate IS NULL OR o.createdAt <= :endDate)")
+    BigDecimal calculateAverageOrderValue(
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate);
+
+    /**
+     * Find top products by revenue (sum of soldPrice * soldQuantity) for paid orders.
+     *
+     * @param limit maximum number of results
+     * @param startDate optional start date filter (null for no lower bound)
+     * @param endDate optional end date filter (null for no upper bound)
+     * @return list of Object arrays: [productId, productName, revenue]
+     */
+    @Query(value = "SELECT o.product_id, p.name, SUM(o.sold_price * o.sold_quantity) as revenue " +
+          "FROM orders o " +
+          "JOIN products p ON o.product_id = p.id " +
+          "WHERE o.status = 'PAID' " +
+          "AND o.created_at >= COALESCE(:startDate, TIMESTAMP '1970-01-01 00:00:00+00') " +
+          "AND o.created_at <= COALESCE(:endDate, TIMESTAMP '9999-12-31 23:59:59+00') " +
+          "GROUP BY o.product_id, p.name " +
+          "ORDER BY revenue DESC " +
+          "LIMIT :limit", nativeQuery = true)
+    List<Object[]> findTopProductsByRevenue(
+        @Param("limit") int limit,
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate);
+
+    /**
+     * Find top products by quantity sold for paid orders.
+     *
+     * @param limit maximum number of results
+     * @param startDate optional start date filter (null for no lower bound)
+     * @param endDate optional end date filter (null for no upper bound)
+     * @return list of Object arrays: [productId, productName, quantitySold]
+     */
+    @Query(value = "SELECT o.product_id, p.name, SUM(o.sold_quantity) as quantity_sold " +
+          "FROM orders o " +
+          "JOIN products p ON o.product_id = p.id " +
+          "WHERE o.status = 'PAID' " +
+          "AND o.created_at >= COALESCE(:startDate, TIMESTAMP '1970-01-01 00:00:00+00') " +
+          "AND o.created_at <= COALESCE(:endDate, TIMESTAMP '9999-12-31 23:59:59+00') " +
+          "GROUP BY o.product_id, p.name " +
+          "ORDER BY quantity_sold DESC " +
+          "LIMIT :limit", nativeQuery = true)
+    List<Object[]> findTopProductsByQuantity(
+        @Param("limit") int limit,
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate);
+
+    /**
+     * Calculate total order quantity (sum of soldQuantity) with optional filters.
+     *
+     * @param startDate optional start date filter (null for no lower bound)
+     * @param endDate optional end date filter (null for no upper bound)
+     * @return total quantity ordered
+     */
+    @Query("SELECT COALESCE(SUM(o.soldQuantity), 0) FROM Order o " +
+          "WHERE (:startDate IS NULL OR o.createdAt >= :startDate) " +
+          "AND (:endDate IS NULL OR o.createdAt <= :endDate)")
+    Long calculateTotalOrderQuantity(
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate);
+
+    /**
+     * Calculate revenue for a specific product from paid orders.
+     *
+     * @param productId the product ID
+     * @param startDate optional start date filter (null for no lower bound)
+     * @param endDate optional end date filter (null for no upper bound)
+     * @return total revenue for the product
+     */
+    @Query("SELECT COALESCE(SUM(o.soldPrice * o.soldQuantity), 0) FROM Order o " +
+          "WHERE o.product.id = :productId AND o.status = 'PAID' " +
+          "AND (:startDate IS NULL OR o.createdAt >= :startDate) " +
+          "AND (:endDate IS NULL OR o.createdAt <= :endDate)")
+    BigDecimal calculateRevenueForProduct(
+        @Param("productId") UUID productId,
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate);
+
+    /**
+     * Calculate quantity sold for a specific product from paid orders.
+     *
+     * @param productId the product ID
+     * @param startDate optional start date filter (null for no lower bound)
+     * @param endDate optional end date filter (null for no upper bound)
+     * @return total quantity sold for the product
+     */
+    @Query("SELECT COALESCE(SUM(o.soldQuantity), 0) FROM Order o " +
+          "WHERE o.product.id = :productId AND o.status = 'PAID' " +
+          "AND (:startDate IS NULL OR o.createdAt >= :startDate) " +
+          "AND (:endDate IS NULL OR o.createdAt <= :endDate)")
+    Long calculateQuantityForProduct(
+        @Param("productId") UUID productId,
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate);
 }
