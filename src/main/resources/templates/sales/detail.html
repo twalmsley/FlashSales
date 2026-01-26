@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{layout/base :: head(pageTitle='Sale Details')}"></head>
 <body>
     <nav th:replace="~{layout/base :: nav}"></nav>
@@ -30,7 +30,7 @@
                 </div>
             </div>
 
-            <div th:if="${#authorization.expression('isAuthenticated()')}" class="card">
+            <div sec:authorize="isAuthenticated()" class="card">
                 <div class="card-body">
                     <h5 class="card-title">Place Order</h5>
                     <form th:action="@{/sales/{id}/order(id=${sale.itemId()})}" method="post" th:object="${createOrderDto}">
@@ -45,7 +45,7 @@
                     </form>
                 </div>
             </div>
-            <div th:if="${!#authorization.expression('isAuthenticated()')}" class="alert alert-info">
+            <div sec:authorize="!isAuthenticated()" class="alert alert-info">
                 <a th:href="@{/login}">Login</a> to place an order.
             </div>
         </div>
