@@ -86,6 +86,14 @@ All admin endpoints require `ADMIN_USER` role and JWT authentication.
 - `GET /api/v1/admin/orders/{id}` - Get order details by ID (admin view)
 - `PUT /api/v1/admin/orders/{id}/status` - Update order status with proper stock adjustments
 
+#### Analytics
+- `GET /api/v1/admin/analytics/sales` - Get sales performance metrics (total sales, items sold, conversion rates, top performing sales)
+- `GET /api/v1/admin/analytics/revenue` - Get revenue reporting metrics (total revenue, average order value, refund rates)
+- `GET /api/v1/admin/analytics/products` - Get product performance metrics (top selling products, stock utilization, low stock alerts)
+- `GET /api/v1/admin/analytics/orders` - Get order statistics (order counts by status, average order quantity, success rates)
+
+All analytics endpoints support optional date range filters (`startDate`, `endDate`) in ISO-8601 format.
+
 ### Client APIs (`api-service` profile)
 
 All client endpoints require JWT authentication (except where noted).
@@ -133,6 +141,20 @@ Redis is configured for caching:
 - Draft sales (1-minute TTL)
 
 This reduces database load during high-traffic periods while maintaining data freshness.
+
+### Scheduled Jobs
+
+The application uses Quartz for scheduled tasks:
+- **ActivateDraftSalesJob**: Runs every 30 seconds (configurable via `app.scheduler.interval-seconds`), transitions DRAFT sales to ACTIVE when their start time is reached
+- **CompleteActiveSalesJob**: Runs every 30 seconds, transitions ACTIVE sales to COMPLETED when their end time has passed and releases unsold stock back to products
+
+### Message Queue
+
+RabbitMQ is used for asynchronous order processing:
+- **order.processing**: New orders for payment processing
+- **order.dispatch**: Paid orders ready for dispatch
+- **order.payment.failed**: Failed payments for stock release
+- **order.refund**: Refund notifications
 
 ### Profiles
 
@@ -202,6 +224,7 @@ The application uses JWT (JSON Web Token) based authentication:
 - **API Separation**: Distinct admin and client APIs for different use cases
 - **Authentication**: JWT-based stateless authentication with role-based access control
 - **Order Processing**: Asynchronous order processing with RabbitMQ for payment and dispatch workflows
+- **Analytics & Reporting**: Comprehensive analytics API for sales performance, revenue metrics, product performance, and order statistics
 
 ## Testing
 
