@@ -1,5 +1,6 @@
 package uk.co.aosd.flash.repository;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -42,4 +43,37 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
         + "p.reservedCount = p.reservedCount + :quantity "
         + "WHERE p.id = :id")
     int incrementStock(@Param("id") UUID id, @Param("quantity") int quantity);
+
+    /**
+     * Count total number of products in catalog.
+     *
+     * @return total product count
+     */
+    long count();
+
+    /**
+     * Calculate total physical stock across all products.
+     *
+     * @return total physical stock
+     */
+    @Query("SELECT COALESCE(SUM(p.totalPhysicalStock), 0) FROM Product p")
+    Long calculateTotalPhysicalStock();
+
+    /**
+     * Calculate total reserved stock across all products.
+     *
+     * @return total reserved stock
+     */
+    @Query("SELECT COALESCE(SUM(p.reservedCount), 0) FROM Product p")
+    Long calculateTotalReservedStock();
+
+    /**
+     * Find products with low stock (available stock below threshold).
+     * Available stock = totalPhysicalStock - reservedCount.
+     *
+     * @param threshold the stock threshold (products with available stock <= threshold are returned)
+     * @return list of products with low stock
+     */
+    @Query("SELECT p FROM Product p WHERE (p.totalPhysicalStock - p.reservedCount) <= :threshold")
+    List<Product> findProductsWithLowStock(@Param("threshold") Integer threshold);
 }
