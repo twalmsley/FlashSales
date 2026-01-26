@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/base :: head(pageTitle='My Orders')}"></head>
+<body>
+    <nav th:replace="~{layout/base :: nav}"></nav>
+    
+    <main class="container mt-4">
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:text="${success}">Success message</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${error}">Error message</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        
+        <h1>My Orders</h1>
+        <div th:if="${orders != null and !orders.isEmpty()}">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Status</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="order : ${orders}">
+                        <td th:text="${order.id()}">Order ID</td>
+                        <td><span class="badge" th:classappend="${order.status().name() == 'PAID' ? 'bg-success' : (order.status().name() == 'PENDING' ? 'bg-warning' : 'bg-secondary')}" th:text="${order.status()}">Status</span></td>
+                        <td>$<span th:text="${#numbers.formatDecimal(order.soldPrice(), 1, 2)}">0.00</span></td>
+                        <td th:text="${order.soldQuantity()}">0</td>
+                        <td>$<span th:text="${#numbers.formatDecimal(order.soldPrice().multiply(java.math.BigDecimal.valueOf(order.soldQuantity())), 1, 2)}">0.00</span></td>
+                        <td th:text="${#temporals.format(order.createdAt(), 'yyyy-MM-dd HH:mm')}">Date</td>
+                        <td><a th:href="@{/orders/{id}(id=${order.id()})}" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${orders == null or orders.isEmpty()}" class="alert alert-info">
+            You have no orders yet.
+        </div>
+    </main>
+
+    <footer th:replace="~{layout/base :: footer}"></footer>
+    <script th:replace="~{layout/base :: scripts}"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/base :: head(pageTitle='Products')}"></head>
+<body>
+    <nav th:replace="~{layout/base :: nav}"></nav>
+    
+    <main class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Products</h1>
+            <a th:href="@{/admin/products/new}" class="btn btn-primary">New Product</a>
+        </div>
+        
+        <div th:if="${products != null and !products.isEmpty()}">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Base Price</th>
+                        <th>Stock</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="product : ${products}">
+                        <td th:text="${product.id()}">ID</td>
+                        <td th:text="${product.name()}">Name</td>
+                        <td th:text="${product.description()}">Description</td>
+                        <td>$<span th:text="${#numbers.formatDecimal(product.basePrice(), 1, 2)}">0.00</span></td>
+                        <td th:text="${product.totalPhysicalStock()}">0</td>
+                        <td><a th:href="@{/admin/products/{id}(id=${product.id()})}" class="btn btn-sm btn-outline-primary">View</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:if="${products == null or products.isEmpty()}" class="alert alert-info">
+            No products found.
+        </div>
+    </main>
+
+    <footer th:replace="~{layout/base :: footer}"></footer>
+    <script th:replace="~{layout/base :: scripts}"></script>
+</body>
+</html>

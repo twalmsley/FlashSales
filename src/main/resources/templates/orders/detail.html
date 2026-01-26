@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/base :: head(pageTitle='Order Details')}"></head>
+<body>
+    <nav th:replace="~{layout/base :: nav}"></nav>
+    
+    <main class="container mt-4">
+        <div th:if="${order}">
+            <h1>Order Details</h1>
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Order Information</h5>
+                    <p class="card-text">
+                        <strong>Order ID:</strong> <span th:text="${order.id()}">ID</span><br>
+                        <strong>Status:</strong> <span class="badge" th:classappend="${order.status().name() == 'PAID' ? 'bg-success' : (order.status().name() == 'PENDING' ? 'bg-warning' : 'bg-secondary')}" th:text="${order.status()}">Status</span><br>
+                        <strong>Price per Item:</strong> $<span th:text="${#numbers.formatDecimal(order.soldPrice(), 1, 2)}">0.00</span><br>
+                        <strong>Quantity:</strong> <span th:text="${order.soldQuantity()}">0</span><br>
+                        <strong>Total:</strong> $<span th:text="${#numbers.formatDecimal(order.soldPrice().multiply(java.math.BigDecimal.valueOf(order.soldQuantity())), 1, 2)}">0.00</span><br>
+                        <strong>Created:</strong> <span th:text="${#temporals.format(order.createdAt(), 'yyyy-MM-dd HH:mm')}">Date</span>
+                    </p>
+                    <a th:href="@{/orders}" class="btn btn-secondary">Back to Orders</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout/base :: footer}"></footer>
+    <script th:replace="~{layout/base :: scripts}"></script>
+</body>
+</html>
