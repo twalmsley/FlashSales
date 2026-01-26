@@ -23,7 +23,8 @@ import uk.co.aosd.flash.services.JwtTokenProvider;
 
 /**
  * Test security configuration that disables security for @WebMvcTest.
- * Provides all security beans needed for tests since SecurityConfig is excluded via @Profile("!test").
+ * Provides all security beans needed for tests since SecurityConfig is excluded
+ * via @Profile("!test").
  */
 @TestConfiguration
 @EnableWebSecurity
@@ -41,9 +42,12 @@ public class TestSecurityConfig {
     }
 
     /**
-     * Filter that propagates authentication from MockMvc's request context to SecurityContextHolder.
-     * This is needed when @AutoConfigureMockMvc(addFilters = false) disables SecurityContextPersistenceFilter.
-     * Note: This filter only works if filters are enabled. When addFilters = false, tests should use
+     * Filter that propagates authentication from MockMvc's request context to
+     * SecurityContextHolder.
+     * This is needed when @AutoConfigureMockMvc(addFilters = false) disables
+     * SecurityContextPersistenceFilter.
+     * Note: This filter only works if filters are enabled. When addFilters = false,
+     * tests should use
      * TestJwtUtils.setSecurityContext() directly instead.
      */
     @Bean
@@ -55,20 +59,22 @@ public class TestSecurityConfig {
                 final HttpServletRequest request,
                 final HttpServletResponse response,
                 final FilterChain filterChain) throws ServletException, IOException {
-                
-                // Check if request has authentication attribute set by MockMvc's .with(user(...))
+
+                // Check if request has authentication attribute set by MockMvc's
+                // .with(user(...))
                 // Spring Security test support sets authentication as a request attribute
                 org.springframework.security.core.Authentication authentication = null;
-                
-                // Check for SecurityContext in request attributes (used by Spring Security test support)
+
+                // Check for SecurityContext in request attributes (used by Spring Security test
+                // support)
                 final Object contextAttr = request.getAttribute(
                     org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
                 if (contextAttr instanceof org.springframework.security.core.context.SecurityContext) {
-                    final org.springframework.security.core.context.SecurityContext context =
-                        (org.springframework.security.core.context.SecurityContext) contextAttr;
+                    final org.springframework.security.core.context.SecurityContext context = (org.springframework.security.core.context.SecurityContext) contextAttr;
                     authentication = context.getAuthentication();
                 } else {
-                    // Fallback: iterate through all request attributes to find Authentication or SecurityContext
+                    // Fallback: iterate through all request attributes to find Authentication or
+                    // SecurityContext
                     final java.util.Enumeration<String> attrNames = request.getAttributeNames();
                     while (attrNames.hasMoreElements() && authentication == null) {
                         final String attrName = attrNames.nextElement();
@@ -77,19 +83,18 @@ public class TestSecurityConfig {
                             authentication = (org.springframework.security.core.Authentication) attrValue;
                             break;
                         } else if (attrValue instanceof org.springframework.security.core.context.SecurityContext) {
-                            final org.springframework.security.core.context.SecurityContext context =
-                                (org.springframework.security.core.context.SecurityContext) attrValue;
+                            final org.springframework.security.core.context.SecurityContext context = (org.springframework.security.core.context.SecurityContext) attrValue;
                             authentication = context.getAuthentication();
                             break;
                         }
                     }
                 }
-                
+
                 // If we found authentication, set it in SecurityContextHolder
                 if (authentication != null) {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
-                
+
                 filterChain.doFilter(request, response);
             }
         };
@@ -105,7 +110,13 @@ public class TestSecurityConfig {
     @Bean
     @Primary
     public JwtTokenProvider jwtTokenProvider() {
-        return org.mockito.Mockito.mock(JwtTokenProvider.class);
+        final JwtTokenProvider mock = org.mockito.Mockito.mock(JwtTokenProvider.class);
+        org.mockito.Mockito.when(mock.generateToken(
+            org.mockito.ArgumentMatchers.any(java.util.UUID.class),
+            org.mockito.ArgumentMatchers.anyString(),
+            org.mockito.ArgumentMatchers.any(uk.co.aosd.flash.domain.UserRole.class)))
+            .thenReturn("test-jwt-token");
+        return mock;
     }
 
     @Bean

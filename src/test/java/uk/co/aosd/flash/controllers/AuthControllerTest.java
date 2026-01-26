@@ -33,7 +33,7 @@ import uk.co.aosd.flash.util.TestJwtUtils;
  * Integration tests for authentication endpoints.
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = false)
 @Import(TestSecurityConfig.class)
 @ActiveProfiles({ "test", "admin-service", "api-service" })
 @Transactional
