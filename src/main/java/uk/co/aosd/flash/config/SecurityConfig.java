@@ -79,11 +79,6 @@ public class SecurityConfig {
      * This chain handles all non-API requests.
      */
     @Bean
-    public SecurityContextRepository securityContextRepository() {
-        return new org.springframework.security.web.context.HttpSessionSecurityContextRepository();
-    }
-
-    @Bean
     @Order(2)
     public SecurityFilterChain webSecurityFilterChain(
         final HttpSecurity http,
@@ -98,10 +93,13 @@ public class SecurityConfig {
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/api/**") // API endpoints are handled by apiSecurityFilterChain
             )
-            // Configure stateful session management for UI
+            // Configure stateful session management for UI.
+            // Use sessionFixation().none() so the SecurityContext we save in the login success
+            // handler is stored in the same session the client uses on the redirect (GET /).
+            // changeSessionId() can cause the redirect to see an empty session and hide admin links.
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                .sessionFixation().changeSessionId() // Prevent session fixation attacks
+                .sessionFixation().none()
             )
             // Configure security headers
             .headers(headers -> headers

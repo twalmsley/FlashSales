@@ -38,8 +38,8 @@
                                 </ul>
                             </div>
                             
-                            <!-- Authenticated User Links -->
-                            <div class="col-md-4" sec:authorize="isAuthenticated()">
+                            <!-- Authenticated User Links (controller passes isAuthenticated for robustness) -->
+                            <div class="col-md-4" th:if="${isAuthenticated}">
                                 <h6>My Account</h6>
                                 <ul class="list-unstyled">
                                     <li><a th:href="@{/orders}" class="btn btn-link p-0 text-start">My Orders</a></li>
@@ -47,8 +47,8 @@
                                 </ul>
                             </div>
                             
-                            <!-- Admin Links -->
-                            <div class="col-md-4" sec:authorize="hasRole('ADMIN_USER')">
+                            <!-- Admin Links (controller passes showAdminLinks so admin links show after redirect) -->
+                            <div class="col-md-4" th:if="${showAdminLinks}">
                                 <h6>Admin Management</h6>
                                 <ul class="list-unstyled">
                                     <li><a th:href="@{/admin/products}" class="btn btn-link p-0 text-start">Manage Products</a></li>
