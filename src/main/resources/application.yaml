@@ -25,9 +25,10 @@ management:
 
 logging:
   level: 
-    uk.co.aosd.flash: trace
+    uk.co.aosd.flash: debug
     org.springframework: info
     org.hibernate: info
+    org.springframework.security: DEBUG
 
 springdoc.swagger-ui.path: "/swagger-ui.html"
 

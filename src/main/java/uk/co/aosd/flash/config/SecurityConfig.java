@@ -3,6 +3,7 @@ package uk.co.aosd.flash.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -15,14 +16,15 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.context.annotation.Profile;
+import org.springframework.security.web.context.SecurityContextRepository;
 import uk.co.aosd.flash.security.CustomAuthenticationSuccessHandler;
 import uk.co.aosd.flash.security.JwtAuthenticationEntryPoint;
 import uk.co.aosd.flash.security.JwtAuthenticationFilter;
 import uk.co.aosd.flash.services.JwtTokenProvider;
 
 /**
- * Spring Security configuration supporting both JWT-based authentication (for API)
+ * Spring Security configuration supporting both JWT-based authentication (for
+ * API)
  * and form-based authentication (for UI).
  * Follows Spring Boot 4 best practices with component-based configuration.
  */
@@ -77,10 +79,21 @@ public class SecurityConfig {
      * This chain handles all non-API requests.
      */
     @Bean
+    public SecurityContextRepository securityContextRepository() {
+        return new org.springframework.security.web.context.HttpSessionSecurityContextRepository();
+    }
+
+    @Bean
     @Order(2)
-    public SecurityFilterChain webSecurityFilterChain(final HttpSecurity http) throws Exception {
+    public SecurityFilterChain webSecurityFilterChain(
+        final HttpSecurity http,
+        final SecurityContextRepository securityContextRepository) throws Exception {
         http
             .securityMatcher("/**")
+            // Use explicit SecurityContextRepository so the login success handler can save
+            // the context the same way the filter loads it (fixes admin links not showing
+            // after redirect).
+            .securityContext(sec -> sec.securityContextRepository(securityContextRepository))
             // Enable CSRF for form submissions
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/api/**") // API endpoints are handled by apiSecurityFilterChain
@@ -115,20 +128,17 @@ public class SecurityConfig {
                 .passwordParameter("password")
                 .successHandler(authenticationSuccessHandler)
                 .failureUrl("/login?error=true")
-                .permitAll()
-            )
+                .permitAll())
             // Configure logout
             .logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/")
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID")
-                .permitAll()
-            )
+                .permitAll())
             // Configure exception handling
             .exceptionHandling(ex -> ex
-                .accessDeniedPage("/403")
-            );
+                .accessDeniedPage("/403"));
 
         return http.build();
     }
