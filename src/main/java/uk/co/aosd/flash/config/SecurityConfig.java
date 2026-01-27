@@ -94,13 +94,15 @@ public class SecurityConfig {
                 .ignoringRequestMatchers("/api/**") // API endpoints are handled by apiSecurityFilterChain
             )
             // Configure stateful session management for UI.
-            // Use sessionFixation().none() so the SecurityContext we save in the login success
-            // handler is stored in the same session the client uses on the redirect (GET /).
-            // changeSessionId() can cause the redirect to see an empty session and hide admin links.
+            // Use sessionFixation().none() so the SecurityContext we save in the login
+            // success
+            // handler is stored in the same session the client uses on the redirect (GET
+            // /).
+            // changeSessionId() can cause the redirect to see an empty session and hide
+            // admin links.
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                .sessionFixation().none()
-            )
+                .sessionFixation().none())
             // Configure security headers
             .headers(headers -> headers
                 .frameOptions(frameOptions -> frameOptions.deny())
@@ -111,7 +113,7 @@ public class SecurityConfig {
             // Configure authorization rules
             .authorizeHttpRequests(auth -> auth
                 // Public UI pages
-                .requestMatchers("/", "/login", "/register", "/sales", "/sales/**", "/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers("/", "/login", "/register", "/sales", "/sales/**", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // Admin UI pages require ADMIN_USER role

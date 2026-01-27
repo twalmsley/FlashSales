@@ -1,5 +1,7 @@
 package uk.co.aosd.flash.security;
 
+import java.io.IOException;
+
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,12 +14,11 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Component;
 import uk.co.aosd.flash.repository.UserRepository;
 
-import java.io.IOException;
-
 /**
  * Custom authentication success handler that stores user ID in session
  * for easy access in web controllers, and persists the SecurityContext via
- * {@link SecurityContextRepository#saveContext} so that authorities (e.g. ADMIN_USER)
+ * {@link SecurityContextRepository#saveContext} so that authorities (e.g.
+ * ADMIN_USER)
  * are available on the next request (e.g. after redirect to home).
  */
 @Component
@@ -33,18 +34,25 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
         final HttpServletResponse response,
         final Authentication authentication) throws IOException, ServletException {
 
-        // Persist SecurityContext using the same repository the filter chain uses to load.
-        // This ensures the redirect target (e.g. GET /) sees the authenticated user and roles.
+        // Persist SecurityContext using the same repository the filter chain uses to
+        // load.
+        // This ensures the redirect target (e.g. GET /) sees the authenticated user and
+        // roles.
         final var context = SecurityContextHolder.getContext();
         securityContextRepository.saveContext(context, request, response);
 
         // Store user ID in session for easy access
         if (authentication.getPrincipal() instanceof UserDetails) {
             final String username = ((UserDetails) authentication.getPrincipal()).getUsername();
+            request.getSession().setAttribute("authentication", authentication);
             userRepository.findByUsername(username)
-                .ifPresent(user -> request.getSession().setAttribute("userId", user.getId()));
+                .ifPresent(user -> {
+                    request.getSession().setAttribute("userId", user.getId());
+                    request.getSession().setAttribute("isAuthenticated", true);
+                    request.getSession().setAttribute("isAdmin", user.getRoles().toString() == "ADMIN_USER");
+                });
         }
-        
+
         // Redirect to home page
         response.sendRedirect("/");
     }

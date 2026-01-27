@@ -17,6 +17,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.FlashSaleItemNotFoundException;
 import uk.co.aosd.flash.exc.FlashSaleNotFoundException;
@@ -262,6 +263,16 @@ public class GlobalExceptionHandler {
         log.warn("Authentication failed: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
             .body(errorMapper.createErrorMap("Invalid credentials"));
+    }
+
+    /**
+     * Handle missing static resources (e.g. favicon.ico).
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, String>> handleNoResourceFoundException(final NoResourceFoundException e) {
+        log.debug("Static resource not found: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(errorMapper.createErrorMap("Resource not found"));
     }
 
     /**
