@@ -12,10 +12,12 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessException;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.InsufficientResourcesException;
 import uk.co.aosd.flash.exc.InvalidSaleTimesException;
@@ -159,5 +161,19 @@ public class GlobalExceptionHandlerTest {
         assertNotNull(response.getBody());
         assertTrue(response.getBody().containsKey("message"));
         assertTrue(response.getBody().get("message").contains("unexpected error"));
+    }
+
+    @Test
+    public void shouldHandleNoResourceFoundException() {
+        final NoResourceFoundException ex = new NoResourceFoundException(
+            HttpMethod.GET,
+            "favicon.ico",
+            "No static resource favicon.ico");
+        final ResponseEntity<Map<String, String>> response = handler.handleNoResourceFoundException(ex);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().containsKey("message"));
+        assertTrue(response.getBody().get("message").contains("Resource not found"));
     }
 }

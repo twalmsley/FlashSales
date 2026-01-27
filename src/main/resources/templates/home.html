@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head th:replace="~{layout/base :: head(pageTitle='Home')}"></head>
+
 <body>
     <nav th:replace="~{layout/base :: nav}"></nav>
-    
+
     <main class="container mt-4">
         <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
             <span th:text="${success}">Success message</span>
@@ -13,7 +15,7 @@
             <span th:text="${error}">Error message</span>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-        
+
         <h1>Welcome to Flash Sales</h1>
         <p class="lead">Discover amazing deals on our active flash sales!</p>
 
@@ -28,35 +30,42 @@
                             <div class="col-md-4">
                                 <h6>Public Pages</h6>
                                 <ul class="list-unstyled">
-                                    <li><a th:href="@{/sales}" class="btn btn-link p-0 text-start">Browse Active Sales</a></li>
-                                    <li sec:authorize="!isAuthenticated()">
+                                    <li><a th:href="@{/sales}" class="btn btn-link p-0 text-start">Browse Active
+                                            Sales</a></li>
+                                    <li th:if="${!session.isAuthenticated}">
                                         <a th:href="@{/login}" class="btn btn-link p-0 text-start">Login</a>
                                     </li>
-                                    <li sec:authorize="!isAuthenticated()">
+                                    <li th:if="${!session.isAuthenticated}">
                                         <a th:href="@{/register}" class="btn btn-link p-0 text-start">Register</a>
                                     </li>
                                 </ul>
                             </div>
-                            
-                            <!-- Authenticated User Links -->
-                            <div class="col-md-4" sec:authorize="isAuthenticated()">
+
+                            <!-- Authenticated User Links (controller passes isAuthenticated for robustness) -->
+                            <div class="col-md-4" th:if="${session.isAuthenticated}">
                                 <h6>My Account</h6>
                                 <ul class="list-unstyled">
                                     <li><a th:href="@{/orders}" class="btn btn-link p-0 text-start">My Orders</a></li>
                                     <li><a th:href="@{/sales}" class="btn btn-link p-0 text-start">Browse Sales</a></li>
                                 </ul>
                             </div>
-                            
-                            <!-- Admin Links -->
-                            <div class="col-md-4" sec:authorize="hasRole('ADMIN_USER')">
+
+                            <!-- Admin Links (controller passes showAdminLinks so admin links show after redirect) -->
+                            <div class="col-md-4" th:if="${session.isAdmin}">
                                 <h6>Admin Management</h6>
                                 <ul class="list-unstyled">
-                                    <li><a th:href="@{/admin/products}" class="btn btn-link p-0 text-start">Manage Products</a></li>
-                                    <li><a th:href="@{/admin/products/new}" class="btn btn-link p-0 text-start">Create Product</a></li>
-                                    <li><a th:href="@{/admin/sales}" class="btn btn-link p-0 text-start">Manage Flash Sales</a></li>
-                                    <li><a th:href="@{/admin/sales/new}" class="btn btn-link p-0 text-start">Create Flash Sale</a></li>
-                                    <li><a th:href="@{/admin/orders}" class="btn btn-link p-0 text-start">Manage Orders</a></li>
-                                    <li><a th:href="@{/admin/analytics}" class="btn btn-link p-0 text-start">Analytics Dashboard</a></li>
+                                    <li><a th:href="@{/admin/products}" class="btn btn-link p-0 text-start">Manage
+                                            Products</a></li>
+                                    <li><a th:href="@{/admin/products/new}" class="btn btn-link p-0 text-start">Create
+                                            Product</a></li>
+                                    <li><a th:href="@{/admin/sales}" class="btn btn-link p-0 text-start">Manage Flash
+                                            Sales</a></li>
+                                    <li><a th:href="@{/admin/sales/new}" class="btn btn-link p-0 text-start">Create
+                                            Flash Sale</a></li>
+                                    <li><a th:href="@{/admin/orders}" class="btn btn-link p-0 text-start">Manage
+                                            Orders</a></li>
+                                    <li><a th:href="@{/admin/analytics}" class="btn btn-link p-0 text-start">Analytics
+                                            Dashboard</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -72,11 +81,15 @@
                     <div class="card-body">
                         <h5 class="card-title" th:text="${sale.title()}">Sale Title</h5>
                         <p class="card-text">
-                            <strong>Price:</strong> $<span th:text="${#numbers.formatDecimal(sale.salePrice(), 1, 2)}">0.00</span><br>
-                            <strong>Stock:</strong> <span th:text="${sale.allocatedStock() - sale.soldCount()}">0</span> available<br>
-                            <strong>Ends:</strong> <span th:text="${#temporals.format(sale.endTime(), 'yyyy-MM-dd HH:mm')}">Date</span>
+                            <strong>Price:</strong> $<span
+                                th:text="${#numbers.formatDecimal(sale.salePrice(), 1, 2)}">0.00</span><br>
+                            <strong>Stock:</strong> <span th:text="${sale.allocatedStock() - sale.soldCount()}">0</span>
+                            available<br>
+                            <strong>Ends:</strong> <span
+                                th:text="${#temporals.format(sale.endTime(), 'yyyy-MM-dd HH:mm')}">Date</span>
                         </p>
-                        <a th:href="@{/sales/{id}(id=${sale.flashSaleItemId()})}" class="btn btn-primary">View Details</a>
+                        <a th:href="@{/sales/{id}(id=${sale.flashSaleItemId()})}" class="btn btn-primary">View
+                            Details</a>
                     </div>
                 </div>
             </div>
@@ -89,4 +102,5 @@
     <footer th:replace="~{layout/base :: footer}"></footer>
     <script th:replace="~{layout/base :: scripts}"></script>
 </body>
+
 </html>

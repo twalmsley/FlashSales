@@ -1,0 +1,48 @@
+---
+description: Remove all unused imports when editing code
+alwaysApply: true
+---
+
+# Unused Imports (Always)
+
+When editing any file:
+
+- **Remove every unused import** before considering the edit done.
+- Do not leave orphaned imports (e.g. after deleting a type, refactoring, or renaming).
+- Prefer fixing imports in the same change that caused them to become unused.
+
+### Examples
+
+**Java**
+
+```java
+// ❌ BAD — unused imports left in
+import java.util.List;
+import java.util.Map;   // unused
+import java.util.Set;   // unused
+
+public class Example {
+    public List<String> getItems() { ... }
+}
+```
+
+```java
+// ✅ GOOD — only used imports
+import java.util.List;
+
+public class Example {
+    public List<String> getItems() { ... }
+}
+```
+
+**TypeScript / JavaScript**
+
+```typescript
+// ❌ BAD — unused imports
+import { foo, bar, baz } from './module';  // baz unused
+
+// ✅ GOOD — only what is used
+import { foo, bar } from './module';
+```
+
+If you add or change code, run through the imports and delete any that are no longer referenced.
