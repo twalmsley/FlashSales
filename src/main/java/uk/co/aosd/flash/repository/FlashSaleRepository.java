@@ -1,6 +1,5 @@
 package uk.co.aosd.flash.repository;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -73,16 +72,19 @@ public interface FlashSaleRepository extends JpaRepository<FlashSale, UUID> {
      * @param status
      *            optional status filter
      * @param startDate
-     *            optional filter window start (inclusive). When provided, only sales whose time period overlaps
+     *            optional filter window start (inclusive). When provided, only
+     *            sales whose time period overlaps
      *            the specified window are returned.
      * @param endDate
-     *            optional filter window end (inclusive). When provided, only sales whose time period overlaps
+     *            optional filter window end (inclusive). When provided, only sales
+     *            whose time period overlaps
      *            the specified window are returned.
      * @return list of flash sales matching the filters, ordered by startTime
      */
     @Query("SELECT DISTINCT fs FROM FlashSale fs LEFT JOIN FETCH fs.items item LEFT JOIN FETCH item.product " +
         "WHERE fs.status = COALESCE(:status, fs.status) " +
-        // overlap: saleEnd >= filterStart AND saleStart <= filterEnd (with open-ended window support)
+        // overlap: saleEnd >= filterStart AND saleStart <= filterEnd (with open-ended
+        // window support)
         "AND fs.endTime >= COALESCE(:startDate, fs.endTime) " +
         "AND fs.startTime <= COALESCE(:endDate, fs.startTime) " +
         "ORDER BY fs.startTime ASC")
@@ -106,40 +108,47 @@ public interface FlashSaleRepository extends JpaRepository<FlashSale, UUID> {
     /**
      * Count flash sales by status.
      *
-     * @param status the sale status
+     * @param status
+     *            the sale status
      * @return count of sales with the given status
      */
     Long countByStatus(SaleStatus status);
 
     /**
-     * Calculate total items sold across all flash sale items with optional date range filter.
+     * Calculate total items sold across all flash sale items with optional date
+     * range filter.
      * Items sold are tracked in the sold_count field of flash_sale_items.
      *
-     * @param startDate optional start date filter (null for no lower bound)
-     * @param endDate optional end date filter (null for no upper bound)
+     * @param startDate
+     *            optional start date filter (null for no lower bound)
+     * @param endDate
+     *            optional end date filter (null for no upper bound)
      * @return total items sold
      */
     @Query(value = "SELECT COALESCE(SUM(fsi.sold_count), 0) " +
-          "FROM flash_sale_items fsi " +
-          "JOIN flash_sales fs ON fs.id = fsi.flash_sale_id " +
-          "WHERE fs.start_time >= COALESCE(:startDate, TIMESTAMP '1970-01-01 00:00:00+00') " +
-          "AND fs.end_time <= COALESCE(:endDate, TIMESTAMP '9999-12-31 23:59:59+00')", nativeQuery = true)
+        "FROM flash_sale_items fsi " +
+        "JOIN flash_sales fs ON fs.id = fsi.flash_sale_id " +
+        "WHERE fs.start_time >= COALESCE(:startDate, TIMESTAMP '1970-01-01 00:00:00+00') " +
+        "AND fs.end_time <= COALESCE(:endDate, TIMESTAMP '9999-12-31 23:59:59+00')", nativeQuery = true)
     Long calculateTotalItemsSold(
         @Param("startDate") OffsetDateTime startDate,
         @Param("endDate") OffsetDateTime endDate);
 
     /**
-     * Calculate total items allocated across all flash sale items with optional date range filter.
+     * Calculate total items allocated across all flash sale items with optional
+     * date range filter.
      *
-     * @param startDate optional start date filter (null for no lower bound)
-     * @param endDate optional end date filter (null for no upper bound)
+     * @param startDate
+     *            optional start date filter (null for no lower bound)
+     * @param endDate
+     *            optional end date filter (null for no upper bound)
      * @return total items allocated
      */
     @Query(value = "SELECT COALESCE(SUM(fsi.allocated_stock), 0) " +
-          "FROM flash_sale_items fsi " +
-          "JOIN flash_sales fs ON fs.id = fsi.flash_sale_id " +
-          "WHERE fs.start_time >= COALESCE(:startDate, TIMESTAMP '1970-01-01 00:00:00+00') " +
-          "AND fs.end_time <= COALESCE(:endDate, TIMESTAMP '9999-12-31 23:59:59+00')", nativeQuery = true)
+        "FROM flash_sale_items fsi " +
+        "JOIN flash_sales fs ON fs.id = fsi.flash_sale_id " +
+        "WHERE fs.start_time >= COALESCE(:startDate, TIMESTAMP '1970-01-01 00:00:00+00') " +
+        "AND fs.end_time <= COALESCE(:endDate, TIMESTAMP '9999-12-31 23:59:59+00')", nativeQuery = true)
     Long calculateTotalItemsAllocated(
         @Param("startDate") OffsetDateTime startDate,
         @Param("endDate") OffsetDateTime endDate);
@@ -147,20 +156,23 @@ public interface FlashSaleRepository extends JpaRepository<FlashSale, UUID> {
     /**
      * Find top sales by items sold with optional date range filter.
      *
-     * @param limit maximum number of results
-     * @param startDate optional start date filter (null for no lower bound)
-     * @param endDate optional end date filter (null for no upper bound)
+     * @param limit
+     *            maximum number of results
+     * @param startDate
+     *            optional start date filter (null for no lower bound)
+     * @param endDate
+     *            optional end date filter (null for no upper bound)
      * @return list of Object arrays: [saleId, title, itemsSold, revenue]
      */
     @Query(value = "SELECT fs.id, fs.title, SUM(fsi.sold_count) as items_sold, " +
-          "SUM(fsi.sold_count * fsi.sale_price) as revenue " +
-          "FROM flash_sales fs " +
-          "JOIN flash_sale_items fsi ON fs.id = fsi.flash_sale_id " +
-          "WHERE fs.start_time >= COALESCE(:startDate, TIMESTAMP '1970-01-01 00:00:00+00') " +
-          "AND fs.end_time <= COALESCE(:endDate, TIMESTAMP '9999-12-31 23:59:59+00') " +
-          "GROUP BY fs.id, fs.title " +
-          "ORDER BY items_sold DESC " +
-          "LIMIT :limit", nativeQuery = true)
+        "SUM(fsi.sold_count * fsi.sale_price) as revenue " +
+        "FROM flash_sales fs " +
+        "JOIN flash_sale_items fsi ON fs.id = fsi.flash_sale_id " +
+        "WHERE fs.start_time >= COALESCE(:startDate, TIMESTAMP '1970-01-01 00:00:00+00') " +
+        "AND fs.end_time <= COALESCE(:endDate, TIMESTAMP '9999-12-31 23:59:59+00') " +
+        "GROUP BY fs.id, fs.title " +
+        "ORDER BY items_sold DESC " +
+        "LIMIT :limit", nativeQuery = true)
     List<Object[]> findTopSalesByItemsSold(
         @Param("limit") int limit,
         @Param("startDate") OffsetDateTime startDate,
@@ -168,14 +180,15 @@ public interface FlashSaleRepository extends JpaRepository<FlashSale, UUID> {
 
     /**
      * Calculate average number of products per sale.
-     * This counts the number of flash sale items (products) per sale and averages across all sales.
+     * This counts the number of flash sale items (products) per sale and averages
+     * across all sales.
      *
      * @return average products per sale
      */
     @Query(value = "SELECT COALESCE(AVG(product_count), 0) " +
-          "FROM (SELECT fs.id, COUNT(fsi.id) as product_count " +
-          "      FROM flash_sales fs " +
-          "      LEFT JOIN flash_sale_items fsi ON fs.id = fsi.flash_sale_id " +
-          "      GROUP BY fs.id) as sale_product_counts", nativeQuery = true)
+        "FROM (SELECT fs.id, COUNT(fsi.id) as product_count " +
+        "      FROM flash_sales fs " +
+        "      LEFT JOIN flash_sale_items fsi ON fs.id = fsi.flash_sale_id " +
+        "      GROUP BY fs.id) as sale_product_counts", nativeQuery = true)
     Double calculateAverageProductsPerSale();
 }

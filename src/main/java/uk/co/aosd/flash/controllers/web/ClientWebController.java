@@ -1,5 +1,7 @@
 package uk.co.aosd.flash.controllers.web;
 
+import java.util.UUID;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -20,8 +22,6 @@ import uk.co.aosd.flash.security.SecurityUtils;
 import uk.co.aosd.flash.services.ActiveSalesService;
 import uk.co.aosd.flash.services.OrderService;
 import uk.co.aosd.flash.services.ProductsService;
-
-import java.util.UUID;
 
 /**
  * Web controller for client-facing pages (sales browsing, orders).
@@ -51,11 +51,11 @@ public class ClientWebController {
             .filter(s -> s.flashSaleItemId().equals(itemId))
             .findFirst()
             .orElse(null);
-        
+
         if (sale == null) {
             return "redirect:/sales?error=notfound";
         }
-        
+
         model.addAttribute("sale", sale);
         if (!model.containsAttribute("createOrderDto")) {
             model.addAttribute("createOrderDto", new CreateOrderDto(UUID.fromString(sale.flashSaleItemId()), 1));
@@ -70,7 +70,7 @@ public class ClientWebController {
         final BindingResult bindingResult,
         final RedirectAttributes redirectAttributes,
         final Authentication authentication) {
-        
+
         if (bindingResult.hasErrors()) {
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.createOrderDto", bindingResult);
             redirectAttributes.addFlashAttribute("createOrderDto", createOrderDto);
