@@ -45,6 +45,121 @@ This application provides a complete flash sale management system with separate 
   - Products available for purchase
   - Current stock levels and pricing
 
+## User Interface (UI)
+
+The application includes a web-based user interface built with Thymeleaf templates and Bootstrap 5.3.0 for styling. The UI provides both public and authenticated user experiences, with role-based access control for administrative features.
+
+### Available Pages
+
+#### Public Pages
+- **Home** (`/`) - Landing page with quick navigation links
+- **Login** (`/login`) - User authentication page
+- **Register** (`/register`) - New user registration page
+- **Active Sales** (`/sales`) - Browse active flash sales (public access)
+
+#### Authenticated User Pages
+- **My Orders** (`/orders`) - View order history and order details (requires authentication)
+
+#### Admin Pages (Requires ADMIN_USER role)
+All admin pages are accessible at `/admin/**` and require the `ADMIN_USER` role:
+
+- **Admin Dashboard** (`/admin`) - Overview and navigation to admin features
+- **Products Management** (`/admin/products`) - View, create, edit, and manage products
+- **Flash Sales Management** (`/admin/sales`) - Create and manage flash sales, add items, set pricing
+- **Orders Management** (`/admin/orders`) - View all orders, filter by status/date, update order status
+- **Analytics Dashboard** (`/admin/analytics`) - View sales performance, revenue metrics, product performance, and order statistics
+
+### Navigation Structure
+
+The UI includes a responsive navigation bar that adapts based on authentication status:
+- **Public users**: See Home, Active Sales, Login, and Register links
+- **Authenticated users**: See Home, Active Sales, My Orders, and Logout links
+- **Admin users**: See all user links plus Admin link with access to admin dashboard
+
+## User Registration & Login
+
+### UI Registration & Login
+
+#### Registration via Web UI
+1. Navigate to `/register` in your browser
+2. Fill in the registration form with:
+   - Username (must be unique)
+   - Email (must be unique)
+   - Password
+3. Submit the form
+4. Upon successful registration, you'll be redirected to the login page
+5. Log in with your username/email and password
+
+#### Login via Web UI
+1. Navigate to `/login` in your browser
+2. Enter your username (or email) and password
+3. Submit the form
+4. Upon successful authentication, you'll be redirected to the home page
+5. Session attributes (`isAuthenticated`, `isAdmin`, `userId`) are set for UI access control
+
+### API Registration & Login
+
+The application also provides REST API endpoints for programmatic access:
+
+#### Registration via API
+```bash
+POST /api/v1/auth/register
+Content-Type: application/json
+
+{
+  "username": "your_username",
+  "email": "your_email@example.com",
+  "password": "your_password"
+}
+```
+
+**Response**: Returns a JWT token along with user information.
+
+#### Login via API
+```bash
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "your_username",
+  "password": "your_password"
+}
+```
+
+**Response**: Returns a JWT token along with user information.
+
+**Note**: The API uses JWT-based authentication (stateless), while the UI uses form-based session authentication (stateful). See the [Authentication & Security](#authentication--security) section for details.
+
+## Admin Role Management
+
+To grant a user administrative privileges, you need to manually update the user's role in the database. There is currently no UI for role management.
+
+### Promoting a User to ADMIN_USER
+
+1. Connect to your PostgreSQL database:
+   ```bash
+   psql -h localhost -U your_username -d flash_sales
+   ```
+
+2. Update the user's role:
+   ```sql
+   UPDATE users SET roles = 'ADMIN_USER' WHERE username = 'your_username';
+   ```
+
+   Or by email:
+   ```sql
+   UPDATE users SET roles = 'ADMIN_USER' WHERE email = 'your_email@example.com';
+   ```
+
+3. **Important**: The user must log out and log back in for the role change to take effect. This is because:
+   - UI authentication stores role information in the session during login
+   - API authentication validates roles from the JWT token, which is generated at login time
+
+### Verifying Role Changes
+
+- **For UI**: After logging out and logging back in, admin users will see the "Admin" link in the navigation bar and can access `/admin` pages
+- **For API**: Generate a new JWT token by logging in again via the API endpoint
+
 ## REST APIs
 
 ### Authentication APIs (Public)
@@ -120,6 +235,8 @@ All client endpoints require JWT authentication (except where noted).
 - **Messaging**: RabbitMQ 4.2.2 (Spring Modulith events)
 - **API Documentation**: SpringDoc OpenAPI (Swagger UI)
 - **Testing**: Testcontainers for integration tests
+- **UI Framework**: Thymeleaf (server-side templating)
+  - **Note**: Thymeleaf is used in this demo to keep the application in a single repository. In a production scenario, a separate frontend framework (e.g., NuxtJS or React) would be preferred for better separation of concerns and modern frontend development practices.
 
 ## Architecture
 
@@ -202,17 +319,69 @@ Flyway automatically applies database migrations on startup:
 
 ## Authentication & Security
 
-The application uses JWT (JSON Web Token) based authentication:
+The application implements a **dual authentication architecture** to support both REST API access and web UI access:
+
+### API Authentication (JWT-based, Stateless)
+
+API endpoints (`/api/**`) use JWT-based authentication:
+
+- **Authentication Method**: Stateless JWT tokens
+- **Token Location**: `Authorization: Bearer <token>` header
+- **Session Management**: No session management (stateless)
+- **CSRF Protection**: Disabled for API endpoints (not needed for stateless APIs)
+- **Filter Chain**: Uses `JwtAuthenticationFilter` to extract and validate tokens
+- **Filter Order**: API security filter chain has `@Order(1)` priority
+
+**How it works**:
+1. Client calls `/api/v1/auth/register` or `/api/v1/auth/login`
+2. Server returns a JWT token containing user ID, username, and roles
+3. Client includes token in `Authorization: Bearer <token>` header for subsequent API requests
+4. `JwtAuthenticationFilter` validates the token and sets authentication in `SecurityContext`
+5. No session is created - each request is authenticated independently
+
+### UI Authentication (Form-based, Stateful)
+
+Web UI endpoints (non-API routes) use form-based session authentication:
+
+- **Authentication Method**: Form-based login with session management
+- **Login Page**: `/login` (custom login page)
+- **Login Processing**: `/login` (POST)
+- **Session Management**: Stateful sessions with `SecurityContextRepository`
+- **CSRF Protection**: Enabled for form submissions
+- **Filter Chain**: UI security filter chain has `@Order(2)` priority
+
+**How it works**:
+1. User navigates to `/login` and submits credentials
+2. Spring Security authenticates via `CustomUserDetailsService`
+3. `CustomAuthenticationSuccessHandler`:
+   - Persists `SecurityContext` using `SecurityContextRepository`
+   - Stores session attributes (`isAuthenticated`, `isAdmin`, `userId`)
+   - Redirects to home page
+4. Subsequent requests use session cookie (`JSESSIONID`) for authentication
+5. Session attributes enable role-based UI rendering (e.g., showing admin links)
+
+### Common Security Features
+
+Both authentication methods share:
 
 - **User Registration**: Users can register with username, email, and password
 - **User Roles**: Supports `USER` and `ADMIN_USER` roles
-- **JWT Tokens**: Stateless authentication using JWT tokens in the `Authorization: Bearer <token>` header
 - **Password Security**: Passwords are hashed using BCrypt with strength 12
-- **Protected Endpoints**: 
-  - Admin endpoints require `ADMIN_USER` role
-  - Client endpoints require authentication (except public product browsing)
-  - Authentication endpoints are public
+- **User Service**: Both methods use the same `UserService` and `UserRepository` for user management
 - **Security Headers**: Includes HSTS, frame options, and content type options
+
+### Protected Endpoints
+
+- **Public Endpoints**: 
+  - Authentication APIs (`/api/v1/auth/**`)
+  - Public UI pages (`/`, `/login`, `/register`, `/sales`)
+  - Swagger UI (`/swagger-ui.html`)
+- **Authenticated Endpoints**: 
+  - Client APIs (`/api/v1/clients/**`) - require JWT authentication
+  - User UI pages (`/orders`) - require form-based authentication
+- **Admin Endpoints**: 
+  - Admin APIs (`/api/v1/admin/**`, `/api/v1/products/**`) - require `ADMIN_USER` role and JWT
+  - Admin UI pages (`/admin/**`) - require `ADMIN_USER` role and form-based authentication
 
 ## Key Features
 
