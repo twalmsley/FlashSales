@@ -29,8 +29,7 @@
                                 th:text="${order.status()}">Status</span></td>
                         <td>$<span th:text="${#numbers.formatDecimal(order.soldPrice(), 1, 2)}">0.00</span></td>
                         <td th:text="${order.soldQuantity()}">0</td>
-                        <td>$<span
-                                th:text="${#numbers.formatDecimal(order.soldPrice().multiply(java.math.BigDecimal.valueOf(order.soldQuantity())), 1, 2)}">0.00</span>
+                        <td>$<span th:text="${#numbers.formatDecimal(order.totalAmount(), 1, 2)}">0.00</span>
                         </td>
                         <td th:text="${#temporals.format(order.createdAt(), 'yyyy-MM-dd HH:mm')}">Date</td>
                         <td><a th:href="@{/admin/orders/{id}(id=${order.orderId()})}"
