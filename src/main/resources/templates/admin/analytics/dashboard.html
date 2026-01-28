@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
 <head th:replace="~{layout/base :: head(pageTitle='Analytics Dashboard')}"></head>
+
 <body>
     <nav th:replace="~{layout/base :: nav}"></nav>
-    
+
     <main class="container mt-4">
         <h1>Analytics Dashboard</h1>
-        
+
         <div class="row mb-4">
             <div class="col-md-6">
                 <div class="card">
@@ -14,9 +16,12 @@
                         <h5 class="card-title">Sales Metrics</h5>
                         <p th:if="${salesMetrics}" class="card-text">
                             <strong>Total Sales:</strong> <span th:text="${salesMetrics.totalSales()}">0</span><br>
-                            <strong>Total Items Sold:</strong> <span th:text="${salesMetrics.totalItemsSold()}">0</span><br>
-                            <strong>Average Items per Sale:</strong> <span th:text="${#numbers.formatDecimal(salesMetrics.averageItemsSoldPerSale(), 1, 2)}">0.00</span><br>
-                            <strong>Conversion Rate:</strong> <span th:text="${#numbers.formatDecimal(salesMetrics.conversionRate(), 1, 4)}">0.0000</span>
+                            <strong>Total Items Sold:</strong> <span
+                                th:text="${salesMetrics.totalItemsSold()}">0</span><br>
+                            <strong>Average Items per Sale:</strong> <span
+                                th:text="${#numbers.formatDecimal(salesMetrics.averageItemsSoldPerSale(), 1, 2)}">0.00</span><br>
+                            <strong>Conversion Rate:</strong> <span
+                                th:text="${#numbers.formatDecimal(salesMetrics.conversionRate(), 1, 4)}">0.0000</span>
                         </p>
                     </div>
                 </div>
@@ -26,8 +31,10 @@
                     <div class="card-body">
                         <h5 class="card-title">Revenue Metrics</h5>
                         <p th:if="${revenueMetrics}" class="card-text">
-                            <strong>Total Revenue:</strong> $<span th:text="${#numbers.formatDecimal(revenueMetrics.totalRevenue(), 1, 2)}">0.00</span><br>
-                            <strong>Average Order Value:</strong> $<span th:text="${#numbers.formatDecimal(revenueMetrics.averageOrderValue(), 1, 2)}">0.00</span>
+                            <strong>Total Revenue:</strong> $<span
+                                th:text="${#numbers.formatDecimal(revenueMetrics.totalRevenue(), 1, 2)}">0.00</span><br>
+                            <strong>Average Order Value:</strong> $<span
+                                th:text="${#numbers.formatDecimal(revenueMetrics.averageOrderValue(), 1, 2)}">0.00</span>
                         </p>
                     </div>
                 </div>
@@ -42,8 +49,10 @@
                         <p th:if="${orderStatistics}" class="card-text">
                             <strong>Total Orders:</strong> <span th:text="${orderStatistics.totalOrders()}">0</span><br>
                             <strong>Paid Orders:</strong> <span th:text="${orderStatistics.paidOrders()}">0</span><br>
-                            <strong>Failed Orders:</strong> <span th:text="${orderStatistics.failedOrders()}">0</span><br>
-                            <strong>Refunded Orders:</strong> <span th:text="${orderStatistics.refundedOrders()}">0</span>
+                            <strong>Failed Orders:</strong> <span
+                                th:text="${orderStatistics.failedOrders()}">0</span><br>
+                            <strong>Refunded Orders:</strong> <span
+                                th:text="${orderStatistics.refundedOrders()}">0</span>
                         </p>
                     </div>
                 </div>
@@ -52,15 +61,18 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Top Products</h5>
-                        <div th:if="${productPerformance != null and !productPerformance.topProducts().isEmpty()}">
+                        <div
+                            th:if="${productPerformance != null and !productPerformance.topProductsByQuantity().isEmpty()}">
                             <ul class="list-group">
-                                <li th:each="product : ${productPerformance.topProducts()}" class="list-group-item">
-                                    <strong th:text="${product.productName()}">Product</strong> - 
-                                    <span th:text="${product.totalSold()}">0</span> sold
+                                <li th:each="product : ${productPerformance.topProductsByQuantity()}"
+                                    class="list-group-item">
+                                    <strong th:text="${product.productName()}">Product</strong> -
+                                    <span th:text="${product.quantitySold()}">0</span> sold
                                 </li>
                             </ul>
                         </div>
-                        <div th:if="${productPerformance == null or productPerformance.topProducts().isEmpty()}" class="alert alert-info">
+                        <div th:if="${productPerformance == null or productPerformance.topProductsByQuantity().isEmpty()}"
+                            class="alert alert-info">
                             No product performance data available.
                         </div>
                     </div>
@@ -72,4 +84,5 @@
     <footer th:replace="~{layout/base :: footer}"></footer>
     <script th:replace="~{layout/base :: scripts}"></script>
 </body>
+
 </html>
