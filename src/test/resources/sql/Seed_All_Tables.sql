@@ -1,7 +1,36 @@
 -- Seed data for all tables in the Flash Sales application
--- This file populates products, flash_sales, flash_sale_items, and orders
+-- This file populates users, products, flash_sales, flash_sale_items, and orders
 -- ============================================================================
--- 1. PRODUCTS
+-- 1. USERS
+-- ============================================================================
+-- Insert test users with fixed usernames and passwords
+-- Passwords are BCrypt hashed (strength 12) for "password"
+INSERT INTO users (
+        id,
+        username,
+        email,
+        password,
+        roles,
+        created_at
+    )
+VALUES (
+        '00000000-0000-0000-0000-000000000001',
+        'user',
+        'user@example.com',
+        '$2a$12$Ti9pIZPI.eb1zTW0.z5ka.YRorzY6avXIru5OpW6Yk99.anY9EnSy',
+        'USER',
+        CURRENT_TIMESTAMP
+    ),
+    (
+        '00000000-0000-0000-0000-000000000002',
+        'admin',
+        'admin@example.com',
+        '$2a$12$XLtSZr.TeSRngi/N05DT5eQPP/ak/IyS6NMaj8tzNOj/zWoFKnZhu',
+        'ADMIN_USER',
+        CURRENT_TIMESTAMP
+    );
+-- ============================================================================
+-- 2. PRODUCTS
 -- ============================================================================
 -- Insert sample products into the master catalog
 INSERT INTO products (
@@ -133,7 +162,7 @@ VALUES (
         8
     );
 -- ============================================================================
--- 2. FLASH SALES
+-- 3. FLASH SALES
 -- ============================================================================
 -- Insert flash sales with various statuses and dates
 -- DRAFT sales (upcoming sales)
@@ -233,7 +262,7 @@ VALUES (
         'CANCELLED'
     );
 -- ============================================================================
--- 3. FLASH SALE ITEMS
+-- 4. FLASH SALE ITEMS
 -- ============================================================================
 -- Link products to flash sales with allocated stock and sale prices
 -- Items for DRAFT sales
@@ -465,7 +494,7 @@ VALUES -- Black Friday Extravaganza (COMPLETED)
         149.00
     );
 -- ============================================================================
--- 4. ORDERS
+-- 5. ORDERS
 -- ============================================================================
 -- Create sample orders for active and completed sales
 -- Orders for ACTIVE sales
@@ -482,7 +511,7 @@ INSERT INTO orders (
 VALUES -- Orders for Holiday Mega Sale (ACTIVE)
     (
         '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-        '10000000-0000-0000-0000-000000000001',
+        '00000000-0000-0000-0000-000000000001',
         'bbbbbbbb-0000-0000-0000-000000000001',
         '11111111-1111-1111-1111-111111111111',
         749.99,
@@ -492,7 +521,7 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
     ),
     (
         '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaab',
-        '10000000-0000-0000-0000-000000000002',
+        '00000000-0000-0000-0000-000000000002',
         'bbbbbbbb-0000-0000-0000-000000000001',
         '11111111-1111-1111-1111-111111111111',
         749.99,
@@ -502,7 +531,7 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
     ),
     (
         '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaac',
-        '10000000-0000-0000-0000-000000000003',
+        '00000000-0000-0000-0000-000000000002',
         'bbbbbbbb-0000-0000-0000-000000000002',
         '33333333-3333-3333-3333-333333333333',
         119.50,
@@ -512,7 +541,7 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
     ),
     (
         '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaad',
-        '10000000-0000-0000-0000-000000000004',
+        '00000000-0000-0000-0000-000000000001',
         'bbbbbbbb-0000-0000-0000-000000000002',
         '33333333-3333-3333-3333-333333333333',
         119.50,
@@ -522,7 +551,7 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
     ),
     (
         '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaae',
-        '10000000-0000-0000-0000-000000000005',
+        '00000000-0000-0000-0000-000000000002',
         'bbbbbbbb-0000-0000-0000-000000000003',
         '77777777-7777-7777-7777-777777777777',
         279.00,
@@ -532,7 +561,7 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
     ),
     (
         '11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaf',
-        '10000000-0000-0000-0000-000000000006',
+        '00000000-0000-0000-0000-000000000001',
         'bbbbbbbb-0000-0000-0000-000000000004',
         'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
         39.99,
@@ -542,7 +571,7 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
     ),
     (
         '11111111-aaaa-aaaa-aaaa-aaaaaaaa0010',
-        '10000000-0000-0000-0000-000000000007',
+        '00000000-0000-0000-0000-000000000002',
         'bbbbbbbb-0000-0000-0000-000000000004',
         'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
         39.99,
@@ -553,7 +582,7 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
     -- Orders for Midday Tech Deals (ACTIVE)
     (
         '22222222-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-        '10000000-0000-0000-0000-000000000008',
+        '00000000-0000-0000-0000-000000000001',
         'bbbbbbbb-0000-0000-0000-000000000005',
         'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
         129.00,
@@ -563,7 +592,7 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
     ),
     (
         '22222222-bbbb-bbbb-bbbb-bbbbbbbbbbbc',
-        '10000000-0000-0000-0000-000000000009',
+        '00000000-0000-0000-0000-000000000002',
         'bbbbbbbb-0000-0000-0000-000000000005',
         'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
         129.00,
@@ -573,7 +602,7 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
     ),
     (
         '22222222-bbbb-bbbb-bbbb-bbbbbbbbbbbd',
-        '10000000-0000-0000-0000-000000000010',
+        '00000000-0000-0000-0000-000000000001',
         'bbbbbbbb-0000-0000-0000-000000000006',
         'cccccccc-cccc-cccc-cccc-cccccccccccc',
         69.00,
@@ -583,7 +612,7 @@ VALUES -- Orders for Holiday Mega Sale (ACTIVE)
     ),
     (
         '22222222-bbbb-bbbb-bbbb-bbbbbbbbbbbe',
-        '10000000-0000-0000-0000-000000000011',
+        '00000000-0000-0000-0000-000000000001',
         'bbbbbbbb-0000-0000-0000-000000000007',
         'dddddddd-dddd-dddd-dddd-dddddddddddd',
         149.00,
@@ -605,7 +634,7 @@ INSERT INTO orders (
 VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
     (
         '33333333-cccc-cccc-cccc-cccccccccccc',
-        '20000000-0000-0000-0000-000000000101',
+        '00000000-0000-0000-0000-000000000001',
         'cccccccc-0000-0000-0000-000000000001',
         '11111111-1111-1111-1111-111111111111',
         649.99,
@@ -615,7 +644,7 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
     ),
     (
         '33333333-cccc-cccc-cccc-cccccccccccd',
-        '20000000-0000-0000-0000-000000000102',
+        '00000000-0000-0000-0000-000000000002',
         'cccccccc-0000-0000-0000-000000000001',
         '11111111-1111-1111-1111-111111111111',
         649.99,
@@ -625,7 +654,7 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
     ),
     (
         '33333333-cccc-cccc-cccc-ccccccccccce',
-        '20000000-0000-0000-0000-000000000103',
+        '00000000-0000-0000-0000-000000000002',
         'cccccccc-0000-0000-0000-000000000002',
         '22222222-2222-2222-2222-222222222222',
         449.00,
@@ -636,7 +665,7 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
     -- Orders for Cyber Monday Deals (COMPLETED)
     (
         '44444444-dddd-dddd-dddd-dddddddddddd',
-        '20000000-0000-0000-0000-000000000201',
+        '00000000-0000-0000-0000-000000000001',
         'cccccccc-0000-0000-0000-000000000004',
         '33333333-3333-3333-3333-333333333333',
         99.50,
@@ -646,7 +675,7 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
     ),
     (
         '44444444-dddd-dddd-dddd-ddddddddddde',
-        '20000000-0000-0000-0000-000000000202',
+        '00000000-0000-0000-0000-000000000002',
         'cccccccc-0000-0000-0000-000000000005',
         '55555555-5555-5555-5555-555555555555',
         199.00,
@@ -657,7 +686,7 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
     -- Orders for End of Year Clearance (COMPLETED)
     (
         '55555555-eeee-eeee-eeee-eeeeeeeeeeee',
-        '20000000-0000-0000-0000-000000000301',
+        '00000000-0000-0000-0000-000000000001',
         'cccccccc-0000-0000-0000-000000000006',
         '66666666-6666-6666-6666-666666666666',
         349.99,
@@ -667,7 +696,7 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
     ),
     (
         '55555555-eeee-eeee-eeee-eeeeeeeeeeef',
-        '20000000-0000-0000-0000-000000000302',
+        '00000000-0000-0000-0000-000000000001',
         'cccccccc-0000-0000-0000-000000000007',
         '88888888-8888-8888-8888-888888888888',
         149.00,
@@ -677,7 +706,7 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
     ),
     (
         '55555555-eeee-eeee-eeee-eeeeeeeeeeed',
-        '20000000-0000-0000-0000-000000000303',
+        '00000000-0000-0000-0000-000000000002',
         'cccccccc-0000-0000-0000-000000000007',
         '88888888-8888-8888-8888-888888888888',
         149.00,
@@ -689,12 +718,14 @@ VALUES -- Orders for Black Friday Extravaganza (COMPLETED)
 -- Summary
 -- ============================================================================
 -- This seed file creates:
+-- - 2 users (USER and ADMIN_USER roles)
 -- - 15 products
 -- - 10 flash sales (4 DRAFT, 2 ACTIVE, 3 COMPLETED, 1 CANCELLED)
 -- - 18 flash sale items
 -- - 17 orders (11 for ACTIVE sales, 6 for COMPLETED sales)
 --
 -- The data includes:
+-- - Test users: 'user' (USER role) and 'admin' (ADMIN_USER role) with password 'password'
 -- - DRAFT sales with start times in the future (1-10 days ahead)
 -- - ACTIVE sales currently running
 -- - COMPLETED sales from the past
