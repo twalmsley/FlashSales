@@ -36,7 +36,7 @@
                 </div>
             </div>
 
-            <div th:if="${session.isAuthenticated}" class="card">
+            <div th:if="${session.isAuthenticated != null and session.isAuthenticated}" class="card">
                 <div class="card-body">
                     <h5 class="card-title">Place Order</h5>
                     <form th:action="@{/sales/{id}/order(id=${sale.flashSaleItemId()})}" method="post"
@@ -54,7 +54,7 @@
                     </form>
                 </div>
             </div>
-            <div th:if="${!session.isAuthenticated}" class="alert alert-info">
+            <div th:if="${session.isAuthenticated == null or !session.isAuthenticated}" class="alert alert-info">
                 <a th:href="@{/login}">Login</a> to place an order.
             </div>
         </div>

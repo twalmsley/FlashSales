@@ -32,17 +32,18 @@
                                 <ul class="list-unstyled">
                                     <li><a th:href="@{/sales}" class="btn btn-link p-0 text-start">Browse Active
                                             Sales</a></li>
-                                    <li th:if="${!session.isAuthenticated}">
+                                    <li th:if="${session.isAuthenticated == null or !session.isAuthenticated}">
                                         <a th:href="@{/login}" class="btn btn-link p-0 text-start">Login</a>
                                     </li>
-                                    <li th:if="${!session.isAuthenticated}">
+                                    <li th:if="${session.isAuthenticated == null or !session.isAuthenticated}">
                                         <a th:href="@{/register}" class="btn btn-link p-0 text-start">Register</a>
                                     </li>
                                 </ul>
                             </div>
 
                             <!-- Authenticated User Links (controller passes isAuthenticated for robustness) -->
-                            <div class="col-md-4" th:if="${session.isAuthenticated}">
+                            <div class="col-md-4"
+                                th:if="${session.isAuthenticated != null and session.isAuthenticated}">
                                 <h6>My Account</h6>
                                 <ul class="list-unstyled">
                                     <li><a th:href="@{/orders}" class="btn btn-link p-0 text-start">My Orders</a></li>
@@ -51,7 +52,7 @@
                             </div>
 
                             <!-- Admin Links (controller passes showAdminLinks so admin links show after redirect) -->
-                            <div class="col-md-4" th:if="${session.isAdmin}">
+                            <div class="col-md-4" th:if="${session.isAdmin != null and session.isAdmin}">
                                 <h6>Admin Management</h6>
                                 <ul class="list-unstyled">
                                     <li><a th:href="@{/admin/products}" class="btn btn-link p-0 text-start">Manage

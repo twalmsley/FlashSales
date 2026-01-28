@@ -48,11 +48,28 @@
                         <h5 class="card-title">Order Statistics</h5>
                         <p th:if="${orderStatistics}" class="card-text">
                             <strong>Total Orders:</strong> <span th:text="${orderStatistics.totalOrders()}">0</span><br>
+                            <strong>Total Order Quantity:</strong> <span
+                                th:text="${orderStatistics.totalOrderQuantity()}">0</span><br>
+                            <strong>Average Order Quantity:</strong> <span
+                                th:text="${#numbers.formatDecimal(orderStatistics.averageOrderQuantity(), 1, 2)}">0.00</span><br>
                             <strong>Paid Orders:</strong> <span th:text="${orderStatistics.paidOrders()}">0</span><br>
                             <strong>Failed Orders:</strong> <span
                                 th:text="${orderStatistics.failedOrders()}">0</span><br>
-                            <strong>Refunded Orders:</strong> <span
-                                th:text="${orderStatistics.refundedOrders()}">0</span>
+                            <strong>Success Rate:</strong> <span
+                                th:text="${#numbers.formatDecimal(orderStatistics.successRate(), 1, 4)}">0.0000</span><br>
+                            <strong>Orders by Status:</strong><br>
+                            <span th:if="${orderStatistics.ordersByStatus()}">
+                                &nbsp;&nbsp;Pending: <span
+                                    th:text="${orderStatistics.ordersByStatus().pending()}">0</span><br>
+                                &nbsp;&nbsp;Paid: <span
+                                    th:text="${orderStatistics.ordersByStatus().paid()}">0</span><br>
+                                &nbsp;&nbsp;Failed: <span
+                                    th:text="${orderStatistics.ordersByStatus().failed()}">0</span><br>
+                                &nbsp;&nbsp;Refunded: <span
+                                    th:text="${orderStatistics.ordersByStatus().refunded()}">0</span><br>
+                                &nbsp;&nbsp;Dispatched: <span
+                                    th:text="${orderStatistics.ordersByStatus().dispatched()}">0</span>
+                            </span>
                         </p>
                     </div>
                 </div>

@@ -35,7 +35,7 @@
                             th:text="${#numbers.formatDecimal(order.soldPrice(), 1, 2)}">0.00</span><br>
                         <strong>Quantity:</strong> <span th:text="${order.soldQuantity()}">0</span><br>
                         <strong>Total:</strong> $<span
-                            th:text="${#numbers.formatDecimal(order.soldPrice().multiply(java.math.BigDecimal.valueOf(order.soldQuantity())), 1, 2)}">0.00</span><br>
+                            th:text="${#numbers.formatDecimal(order.totalAmount(), 1, 2)}">0.00</span><br>
                         <strong>Created:</strong> <span
                             th:text="${#temporals.format(order.createdAt(), 'yyyy-MM-dd HH:mm')}">Date</span>
                     </p>
