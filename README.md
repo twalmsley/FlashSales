@@ -78,7 +78,7 @@ The UI includes a responsive navigation bar that adapts based on authentication 
 
 ## User Registration & Login
 
-**Quick Start**: If you've loaded the seed data (see [Loading Seed Data](#loading-seed-data)), you can immediately log in using the test users:
+**Quick Start**: If you've loaded the seed data (see [Loading Seed Data](GETTING_STARTED.md#loading-seed-data) in GETTING_STARTED.md), you can immediately log in using the test users:
 - Username: `user` or `admin` (password: `password`)
 - These users are pre-configured with USER and ADMIN_USER roles respectively
 
@@ -289,91 +289,7 @@ Both profiles can be active simultaneously.
 
 ## Getting Started
 
-### Prerequisites
-- Java 25
-- Maven
-- Docker and Docker Compose
-
-### Running the Application
-
-1. Start infrastructure services:
-   ```bash
-   docker compose up -d
-   ```
-   This starts PostgreSQL, Redis, and RabbitMQ.
-
-2. Run the application:
-   ```bash
-   ./mvnw spring-boot:run
-   ```
-
-3. Access Swagger UI:
-   ```
-   http://localhost:8080/swagger-ui.html
-   ```
-
-### Database Migrations
-
-Flyway automatically applies database migrations on startup:
-- `V1__CreateTables.sql` - Initial schema with products, flash sales, items, and orders
-- `V2__ReservedQuantityForProducts.sql` - Adds reserved_count to products
-- `V3__RemainingActiveStockView.sql` - Creates view for active sales with remaining stock
-- `V4__AddOrderFields.sql` - Adds product_id, sold_price, and sold_quantity to orders table
-- `V5__AddDispatchedOrderStatus.sql` - Adds DISPATCHED status to order_status enum
-- `V6__AddOrderUserIndexes.sql` - Adds indexes on user_id and composite indexes for efficient order queries
-- `V7__CreateUsersTable.sql` - Creates users table for authentication with username, email, password, and roles
-
-### Loading Seed Data
-
-The application includes a seed data file that populates the database with test data for development and testing purposes. This is optional but useful for quickly getting started with pre-configured users, products, flash sales, and orders.
-
-#### What's Included in the Seed Data
-
-The seed file (`src/test/resources/sql/Seed_All_Tables.sql`) contains:
-- **2 test users** (user and admin) with pre-configured credentials
-- **15 products** with various stock levels
-- **10 flash sales** in different statuses (DRAFT, ACTIVE, COMPLETED)
-- **18 flash sale items** linking products to sales
-- **17 orders** in various states for testing order workflows
-
-#### Loading the Seed Data
-
-1. Ensure your PostgreSQL database is running (via `docker compose up -d`)
-
-2. Load the seed data using `psql`:
-   ```bash
-   psql -h localhost -U postgres -d postgres -f src/test/resources/sql/Seed_All_Tables.sql
-   ```
-   
-   When prompted, enter the password: `password`
-
-   **Note**: The database name is `postgres` (as configured in `compose.yaml` and application configuration).
-
-3. Verify the data was loaded:
-   ```sql
-   psql -h localhost -U postgres -d postgres
-   ```
-   Then run:
-   ```sql
-   SELECT username, email, roles FROM users;
-   SELECT COUNT(*) FROM products;
-   SELECT COUNT(*) FROM flash_sales;
-   ```
-
-#### Test User Credentials
-
-After loading the seed data, you can use these pre-configured test users:
-
-| Username | Email | Password | Role |
-|----------|-------|----------|------|
-| `user` | `user@example.com` | `password` | USER |
-| `admin` | `admin@example.com` | `password` | ADMIN_USER |
-
-**Using Test Users**:
-- **UI Login**: Navigate to `/login` and use either username or email with password `password`
-- **API Login**: Use the `/api/v1/auth/login` endpoint with username `user` or `admin` and password `password`
-
-**Note**: These are test credentials for development only. In production, you should create your own users and never use these default passwords.
+For setup and installation instructions, including how to pull the repository, build the application, start services, load seed data, and log in, see [GETTING_STARTED.md](GETTING_STARTED.md).
 
 ## Authentication & Security
 
