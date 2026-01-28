@@ -78,6 +78,10 @@ The UI includes a responsive navigation bar that adapts based on authentication 
 
 ## User Registration & Login
 
+**Quick Start**: If you've loaded the seed data (see [Loading Seed Data](#loading-seed-data)), you can immediately log in using the test users:
+- Username: `user` or `admin` (password: `password`)
+- These users are pre-configured with USER and ADMIN_USER roles respectively
+
 ### UI Registration & Login
 
 #### Registration via Web UI
@@ -138,8 +142,10 @@ To grant a user administrative privileges, you need to manually update the user'
 
 1. Connect to your PostgreSQL database:
    ```bash
-   psql -h localhost -U your_username -d flash_sales
+   psql -h localhost -U postgres -d postgres
    ```
+   
+   When prompted, enter the password: `password`
 
 2. Update the user's role:
    ```sql
@@ -316,6 +322,58 @@ Flyway automatically applies database migrations on startup:
 - `V5__AddDispatchedOrderStatus.sql` - Adds DISPATCHED status to order_status enum
 - `V6__AddOrderUserIndexes.sql` - Adds indexes on user_id and composite indexes for efficient order queries
 - `V7__CreateUsersTable.sql` - Creates users table for authentication with username, email, password, and roles
+
+### Loading Seed Data
+
+The application includes a seed data file that populates the database with test data for development and testing purposes. This is optional but useful for quickly getting started with pre-configured users, products, flash sales, and orders.
+
+#### What's Included in the Seed Data
+
+The seed file (`src/test/resources/sql/Seed_All_Tables.sql`) contains:
+- **2 test users** (user and admin) with pre-configured credentials
+- **15 products** with various stock levels
+- **10 flash sales** in different statuses (DRAFT, ACTIVE, COMPLETED)
+- **18 flash sale items** linking products to sales
+- **17 orders** in various states for testing order workflows
+
+#### Loading the Seed Data
+
+1. Ensure your PostgreSQL database is running (via `docker compose up -d`)
+
+2. Load the seed data using `psql`:
+   ```bash
+   psql -h localhost -U postgres -d postgres -f src/test/resources/sql/Seed_All_Tables.sql
+   ```
+   
+   When prompted, enter the password: `password`
+
+   **Note**: The database name is `postgres` (as configured in `compose.yaml` and application configuration).
+
+3. Verify the data was loaded:
+   ```sql
+   psql -h localhost -U postgres -d postgres
+   ```
+   Then run:
+   ```sql
+   SELECT username, email, roles FROM users;
+   SELECT COUNT(*) FROM products;
+   SELECT COUNT(*) FROM flash_sales;
+   ```
+
+#### Test User Credentials
+
+After loading the seed data, you can use these pre-configured test users:
+
+| Username | Email | Password | Role |
+|----------|-------|----------|------|
+| `user` | `user@example.com` | `password` | USER |
+| `admin` | `admin@example.com` | `password` | ADMIN_USER |
+
+**Using Test Users**:
+- **UI Login**: Navigate to `/login` and use either username or email with password `password`
+- **API Login**: Use the `/api/v1/auth/login` endpoint with username `user` or `admin` and password `password`
+
+**Note**: These are test credentials for development only. In production, you should create your own users and never use these default passwords.
 
 ## Authentication & Security
 
