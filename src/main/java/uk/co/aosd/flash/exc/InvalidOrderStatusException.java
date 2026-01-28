@@ -13,4 +13,10 @@ public class InvalidOrderStatusException extends RuntimeException {
     private final OrderStatus currentStatus;
     private final OrderStatus requiredStatus;
     private final String operation;
+
+    @Override
+    public String getMessage() {
+        return String.format("Invalid status transition: %s → %s for order %s", 
+            currentStatus, requiredStatus, orderId);
+    }
 }

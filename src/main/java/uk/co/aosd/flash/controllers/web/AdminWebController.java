@@ -25,6 +25,7 @@ import uk.co.aosd.flash.dto.FlashSaleResponseDto;
 import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.dto.UpdateOrderStatusDto;
+import uk.co.aosd.flash.exc.InvalidOrderStatusException;
 import uk.co.aosd.flash.services.AnalyticsService;
 import uk.co.aosd.flash.services.FlashSalesService;
 import uk.co.aosd.flash.services.OrderService;
@@ -210,6 +211,13 @@ public class AdminWebController {
             final UUID orderId = UUID.fromString(id);
             orderService.updateOrderStatus(orderId, updateOrderStatusDto.status());
             redirectAttributes.addFlashAttribute("success", "Order status updated successfully");
+            return "redirect:/admin/orders/" + id;
+        } catch (final InvalidOrderStatusException e) {
+            log.error("Invalid status transition: {} → {} for order {}", 
+                e.getCurrentStatus(), e.getRequiredStatus(), e.getOrderId());
+            redirectAttributes.addFlashAttribute("error", 
+                String.format("Invalid status transition: %s → %s", 
+                    e.getCurrentStatus(), e.getRequiredStatus()));
             return "redirect:/admin/orders/" + id;
         } catch (final Exception e) {
             log.error("Error updating order status", e);
