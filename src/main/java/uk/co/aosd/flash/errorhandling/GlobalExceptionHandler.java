@@ -33,8 +33,9 @@ import uk.co.aosd.flash.exc.SaleNotActiveException;
 /**
  * Global Exception Handling.
  * Provides centralized exception handling for all REST controllers.
+ * Restricted to controllers package to exclude web controllers.
  */
-@ControllerAdvice
+@ControllerAdvice(basePackages = "uk.co.aosd.flash.controllers")
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
@@ -267,6 +268,7 @@ public class GlobalExceptionHandler {
 
     /**
      * Handle missing static resources (e.g. favicon.ico).
+     * Only handles REST API requests since this handler is restricted to REST controllers.
      */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, String>> handleNoResourceFoundException(final NoResourceFoundException e) {

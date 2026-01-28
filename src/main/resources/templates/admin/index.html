@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+
 <head th:replace="~{layout/base :: head(pageTitle='Admin Dashboard')}"></head>
+
 <body>
     <nav th:replace="~{layout/base :: nav}"></nav>
 
@@ -42,7 +44,8 @@
                 <div class="card h-100">
                     <div class="card-body">
                         <h5 class="card-title">Orders Management</h5>
-                        <p class="card-text">View and manage customer orders, update order status, and track fulfillment.</p>
+                        <p class="card-text">View and manage customer orders, update order status, and track
+                            fulfillment.</p>
                         <div class="d-grid gap-2">
                             <a th:href="@{/admin/orders}" class="btn btn-primary">Manage Orders</a>
                         </div>
@@ -55,7 +58,8 @@
                 <div class="card h-100">
                     <div class="card-body">
                         <h5 class="card-title">Analytics</h5>
-                        <p class="card-text">View sales metrics, revenue statistics, order analytics, and product performance.</p>
+                        <p class="card-text">View sales metrics, revenue statistics, order analytics, and product
+                            performance.</p>
                         <div class="d-grid gap-2">
                             <a th:href="@{/admin/analytics}" class="btn btn-primary">View Analytics Dashboard</a>
                         </div>
@@ -68,4 +72,5 @@
     <footer th:replace="~{layout/base :: footer}"></footer>
     <script th:replace="~{layout/base :: scripts}"></script>
 </body>
+
 </html>
