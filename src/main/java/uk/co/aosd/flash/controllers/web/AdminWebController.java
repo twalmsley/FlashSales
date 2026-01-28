@@ -45,6 +45,12 @@ public class AdminWebController {
     private final OrderService orderService;
     private final AnalyticsService analyticsService;
 
+    // Admin Index
+    @GetMapping({"", "/"})
+    public String adminIndex() {
+        return "admin/index";
+    }
+
     // Products Management
     @GetMapping("/products")
     public String listProducts(final Model model) {

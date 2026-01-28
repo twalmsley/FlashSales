@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{layout/base :: head(pageTitle='Admin Dashboard')}"></head>
+
+<body>
+    <nav th:replace="~{layout/base :: nav}"></nav>
+
+    <main class="container mt-4">
+        <h1>Admin Dashboard</h1>
+        <p class="lead mb-4">Manage products, flash sales, orders, and view analytics.</p>
+
+        <div class="row">
+            <!-- Products Management -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Products Management</h5>
+                        <p class="card-text">Manage product catalog, create new products, and update existing ones.</p>
+                        <div class="d-grid gap-2">
+                            <a th:href="@{/admin/products}" class="btn btn-primary">Manage Products</a>
+                            <a th:href="@{/admin/products/new}" class="btn btn-outline-primary">Create Product</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flash Sales Management -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Flash Sales Management</h5>
+                        <p class="card-text">Create and manage flash sales, set pricing, and track performance.</p>
+                        <div class="d-grid gap-2">
+                            <a th:href="@{/admin/sales}" class="btn btn-primary">Manage Flash Sales</a>
+                            <a th:href="@{/admin/sales/new}" class="btn btn-outline-primary">Create Flash Sale</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Management -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Orders Management</h5>
+                        <p class="card-text">View and manage customer orders, update order status, and track
+                            fulfillment.</p>
+                        <div class="d-grid gap-2">
+                            <a th:href="@{/admin/orders}" class="btn btn-primary">Manage Orders</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Analytics</h5>
+                        <p class="card-text">View sales metrics, revenue statistics, order analytics, and product
+                            performance.</p>
+                        <div class="d-grid gap-2">
+                            <a th:href="@{/admin/analytics}" class="btn btn-primary">View Analytics Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout/base :: footer}"></footer>
+    <script th:replace="~{layout/base :: scripts}"></script>
+</body>
+
+</html>
