@@ -39,6 +39,24 @@ public class RedisCacheConfig {
             .withCacheConfiguration("activeSales",
                 RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(1)))
             .withCacheConfiguration("draftSales",
-                RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(1)));
+                RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(1)))
+            .withCacheConfiguration("flashSales",
+                RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(1)))
+            .withCacheConfiguration("orders",
+                RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(1)))
+            .withCacheConfiguration("orders:user",
+                RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(1)))
+            .withCacheConfiguration("orders:all",
+                RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(1)))
+            .withCacheConfiguration("users",
+                RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(5)))
+            .withCacheConfiguration("analytics:sales",
+                RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(5)))
+            .withCacheConfiguration("analytics:revenue",
+                RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(5)))
+            .withCacheConfiguration("analytics:products",
+                RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(5)))
+            .withCacheConfiguration("analytics:orders",
+                RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(5)));
     }
 }
