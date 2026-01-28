@@ -20,7 +20,8 @@ public final class SecurityUtils {
 
     /**
      * Get the current authenticated user's ID from SecurityContext.
-     * Supports both JWT authentication (UUID principal) and form login (UserDetails principal).
+     * Supports both JWT authentication (UUID principal) and form login (UserDetails
+     * principal).
      * For form login, requires UserService to look up user ID from username.
      *
      * @return user ID
@@ -29,21 +30,37 @@ public final class SecurityUtils {
      */
     public static UUID getCurrentUserId() {
         final Authentication authentication = securityStrategy.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal() == null) {
-            if (authentication == null) {
-                throw new IllegalStateException("User is not authenticated - authentication is null");
-            } else if (!authentication.isAuthenticated()) {
+
+        // If authentication is null, check session for userId
+        if (authentication == null) {
+            final var session = org.springframework.web.context.request.RequestContextHolder
+                .getRequestAttributes();
+            if (session instanceof org.springframework.web.context.request.ServletRequestAttributes) {
+                final var request = ((org.springframework.web.context.request.ServletRequestAttributes) session)
+                    .getRequest();
+                final var userId = (UUID) request.getSession().getAttribute("userId");
+                if (userId != null) {
+                    return userId;
+                }
+            }
+            throw new IllegalStateException(
+                "User is not authenticated - authentication is null and userId is not available in session. Please ensure the user is properly authenticated or that userId is stored in the session.");
+        }
+
+        // Check if authentication is valid
+        if (!authentication.isAuthenticated() || authentication.getPrincipal() == null) {
+            if (!authentication.isAuthenticated()) {
                 throw new IllegalStateException("User is not authenticated - authentication.isAuthenticated is false");
             } else {
                 throw new IllegalStateException("User is not authenticated - authentication.getPrincipal is null");
             }
         }
-        
+
         // Handle JWT authentication (UUID principal)
         if (authentication.getPrincipal() instanceof UUID) {
             return (UUID) authentication.getPrincipal();
         }
-        
+
         // Handle form login (UserDetails principal)
         if (authentication.getPrincipal() instanceof UserDetails) {
             // For form login, try to get user ID from session or look it up
@@ -59,7 +76,7 @@ public final class SecurityUtils {
             }
             throw new IllegalStateException("Form login detected but user ID not in session. Use getCurrentUsername() and look up user ID.");
         }
-        
+
         throw new IllegalStateException("Unexpected authentication principal type: " + authentication.getPrincipal().getClass().getName());
     }
 
@@ -68,18 +85,19 @@ public final class SecurityUtils {
      * Works with both JWT and form login.
      *
      * @return username
-     * @throws IllegalStateException if user is not authenticated
+     * @throws IllegalStateException
+     *             if user is not authenticated
      */
     public static String getCurrentUsername() {
         final Authentication authentication = securityStrategy.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal() == null) {
             throw new IllegalStateException("User is not authenticated");
         }
-        
+
         if (authentication.getPrincipal() instanceof UserDetails) {
             return ((UserDetails) authentication.getPrincipal()).getUsername();
         }
-        
+
         // For JWT with UUID principal, we can't get username directly
         // Controllers using JWT should use getCurrentUserId() instead
         throw new IllegalStateException("Cannot get username from UUID principal. Use getCurrentUserId() for JWT authentication.");

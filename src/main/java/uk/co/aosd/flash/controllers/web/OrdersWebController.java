@@ -1,6 +1,9 @@
 package uk.co.aosd.flash.controllers.web;
 
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,14 +13,13 @@ import uk.co.aosd.flash.security.CustomUserDetailsService;
 import uk.co.aosd.flash.security.SecurityUtils;
 import uk.co.aosd.flash.services.OrderService;
 
-import java.util.UUID;
-
 /**
  * Web controller for order pages.
  */
 @Controller
 @RequestMapping("/orders")
 @RequiredArgsConstructor
+@Slf4j(topic = "OrdersWebController")
 public class OrdersWebController {
 
     private final OrderService orderService;
@@ -27,6 +29,7 @@ public class OrdersWebController {
         try {
             return SecurityUtils.getCurrentUserId();
         } catch (final IllegalStateException e) {
+            log.error("Error getting current user ID", e);
             // Form login - look up user ID from username
             final String username = SecurityUtils.getCurrentUsername();
             final UUID userId = userDetailsService.getUserIdByUsername(username);
