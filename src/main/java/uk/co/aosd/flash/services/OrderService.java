@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -58,6 +60,7 @@ public class OrderService {
      * @throws InsufficientStockException if there's not enough stock
      */
     @Transactional
+    @CacheEvict(value = {"orders:user", "activeSales"}, key = "#userId", allEntries = true)
     public OrderResponseDto createOrder(@Valid final CreateOrderDto createOrderDto, final UUID userId) {
         log.info("Creating order for user {} for flash sale item {}", userId, createOrderDto.flashSaleItemId());
 
@@ -157,6 +160,7 @@ public class OrderService {
      * @param orderId the order ID
      */
     @Transactional
+    @CacheEvict(value = {"orders", "orders:user"}, allEntries = true)
     public void processOrderPayment(final UUID orderId) {
         log.info("Processing payment for order {}", orderId);
 
@@ -235,6 +239,7 @@ public class OrderService {
      * @param orderId the order ID
      */
     @Transactional
+    @CacheEvict(value = {"orders", "orders:user"}, allEntries = true)
     public void handleRefund(final UUID orderId) {
         log.info("Handling refund for order {}", orderId);
 
@@ -298,6 +303,7 @@ public class OrderService {
      * @param orderId the order ID
      */
     @Transactional
+    @CacheEvict(value = {"orders", "orders:user"}, allEntries = true)
     public void processFailedPayment(final UUID orderId) {
         log.info("Processing failed payment for order {}", orderId);
 
@@ -338,6 +344,7 @@ public class OrderService {
      * @param orderId the order ID
      */
     @Transactional
+    @CacheEvict(value = {"orders", "orders:user"}, allEntries = true)
     public void processDispatch(final UUID orderId) {
         log.info("Processing dispatch for order {}", orderId);
 
@@ -379,6 +386,7 @@ public class OrderService {
      * @return OrderDetailDto with complete order information
      * @throws OrderNotFoundException if order doesn't exist or doesn't belong to user
      */
+    @Cacheable(value = "orders", key = "#orderId + ':' + #userId")
     public OrderDetailDto getOrderById(final UUID orderId, final UUID userId) {
         log.info("Fetching order {} for user {}", orderId, userId);
 
@@ -402,6 +410,7 @@ public class OrderService {
      * @return list of OrderDetailDto matching the criteria
      * @throws IllegalArgumentException if date range is invalid (startDate > endDate)
      */
+    @Cacheable(value = "orders:user", key = "#userId + ':' + (#status != null ? #status.toString() : 'null') + ':' + (#startDate != null ? #startDate.toString() : 'null') + ':' + (#endDate != null ? #endDate.toString() : 'null')")
     public List<OrderDetailDto> getOrdersByUser(
         final UUID userId,
         final OrderStatus status,
@@ -448,6 +457,7 @@ public class OrderService {
      * @return list of OrderDetailDto matching the criteria
      * @throws IllegalArgumentException if date range is invalid (startDate > endDate)
      */
+    @Cacheable(value = "orders:all", key = "(#status != null ? #status.toString() : 'null') + ':' + (#startDate != null ? #startDate.toString() : 'null') + ':' + (#endDate != null ? #endDate.toString() : 'null') + ':' + (#userId != null ? #userId.toString() : 'null')")
     public List<OrderDetailDto> getAllOrders(
         final OrderStatus status,
         final OffsetDateTime startDate,
@@ -478,6 +488,7 @@ public class OrderService {
      * @return OrderDetailDto with complete order information
      * @throws OrderNotFoundException if order doesn't exist
      */
+    @Cacheable(value = "orders", key = "#orderId + ':admin'")
     public OrderDetailDto getOrderByIdForAdmin(final UUID orderId) {
         log.info("Fetching order {} for admin", orderId);
 
@@ -501,6 +512,7 @@ public class OrderService {
      * @throws IllegalStateException if stock operations fail
      */
     @Transactional
+    @CacheEvict(value = {"orders", "orders:user"}, allEntries = true)
     public void updateOrderStatus(final UUID orderId, final OrderStatus newStatus) {
         log.info("Updating order {} status", orderId);
 

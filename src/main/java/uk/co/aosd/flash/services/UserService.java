@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -128,6 +129,7 @@ public class UserService {
      * @return user DTO
      * @throws jakarta.persistence.EntityNotFoundException if user not found
      */
+    @Cacheable(value = "users", key = "#userId")
     @Transactional(readOnly = true)
     public UserDto findById(final UUID userId) {
         final User user = userRepository.findById(userId)
@@ -151,6 +153,7 @@ public class UserService {
      * @param username username
      * @return user or null if not found
      */
+    @Cacheable(value = "users", key = "#username")
     @Transactional(readOnly = true)
     public User findByUsername(final String username) {
         return userRepository.findByUsername(username).orElse(null);

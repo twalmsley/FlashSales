@@ -47,6 +47,7 @@ public class ProductsService {
      * Create a product.
      */
     @Transactional
+    @CacheEvict(value = "products", allEntries = true)
     public UUID createProduct(@Valid final ProductDto productDto) throws DuplicateEntityException {
         log.info("Creating product: " + productDto);
 
@@ -84,6 +85,7 @@ public class ProductsService {
     /**
      * Get all products.
      */
+    @Cacheable(value = "products", key = "'all'")
     @Transactional(readOnly = true)
     public List<ProductDto> getAllProducts() {
         log.info("Getting all products");
@@ -112,7 +114,7 @@ public class ProductsService {
      * Update a product.
      */
     @Transactional
-    @CacheEvict(value = "products", key = "#id")
+    @CacheEvict(value = "products", key = "#id", allEntries = true)
     public void updateProduct(final String id, @Valid final ProductDto product) throws ProductNotFoundException {
         // Validate business rules first
         if (product.reservedCount() > product.totalPhysicalStock()) {
@@ -163,7 +165,7 @@ public class ProductsService {
      * Delete a product.
      */
     @Transactional
-    @CacheEvict(value = "products", key = "#id")
+    @CacheEvict(value = "products", key = "#id", allEntries = true)
     public void deleteProduct(final String id) throws ProductNotFoundException {
         try {
             log.info("Deleting product: " + id);
@@ -184,6 +186,7 @@ public class ProductsService {
     /**
      * Get stock details for a product.
      */
+    @Cacheable(value = "products", key = "#id + ':stock'")
     @Transactional(readOnly = true)
     public ProductStockDto getProductStockById(final String id) throws ProductNotFoundException {
         try {
@@ -205,7 +208,7 @@ public class ProductsService {
      * Update total physical stock for a product.
      */
     @Transactional
-    @CacheEvict(value = "products", key = "#id")
+    @CacheEvict(value = "products", key = "#id", allEntries = true)
     public ProductStockDto updateProductStock(final String id, @Valid final UpdateProductStockDto updateStock)
         throws ProductNotFoundException {
 

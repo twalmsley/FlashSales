@@ -9,6 +9,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.aosd.flash.domain.OrderStatus;
@@ -46,6 +47,7 @@ public class AnalyticsService {
      *            optional end date filter
      * @return sales metrics DTO
      */
+    @Cacheable(value = "analytics:sales", key = "(#startDate != null ? #startDate.toString() : 'null') + ':' + (#endDate != null ? #endDate.toString() : 'null')")
     @Transactional(readOnly = true)
     public SalesMetricsDto getSalesMetrics(final OffsetDateTime startDate, final OffsetDateTime endDate) {
         log.info("Calculating sales metrics for date range: {} to {}", startDate, endDate);
@@ -105,6 +107,7 @@ public class AnalyticsService {
      *            optional end date filter
      * @return revenue metrics DTO
      */
+    @Cacheable(value = "analytics:revenue", key = "(#startDate != null ? #startDate.toString() : 'null') + ':' + (#endDate != null ? #endDate.toString() : 'null')")
     @Transactional(readOnly = true)
     public RevenueMetricsDto getRevenueMetrics(final OffsetDateTime startDate, final OffsetDateTime endDate) {
         log.info("Calculating revenue metrics for date range: {} to {}", startDate, endDate);
@@ -146,6 +149,7 @@ public class AnalyticsService {
      *
      * @return product performance DTO
      */
+    @Cacheable(value = "analytics:products", key = "'all'")
     @Transactional(readOnly = true)
     public ProductPerformanceDto getProductPerformance() {
         log.info("Calculating product performance metrics");
@@ -226,6 +230,7 @@ public class AnalyticsService {
      *            optional end date filter
      * @return order statistics DTO
      */
+    @Cacheable(value = "analytics:orders", key = "(#startDate != null ? #startDate.toString() : 'null') + ':' + (#endDate != null ? #endDate.toString() : 'null')")
     @Transactional(readOnly = true)
     public OrderStatisticsDto getOrderStatistics(final OffsetDateTime startDate, final OffsetDateTime endDate) {
         log.info("Calculating order statistics for date range: {} to {}", startDate, endDate);
