@@ -47,7 +47,7 @@ public class AdminWebController {
     private final AnalyticsService analyticsService;
 
     // Admin Index
-    @GetMapping({"", "/"})
+    @GetMapping({ "", "/" })
     public String adminIndex() {
         return "admin/index";
     }
@@ -213,10 +213,10 @@ public class AdminWebController {
             redirectAttributes.addFlashAttribute("success", "Order status updated successfully");
             return "redirect:/admin/orders/" + id;
         } catch (final InvalidOrderStatusException e) {
-            log.error("Invalid status transition: {} → {} for order {}", 
+            log.error("Invalid status transition: {} → {} for order {}",
                 e.getCurrentStatus(), e.getRequiredStatus(), e.getOrderId());
-            redirectAttributes.addFlashAttribute("error", 
-                String.format("Invalid status transition: %s → %s", 
+            redirectAttributes.addFlashAttribute("error",
+                String.format("Invalid status transition: %s → %s",
                     e.getCurrentStatus(), e.getRequiredStatus()));
             return "redirect:/admin/orders/" + id;
         } catch (final Exception e) {
