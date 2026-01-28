@@ -114,7 +114,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public UI pages
                 .requestMatchers("/", "/login", "/register", "/sales", "/sales/**", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
-                .requestMatchers("/actuator/**").permitAll()
+                // Health endpoint remains public for Kubernetes liveness/readiness probes
+                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                // All other actuator endpoints require ADMIN_USER role for security
+                .requestMatchers("/actuator/**").hasRole("ADMIN_USER")
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // Admin UI pages require ADMIN_USER role
                 .requestMatchers("/admin/**").hasRole("ADMIN_USER")
