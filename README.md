@@ -350,12 +350,17 @@ Both authentication methods share:
   - Authentication APIs (`/api/v1/auth/**`)
   - Public UI pages (`/`, `/login`, `/register`, `/sales`)
   - Swagger UI (`/swagger-ui.html`)
+  - Actuator health endpoints (`/actuator/health`, `/actuator/health/**`) - publicly accessible for Kubernetes liveness/readiness probes
 - **Authenticated Endpoints**: 
   - Client APIs (`/api/v1/clients/**`) - require JWT authentication
   - User UI pages (`/orders`) - require form-based authentication
 - **Admin Endpoints**: 
   - Admin APIs (`/api/v1/admin/**`, `/api/v1/products/**`) - require `ADMIN_USER` role and JWT
   - Admin UI pages (`/admin/**`) - require `ADMIN_USER` role and form-based authentication
+  - Actuator endpoints (`/actuator/**` except `/actuator/health/**`) - require `ADMIN_USER` role and form-based authentication
+    - Access via web UI: Log in as an admin user and navigate to `/actuator/**` endpoints
+    - Examples: `/actuator/metrics`, `/actuator/info`, `/actuator/env`
+    - Note: Health endpoints remain public for container orchestration compatibility
 
 ## Key Features
 
