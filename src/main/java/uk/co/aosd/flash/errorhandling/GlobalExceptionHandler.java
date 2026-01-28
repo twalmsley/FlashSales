@@ -202,9 +202,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(InsufficientStockException.class)
     public ResponseEntity<Map<String, String>> handleInsufficientStockException(final InsufficientStockException e) {
-        log.warn("Insufficient stock: flashSaleItemId={}, requested={}, available={}", 
+        log.warn("Insufficient stock: flashSaleItemId={}, requested={}, available={}",
             e.getFlashSaleItemId(), e.getRequestedQuantity(), e.getAvailableStock());
-        final String message = String.format("Insufficient stock. Requested: %d, Available: %d", 
+        final String message = String.format("Insufficient stock. Requested: %d, Available: %d",
             e.getRequestedQuantity(), e.getAvailableStock());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(errorMapper.createErrorMap(message));
@@ -248,9 +248,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(InvalidOrderStatusException.class)
     public ResponseEntity<Map<String, String>> handleInvalidOrderStatusException(final InvalidOrderStatusException e) {
-        log.warn("Invalid order status: orderId={}, currentStatus={}, requiredStatus={}, operation={}", 
+        log.warn("Invalid order status: orderId={}, currentStatus={}, requiredStatus={}, operation={}",
             e.getOrderId(), e.getCurrentStatus(), e.getRequiredStatus(), e.getOperation());
-        final String message = String.format("Invalid order status for operation '%s'. Current: %s, Required: %s", 
+        final String message = String.format("Invalid order status for operation '%s'. Current: %s, Required: %s",
             e.getOperation(), e.getCurrentStatus(), e.getRequiredStatus());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(errorMapper.createErrorMap(message));
@@ -268,7 +268,8 @@ public class GlobalExceptionHandler {
 
     /**
      * Handle missing static resources (e.g. favicon.ico).
-     * Only handles REST API requests since this handler is restricted to REST controllers.
+     * Only handles REST API requests since this handler is restricted to REST
+     * controllers.
      */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<Map<String, String>> handleNoResourceFoundException(final NoResourceFoundException e) {

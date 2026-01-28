@@ -46,7 +46,7 @@ public class AdminWebController {
     private final AnalyticsService analyticsService;
 
     // Admin Index
-    @GetMapping("/")
+    @GetMapping({"", "/"})
     public String adminIndex() {
         return "admin/index";
     }
