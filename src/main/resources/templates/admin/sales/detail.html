@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org">
+
 <head th:replace="~{layout/base :: head(pageTitle='Flash Sale Details')}"></head>
+
 <body>
     <nav th:replace="~{layout/base :: nav}"></nav>
-    
+
     <main class="container mt-4">
         <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
             <span th:text="${success}">Success message</span>
@@ -13,21 +15,23 @@
             <span th:text="${error}">Error message</span>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-        
+
         <div th:if="${sale}">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 th:text="${sale.title()}">Flash Sale Title</h1>
                 <a th:href="@{/admin/sales}" class="btn btn-secondary">Back to Sales</a>
             </div>
-            
+
             <div class="card mb-4">
                 <div class="card-body">
                     <h5 class="card-title">Sale Information</h5>
                     <p class="card-text">
                         <strong>ID:</strong> <span th:text="${sale.id()}">ID</span><br>
                         <strong>Status:</strong> <span class="badge" th:text="${sale.status()}">Status</span><br>
-                        <strong>Start Time:</strong> <span th:text="${#temporals.format(sale.startTime(), 'yyyy-MM-dd HH:mm')}">Date</span><br>
-                        <strong>End Time:</strong> <span th:text="${#temporals.format(sale.endTime(), 'yyyy-MM-dd HH:mm')}">Date</span>
+                        <strong>Start Time:</strong> <span
+                            th:text="${#temporals.format(sale.startTime(), 'yyyy-MM-dd HH:mm')}">Date</span><br>
+                        <strong>End Time:</strong> <span
+                            th:text="${#temporals.format(sale.endTime(), 'yyyy-MM-dd HH:mm')}">Date</span>
                     </p>
                 </div>
             </div>
@@ -48,7 +52,8 @@
                             <tbody>
                                 <tr th:each="item : ${sale.items()}">
                                     <td th:text="${item.productId()}">Product ID</td>
-                                    <td>$<span th:text="${#numbers.formatDecimal(item.salePrice(), 1, 2)}">0.00</span></td>
+                                    <td>$<span th:text="${#numbers.formatDecimal(item.salePrice(), 1, 2)}">0.00</span>
+                                    </td>
                                     <td th:text="${item.allocatedStock()}">0</td>
                                     <td th:text="${item.soldCount()}">0</td>
                                 </tr>
@@ -66,4 +71,5 @@
     <footer th:replace="~{layout/base :: footer}"></footer>
     <script th:replace="~{layout/base :: scripts}"></script>
 </body>
+
 </html>

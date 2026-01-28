@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org">
+
 <head th:fragment="head(pageTitle)">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link th:href="@{/css/style.css}" rel="stylesheet">
 </head>
+
 <body>
     <nav th:fragment="nav" class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
@@ -22,23 +24,23 @@
                     <li class="nav-item">
                         <a class="nav-link" th:href="@{/sales}">Active Sales</a>
                     </li>
-                    <li class="nav-item" sec:authorize="isAuthenticated()">
+                    <li class="nav-item" th:if="${session.isAuthenticated != null and session.isAuthenticated}">
                         <a class="nav-link" th:href="@{/orders}">My Orders</a>
                     </li>
-                    <li class="nav-item" sec:authorize="hasRole('ADMIN_USER')">
+                    <li class="nav-item" th:if="${session.isAdmin != null and session.isAdmin}">
                         <a class="nav-link" th:href="@{/admin/products}">Admin</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
-                    <li class="nav-item" sec:authorize="!isAuthenticated()">
+                    <li class="nav-item" th:if="${session.isAuthenticated == null or !session.isAuthenticated}">
                         <a class="nav-link" th:href="@{/login}">Login</a>
                     </li>
-                    <li class="nav-item" sec:authorize="!isAuthenticated()">
+                    <li class="nav-item" th:if="${session.isAuthenticated == null or !session.isAuthenticated}">
                         <a class="nav-link" th:href="@{/register}">Register</a>
                     </li>
-                    <li class="nav-item" sec:authorize="isAuthenticated()">
+                    <li class="nav-item" th:if="${session.isAuthenticated != null and session.isAuthenticated}">
                         <form th:action="@{/logout}" method="post" class="d-inline">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
                             <button type="submit" class="btn btn-link nav-link border-0 p-0">Logout</button>
                         </form>
                     </li>
@@ -57,4 +59,5 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     </div>
 </body>
+
 </html>
