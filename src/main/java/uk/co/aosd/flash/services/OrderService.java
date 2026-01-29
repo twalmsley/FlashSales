@@ -3,6 +3,7 @@ package uk.co.aosd.flash.services;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import jakarta.transaction.Transactional;
@@ -286,6 +287,20 @@ public class OrderService {
 
         // Notify user
         notificationService.sendDispatchNotification(order.getUserId(), orderId);
+    }
+
+    /**
+     * Find order by user and flash sale item.
+     * Used on the sale detail page to show "Your order" when the user already has an order for this sale.
+     * Not cached so that creating an order is immediately reflected.
+     *
+     * @param userId the user ID
+     * @param flashSaleItemId the flash sale item ID
+     * @return Optional with OrderDetailDto if an order exists, empty otherwise
+     */
+    public Optional<OrderDetailDto> findOrderByUserAndFlashSaleItem(final UUID userId, final UUID flashSaleItemId) {
+        return orderRepository.findByUserIdAndFlashSaleItemId(userId, flashSaleItemId)
+            .map(this::mapToOrderDetailDto);
     }
 
     /**

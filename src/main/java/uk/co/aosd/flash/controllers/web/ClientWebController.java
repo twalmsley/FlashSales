@@ -62,6 +62,17 @@ public class ClientWebController {
         if (!model.containsAttribute("createOrderDto")) {
             model.addAttribute("createOrderDto", new CreateOrderDto(UUID.fromString(sale.flashSaleItemId()), 1));
         }
+
+        if (SecurityUtils.isAuthenticated()) {
+            try {
+                final UUID userId = getCurrentUserId();
+                orderService.findOrderByUserAndFlashSaleItem(userId, UUID.fromString(itemId))
+                    .ifPresent(order -> model.addAttribute("existingOrder", order));
+            } catch (final Exception e) {
+                log.debug("Could not resolve current user for existing order check: {}", e.getMessage());
+            }
+        }
+
         return "sales/detail";
     }
 

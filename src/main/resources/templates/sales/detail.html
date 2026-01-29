@@ -50,7 +50,26 @@
                 </div>
             </div>
 
-            <div th:if="${session.isAuthenticated != null and session.isAuthenticated}" class="card">
+            <div th:if="${existingOrder != null}" class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Your order</h5>
+                    <p class="card-text">
+                        <strong>Order ID:</strong> <span th:text="${existingOrder.orderId()}">ID</span><br>
+                        <strong>Status:</strong> <span class="badge"
+                            th:classappend="${existingOrder.status().name() == 'PAID' ? 'bg-success' : (existingOrder.status().name() == 'PENDING' ? 'bg-warning' : 'bg-secondary')}"
+                            th:text="${existingOrder.status()}">Status</span><br>
+                        <strong>Price per Item:</strong> $<span
+                            th:text="${#numbers.formatDecimal(existingOrder.soldPrice(), 1, 2)}">0.00</span><br>
+                        <strong>Quantity:</strong> <span th:text="${existingOrder.soldQuantity()}">0</span><br>
+                        <strong>Total:</strong> $<span
+                            th:text="${#numbers.formatDecimal(existingOrder.totalAmount(), 1, 2)}">0.00</span><br>
+                        <strong>Created:</strong> <span
+                            th:text="${#temporals.format(existingOrder.createdAt(), 'yyyy-MM-dd HH:mm')}">Date</span>
+                    </p>
+                    <a th:href="@{/orders}" class="btn btn-secondary">View all orders</a>
+                </div>
+            </div>
+            <div th:if="${session.isAuthenticated != null and session.isAuthenticated and existingOrder == null}" class="card">
                 <div class="card-body">
                     <h5 class="card-title">Place Order</h5>
                     <form th:action="@{/sales/{id}/order(id=${sale.flashSaleItemId()})}" method="post"
