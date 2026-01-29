@@ -1,6 +1,7 @@
 package uk.co.aosd.flash.controllers.web;
 
 import java.time.OffsetDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -132,20 +133,25 @@ public class AdminWebController {
         final BindingResult bindingResult,
         final RedirectAttributes redirectAttributes) {
 
+        final CreateSaleDto dto = createSaleDto.products() != null
+            ? createSaleDto
+            : new CreateSaleDto(createSaleDto.id(), createSaleDto.title(), createSaleDto.startTime(),
+                createSaleDto.endTime(), createSaleDto.status(), Collections.emptyList());
+
         if (bindingResult.hasErrors()) {
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.createSaleDto", bindingResult);
-            redirectAttributes.addFlashAttribute("createSaleDto", createSaleDto);
+            redirectAttributes.addFlashAttribute("createSaleDto", dto);
             return "redirect:/admin/sales/new";
         }
 
         try {
-            final UUID saleId = flashSalesService.createFlashSale(createSaleDto);
+            final UUID saleId = flashSalesService.createFlashSale(dto);
             redirectAttributes.addFlashAttribute("success", "Flash sale created successfully");
             return "redirect:/admin/sales/" + saleId;
         } catch (final Exception e) {
             log.error("Error creating flash sale", e);
             redirectAttributes.addFlashAttribute("error", "Failed to create flash sale: " + e.getMessage());
-            redirectAttributes.addFlashAttribute("createSaleDto", createSaleDto);
+            redirectAttributes.addFlashAttribute("createSaleDto", dto);
             return "redirect:/admin/sales/new";
         }
     }
