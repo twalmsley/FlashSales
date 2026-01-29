@@ -21,6 +21,11 @@ management:
   health:
     probes:
       enabled: true
+    group:
+      liveness:
+        include: ping
+      readiness:
+        include: ping,db,redis,rabbit
   endpoint:
     health:
       show-details: always # Optional: helpful for debugging

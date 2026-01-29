@@ -152,6 +152,16 @@ Content-Type: application/json
 
 **Note**: The API uses JWT-based authentication (stateless), while the UI uses form-based session authentication (stateful).
 
+## Health and Readiness Probes
+
+The application exposes Spring Boot Actuator health endpoints suitable for Kubernetes liveness and readiness probes:
+
+- **`/actuator/health/liveness`** — Liveness: process is alive (ping only). Use for Kubernetes liveness probes.
+- **`/actuator/health/readiness`** — Readiness: process plus external dependencies (database, Redis, RabbitMQ). Returns 200 when the app can serve traffic; returns 503 if DB, Redis, or RabbitMQ is down. Use for Kubernetes readiness probes.
+- **`/actuator/health`** — Full health (all indicators). Use for debugging; response shows which component failed when unhealthy.
+
+All health endpoints are unauthenticated so orchestrators can probe them without credentials.
+
 ## Accessing Swagger UI
 
 Once the application is running, you can access the interactive API documentation at:

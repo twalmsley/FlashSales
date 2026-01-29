@@ -2,6 +2,7 @@ package uk.co.aosd.flash.config;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.rabbitmq.RabbitMQContainer;
 import org.testcontainers.utility.DockerImageName;
 
 /**
@@ -39,6 +41,11 @@ public class ActuatorSecurityTest {
     @SuppressWarnings("resource")
     public static GenericContainer<?> redisContainer = new GenericContainer<>(DockerImageName.parse("redis:latest"))
         .withExposedPorts(6379);
+
+    @Container
+    @ServiceConnection
+    @SuppressWarnings("resource")
+    public static RabbitMQContainer rabbitMQContainer = new RabbitMQContainer(DockerImageName.parse("rabbitmq:latest"));
 
     @Autowired
     private MockMvc mockMvc;
@@ -73,6 +80,14 @@ public class ActuatorSecurityTest {
             .getResponse()
             .getStatus();
         assert status == 200 || status == 503 : "Health readiness should be accessible (200 or 503), got " + status;
+    }
+
+    @Test
+    public void shouldReportReadinessUpWhenExternalServicesAreUp() throws Exception {
+        // Readiness group includes ping, db, redis, rabbit; with all containers up, readiness is UP (200)
+        mockMvc.perform(get("/actuator/health/readiness"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("UP"));
     }
 
     @Test
