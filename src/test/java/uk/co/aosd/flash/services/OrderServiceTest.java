@@ -16,7 +16,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import uk.co.aosd.flash.domain.FlashSale;
 import uk.co.aosd.flash.domain.FlashSaleItem;
 import uk.co.aosd.flash.domain.Order;
@@ -26,6 +25,7 @@ import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.CreateOrderDto;
 import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.OrderResponseDto;
+import uk.co.aosd.flash.dto.ProcessPaymentResult;
 import uk.co.aosd.flash.exc.InsufficientStockException;
 import uk.co.aosd.flash.exc.InvalidOrderStatusException;
 import uk.co.aosd.flash.exc.OrderNotFoundException;
@@ -44,7 +44,6 @@ public class OrderServiceTest {
     private ProductRepository productRepository;
     private PaymentService paymentService;
     private NotificationService notificationService;
-    private RabbitTemplate rabbitTemplate;
     private OrderService orderService;
 
     private UUID userId;
@@ -62,15 +61,13 @@ public class OrderServiceTest {
         productRepository = Mockito.mock(ProductRepository.class);
         paymentService = Mockito.mock(PaymentService.class);
         notificationService = Mockito.mock(NotificationService.class);
-        rabbitTemplate = Mockito.mock(RabbitTemplate.class);
 
         orderService = new OrderService(
             orderRepository,
             flashSaleItemRepository,
             productRepository,
             paymentService,
-            notificationService,
-            rabbitTemplate);
+            notificationService);
 
         userId = UUID.randomUUID();
         flashSaleItemId = UUID.randomUUID();
@@ -102,7 +99,6 @@ public class OrderServiceTest {
         assertNotNull(response);
         assertNotNull(response.orderId());
         assertEquals(OrderStatus.PENDING, response.status());
-        Mockito.verify(rabbitTemplate).convertAndSend(eq("order.exchange"), eq("order.processing"), any(String.class));
         Mockito.verify(notificationService).sendOrderConfirmation(eq(userId), eq(response.orderId()));
     }
 
@@ -145,10 +141,12 @@ public class OrderServiceTest {
         Mockito.when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
         Mockito.when(paymentService.processPayment(orderId, BigDecimal.valueOf(399.95))).thenReturn(true);
 
-        orderService.processOrderPayment(orderId);
+        final ProcessPaymentResult result = orderService.processOrderPayment(orderId);
 
+        assertNotNull(result);
+        assertTrue(result.success());
+        assertEquals(orderId, result.orderId());
         assertEquals(OrderStatus.PAID, order.getStatus());
-        Mockito.verify(rabbitTemplate).convertAndSend(eq("order.exchange"), eq("order.dispatch"), eq(orderId.toString()));
     }
 
     @Test
@@ -166,10 +164,12 @@ public class OrderServiceTest {
         Mockito.when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
         Mockito.when(paymentService.processPayment(orderId, BigDecimal.valueOf(399.95))).thenReturn(false);
 
-        orderService.processOrderPayment(orderId);
+        final ProcessPaymentResult result = orderService.processOrderPayment(orderId);
 
+        assertNotNull(result);
+        assertTrue(!result.success());
+        assertEquals(orderId, result.orderId());
         assertEquals(OrderStatus.FAILED, order.getStatus());
-        Mockito.verify(rabbitTemplate).convertAndSend(eq("order.exchange"), eq("order.payment.failed"), eq(orderId.toString()));
     }
 
     @Test
@@ -191,7 +191,6 @@ public class OrderServiceTest {
 
         assertEquals(OrderStatus.REFUNDED, order.getStatus());
         Mockito.verify(flashSaleItemRepository).decrementSoldCount(flashSaleItemId, 5);
-        Mockito.verify(rabbitTemplate).convertAndSend(eq("order.exchange"), eq("order.refund"), eq(orderId.toString()));
         Mockito.verify(notificationService).sendRefundNotification(userId, orderId);
     }
 

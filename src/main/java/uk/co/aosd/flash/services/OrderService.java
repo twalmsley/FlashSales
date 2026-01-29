@@ -10,13 +10,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-import uk.co.aosd.flash.config.RabbitMQConfig;
 import uk.co.aosd.flash.domain.FlashSaleItem;
 import uk.co.aosd.flash.domain.Order;
 import uk.co.aosd.flash.domain.OrderStatus;
@@ -24,6 +20,7 @@ import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.CreateOrderDto;
 import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.OrderResponseDto;
+import uk.co.aosd.flash.dto.ProcessPaymentResult;
 import uk.co.aosd.flash.exc.InsufficientStockException;
 import uk.co.aosd.flash.exc.InvalidOrderStatusException;
 import uk.co.aosd.flash.exc.OrderNotFoundException;
@@ -46,7 +43,6 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final PaymentService paymentService;
     private final NotificationService notificationService;
-    private final RabbitTemplate rabbitTemplate;
 
     /**
      * Create a new order for an active sale.
@@ -127,41 +123,19 @@ public class OrderService {
         // Send order confirmation notification
         notificationService.sendOrderConfirmation(userId, savedOrder.getId());
 
-        // Queue order for processing AFTER transaction commits
-        // This ensures the order is visible in the database when the consumer processes it
-        final UUID orderIdToQueue = savedOrder.getId();
-        if (TransactionSynchronizationManager.isActualTransactionActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    rabbitTemplate.convertAndSend(
-                        RabbitMQConfig.ORDER_EXCHANGE,
-                        RabbitMQConfig.ROUTING_KEY_PROCESSING,
-                        orderIdToQueue.toString());
-                    log.info("Queued order {} for processing (after transaction commit)", orderIdToQueue);
-                }
-            });
-        } else {
-            // No active transaction, send immediately (e.g., in tests)
-            rabbitTemplate.convertAndSend(
-                RabbitMQConfig.ORDER_EXCHANGE,
-                RabbitMQConfig.ROUTING_KEY_PROCESSING,
-                orderIdToQueue.toString());
-            log.info("Queued order {} for processing", orderIdToQueue);
-        }
-
         return new OrderResponseDto(savedOrder.getId(), OrderStatus.PENDING, "Order created and queued for processing");
     }
 
     /**
      * Process payment for an order.
-     * Attempts to take payment - success means queue for dispatch, failed means queue for failed payment handling.
+     * Attempts to take payment; returns outcome so caller can send dispatch or payment-failed message.
      *
      * @param orderId the order ID
+     * @return ProcessPaymentResult with success flag and orderId
      */
     @Transactional
     @CacheEvict(value = {"orders", "orders:user"}, allEntries = true)
-    public void processOrderPayment(final UUID orderId) {
+    public ProcessPaymentResult processOrderPayment(final UUID orderId) {
         log.info("Processing payment for order {}", orderId);
 
         final Order order = orderRepository.findById(orderId)
@@ -182,53 +156,12 @@ public class OrderService {
             order.setStatus(OrderStatus.PAID);
             orderRepository.save(order);
             log.info("Payment succeeded for order {}. Status updated to PAID", orderId);
-
-            // Queue for dispatch AFTER transaction commits
-            final UUID dispatchOrderId = orderId;
-            if (TransactionSynchronizationManager.isActualTransactionActive()) {
-                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        rabbitTemplate.convertAndSend(
-                            RabbitMQConfig.ORDER_EXCHANGE,
-                            RabbitMQConfig.ROUTING_KEY_DISPATCH,
-                            dispatchOrderId.toString());
-                        log.info("Queued order {} for dispatch (after transaction commit)", dispatchOrderId);
-                    }
-                });
-            } else {
-                rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.ORDER_EXCHANGE,
-                    RabbitMQConfig.ROUTING_KEY_DISPATCH,
-                    dispatchOrderId.toString());
-                log.info("Queued order {} for dispatch", dispatchOrderId);
-            }
-        } else {
-            order.setStatus(OrderStatus.FAILED);
-            orderRepository.save(order);
-            log.warn("Payment failed for order {}. Status updated to FAILED", orderId);
-
-            // Queue for failed payment handling AFTER transaction commits
-            final UUID failedOrderId = orderId;
-            if (TransactionSynchronizationManager.isActualTransactionActive()) {
-                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        rabbitTemplate.convertAndSend(
-                            RabbitMQConfig.ORDER_EXCHANGE,
-                            RabbitMQConfig.ROUTING_KEY_PAYMENT_FAILED,
-                            failedOrderId.toString());
-                        log.info("Queued order {} for failed payment handling (after transaction commit)", failedOrderId);
-                    }
-                });
-            } else {
-                rabbitTemplate.convertAndSend(
-                    RabbitMQConfig.ORDER_EXCHANGE,
-                    RabbitMQConfig.ROUTING_KEY_PAYMENT_FAILED,
-                    failedOrderId.toString());
-                log.info("Queued order {} for failed payment handling", failedOrderId);
-            }
+            return new ProcessPaymentResult(true, orderId);
         }
+        order.setStatus(OrderStatus.FAILED);
+        orderRepository.save(order);
+        log.warn("Payment failed for order {}. Status updated to FAILED", orderId);
+        return new ProcessPaymentResult(false, orderId);
     }
 
     /**
@@ -269,30 +202,8 @@ public class OrderService {
         orderRepository.save(order);
         log.info("Order {} status updated to REFUNDED", orderId);
 
-        // Queue for refund notification AFTER transaction commits
-        final UUID refundOrderId = orderId;
-        final UUID refundUserId = order.getUserId();
-        if (TransactionSynchronizationManager.isActualTransactionActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    rabbitTemplate.convertAndSend(
-                        RabbitMQConfig.ORDER_EXCHANGE,
-                        RabbitMQConfig.ROUTING_KEY_REFUND,
-                        refundOrderId.toString());
-                    log.info("Queued order {} for refund notification (after transaction commit)", refundOrderId);
-                }
-            });
-        } else {
-            rabbitTemplate.convertAndSend(
-                RabbitMQConfig.ORDER_EXCHANGE,
-                RabbitMQConfig.ROUTING_KEY_REFUND,
-                refundOrderId.toString());
-            log.info("Queued order {} for refund notification", refundOrderId);
-        }
-
         // Notify user (can be done synchronously as it's just logging)
-        notificationService.sendRefundNotification(refundUserId, refundOrderId);
+        notificationService.sendRefundNotification(order.getUserId(), orderId);
     }
 
     /**

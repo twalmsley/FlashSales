@@ -2,6 +2,7 @@ package uk.co.aosd.flash.controllers;
 
 // Static imports for the fluent API (crucial for readability)
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -69,6 +70,9 @@ public class ClientRestApiTest {
     @MockitoBean
     private OrderService orderService;
 
+    @MockitoBean
+    private OrderMessageSender orderMessageSender;
+
     @BeforeAll
     public static void beforeAll() {
         objectMapper = new ObjectMapper();
@@ -77,7 +81,7 @@ public class ClientRestApiTest {
 
     @BeforeEach
     public void beforeEach() {
-        Mockito.reset(productsService, activeSalesService, draftSalesService, orderService);
+        Mockito.reset(productsService, activeSalesService, draftSalesService, orderService, orderMessageSender);
         TestJwtUtils.clearSecurityContext();
     }
 
@@ -303,6 +307,7 @@ public class ClientRestApiTest {
         final var response = objectMapper.readValue(result.getResponse().getContentAsString(), OrderResponseDto.class);
         assertEquals(orderId, response.orderId());
         assertEquals(OrderStatus.PENDING, response.status());
+        verify(orderMessageSender).sendForProcessing(orderId);
     }
 
     @Test
@@ -325,6 +330,7 @@ public class ClientRestApiTest {
             .andReturn();
 
         Mockito.verify(orderService).handleRefund(orderId);
+        verify(orderMessageSender).sendForRefund(orderId);
     }
 
     @Test

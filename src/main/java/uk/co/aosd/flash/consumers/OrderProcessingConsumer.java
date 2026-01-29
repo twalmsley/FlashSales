@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 import uk.co.aosd.flash.config.RabbitMQConfig;
+import uk.co.aosd.flash.services.OrderMessageSender;
 import uk.co.aosd.flash.services.OrderService;
 
 /**
@@ -20,6 +21,7 @@ public class OrderProcessingConsumer {
     private static final Logger log = LoggerFactory.getLogger(OrderProcessingConsumer.class);
 
     private final OrderService orderService;
+    private final OrderMessageSender orderMessageSender;
 
     /**
      * Listen to order processing queue and process payment.
@@ -32,7 +34,12 @@ public class OrderProcessingConsumer {
         try {
             final UUID orderId = UUID.fromString(orderIdStr);
             log.info("Received order processing message for order {}", orderId);
-            orderService.processOrderPayment(orderId);
+            final var result = orderService.processOrderPayment(orderId);
+            if (result.success()) {
+                orderMessageSender.sendForDispatch(result.orderId());
+            } else {
+                orderMessageSender.sendForPaymentFailed(result.orderId());
+            }
         } catch (final Exception e) {
             log.error("Error processing order payment for order ID: {}", orderIdStr, e);
             throw e; // Re-throw to trigger retry mechanism
