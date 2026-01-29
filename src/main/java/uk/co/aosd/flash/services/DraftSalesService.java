@@ -29,10 +29,16 @@ public class DraftSalesService {
 
     private Function<FlashSale, ClientDraftSaleDto> toClientDraftSaleDto = sale -> {
         final List<DraftSaleProductDto> products = sale.getItems().stream()
-            .map(item -> new DraftSaleProductDto(
-                item.getProduct().getId().toString(),
-                item.getAllocatedStock(),
-                item.getSalePrice()))
+            .map(item -> {
+                final var product = item.getProduct();
+                return new DraftSaleProductDto(
+                    product.getId().toString(),
+                    product.getName(),
+                    product.getDescription(),
+                    product.getBasePrice(),
+                    item.getAllocatedStock(),
+                    item.getSalePrice());
+            })
             .toList();
 
         return new ClientDraftSaleDto(

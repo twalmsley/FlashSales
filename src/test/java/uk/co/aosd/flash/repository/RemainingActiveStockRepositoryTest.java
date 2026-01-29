@@ -81,6 +81,9 @@ public class RemainingActiveStockRepositoryTest {
         assertEquals(savedFlashSale.getId(), result.getSaleId());
         assertEquals("Active Sale", result.getTitle());
         assertEquals(savedProduct.getId(), result.getProductId());
+        assertEquals("Product 1", result.getProductName());
+        assertEquals("Product 1 description", result.getProductDescription());
+        assertEquals(0, BigDecimal.valueOf(99.99).compareTo(result.getBasePrice()));
         assertEquals(10, result.getAllocatedStock());
         assertEquals(5, result.getSoldCount());
         assertEquals(0, BigDecimal.valueOf(89.99).compareTo(result.getSalePrice()));

@@ -37,6 +37,12 @@ public record ClientDraftSaleDto(
     public record DraftSaleProductDto(
         @Schema(description = "Product identifier.", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
         String productId,
+        @Schema(description = "Product name.", example = "Winter Jacket")
+        String productName,
+        @Schema(description = "Product description.", example = "Warm winter jacket.")
+        String productDescription,
+        @Schema(description = "Product base price (catalog price).", example = "49.99")
+        BigDecimal basePrice,
         @Schema(description = "Stock allocated to this sale item.", example = "25")
         Integer allocatedStock,
         @Schema(description = "Sale price for this item.", example = "19.99")

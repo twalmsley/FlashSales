@@ -1,6 +1,8 @@
 package uk.co.aosd.flash.services;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 
 import lombok.RequiredArgsConstructor;
@@ -24,18 +26,19 @@ public class ActiveSalesService {
 
     private final RemainingActiveStockRepository repository;
 
-    private Function<RemainingActiveStock, ClientActiveSaleDto> toClientActiveSaleDto = stock -> {
-        return new ClientActiveSaleDto(
-            stock.getSaleId().toString(),
-            stock.getItemId().toString(),
-            stock.getTitle(),
-            stock.getStartTime(),
-            stock.getEndTime(),
-            stock.getProductId().toString(),
-            stock.getAllocatedStock(),
-            stock.getSoldCount(),
-            stock.getSalePrice());
-    };
+    private Function<RemainingActiveStock, ClientActiveSaleDto> toClientActiveSaleDto = stock -> new ClientActiveSaleDto(
+        stock.getSaleId().toString(),
+        stock.getItemId().toString(),
+        stock.getTitle(),
+        stock.getStartTime(),
+        stock.getEndTime(),
+        stock.getProductId().toString(),
+        stock.getProductName(),
+        stock.getProductDescription(),
+        stock.getBasePrice(),
+        stock.getAllocatedStock(),
+        stock.getSoldCount(),
+        stock.getSalePrice());
 
     /**
      * Get all active sales with remaining stock.
@@ -47,5 +50,16 @@ public class ActiveSalesService {
     public List<ClientActiveSaleDto> getActiveSales() {
         log.info("Getting all active sales");
         return repository.findAll().stream().map(toClientActiveSaleDto).toList();
+    }
+
+    /**
+     * Get a single active sale by flash sale item id.
+     *
+     * @param flashSaleItemId the flash sale item id
+     * @return Optional containing the active sale if found and still active with remaining stock
+     */
+    @Transactional(readOnly = true)
+    public Optional<ClientActiveSaleDto> getActiveSaleByFlashSaleItemId(final UUID flashSaleItemId) {
+        return repository.findById(flashSaleItemId).map(toClientActiveSaleDto);
     }
 }

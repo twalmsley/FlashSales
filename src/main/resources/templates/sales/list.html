@@ -22,6 +22,9 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title" th:text="${sale.title()}">Sale Title</h5>
+                        <p class="card-text" th:if="${sale.productName() != null}">
+                            <strong>Product:</strong> <span th:text="${sale.productName()}">Product name</span><br>
+                        </p>
                         <p class="card-text">
                             <strong>Price:</strong> $<span
                                 th:text="${#numbers.formatDecimal(sale.salePrice(), 1, 2)}">0.00</span><br>

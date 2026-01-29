@@ -119,9 +119,15 @@ public class DraftSalesServiceTest {
         assertEquals(endTime, dto.endTime());
         assertEquals(2, dto.products().size());
         assertEquals(productId1, dto.products().get(0).productId());
+        assertEquals("Product 1", dto.products().get(0).productName());
+        assertEquals("Description 1", dto.products().get(0).productDescription());
+        assertEquals(0, BigDecimal.valueOf(99.99).compareTo(dto.products().get(0).basePrice()));
         assertEquals(15, dto.products().get(0).allocatedStock());
         assertEquals(0, BigDecimal.valueOf(89.99).compareTo(dto.products().get(0).salePrice()));
         assertEquals(productId2, dto.products().get(1).productId());
+        assertEquals("Product 2", dto.products().get(1).productName());
+        assertEquals("Description 2", dto.products().get(1).productDescription());
+        assertEquals(0, BigDecimal.valueOf(199.99).compareTo(dto.products().get(1).basePrice()));
         assertEquals(25, dto.products().get(1).allocatedStock());
         assertEquals(0, BigDecimal.valueOf(179.99).compareTo(dto.products().get(1).salePrice()));
     }

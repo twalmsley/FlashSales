@@ -50,4 +50,13 @@ public class RemainingActiveStock {
 
     @Column(name = "sale_price")
     private BigDecimal salePrice;
+
+    @Column(name = "product_name")
+    private String productName;
+
+    @Column(name = "product_description")
+    private String productDescription;
+
+    @Column(name = "base_price")
+    private BigDecimal basePrice;
 }

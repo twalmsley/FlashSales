@@ -28,6 +28,9 @@ public class ClientActiveSaleDtoTest {
             startTime,
             endTime,
             "product-1",
+            "Product Name",
+            "Product description",
+            BigDecimal.valueOf(109.99),
             100,
             10,
             BigDecimal.valueOf(99.99));
@@ -52,6 +55,9 @@ public class ClientActiveSaleDtoTest {
             startTime,
             endTime,
             "product-1",
+            "Product Name",
+            "Product description",
+            BigDecimal.valueOf(109.99),
             100,
             10,
             BigDecimal.valueOf(99.99));
@@ -74,6 +80,9 @@ public class ClientActiveSaleDtoTest {
             startTime,
             endTime,
             "product-1",
+            "Product Name",
+            "Product description",
+            BigDecimal.valueOf(109.99),
             100,
             10,
             BigDecimal.valueOf(99.99));
@@ -96,6 +105,9 @@ public class ClientActiveSaleDtoTest {
             startTime,
             endTime,
             "product-1",
+            "Product Name",
+            "Product description",
+            BigDecimal.valueOf(109.99),
             100,
             10,
             BigDecimal.valueOf(99.99));
