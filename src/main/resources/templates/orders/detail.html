@@ -28,6 +28,19 @@
                     <a th:href="@{/orders}" class="btn btn-secondary">Back to Orders</a>
                 </div>
             </div>
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">Product Information</h5>
+                    <p class="card-text">
+                        <strong>Product ID:</strong> <span th:text="${order.productId()}">—</span><br>
+                        <strong>Product name:</strong> <span th:text="${order.productName() != null ? order.productName() : '—'}">—</span><br>
+                        <th:block th:if="${order.flashSaleId() != null}">
+                            <strong>Flash sale ID:</strong> <span th:text="${order.flashSaleId()}">—</span><br>
+                            <strong>Flash sale:</strong> <span th:text="${order.flashSaleTitle() != null ? order.flashSaleTitle() : '—'}">—</span>
+                        </th:block>
+                    </p>
+                </div>
+            </div>
         </div>
     </main>
 
