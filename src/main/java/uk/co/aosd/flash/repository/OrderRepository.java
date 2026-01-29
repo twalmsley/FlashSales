@@ -54,6 +54,25 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     Optional<Order> findByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
 
     /**
+     * Find order by user and flash sale item with all related entities eagerly loaded.
+     * Used to check if the user already has an order for a given sale on the sale detail page.
+     *
+     * @param userId
+     *            the user ID
+     * @param flashSaleItemId
+     *            the flash sale item ID
+     * @return the order with product, flashSaleItem, and flashSale loaded
+     */
+    @Query("SELECT o FROM Order o " +
+        "LEFT JOIN FETCH o.product p " +
+        "LEFT JOIN FETCH o.flashSaleItem fsi " +
+        "LEFT JOIN FETCH fsi.flashSale fs " +
+        "WHERE o.userId = :userId AND o.flashSaleItem.id = :flashSaleItemId")
+    Optional<Order> findByUserIdAndFlashSaleItemId(
+        @Param("userId") UUID userId,
+        @Param("flashSaleItemId") UUID flashSaleItemId);
+
+    /**
      * Find all orders for a user with all related entities eagerly loaded.
      * Results are ordered by createdAt descending (most recent first).
      *

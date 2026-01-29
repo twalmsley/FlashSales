@@ -97,6 +97,45 @@ public class OrderRepositoryTest {
     }
 
     @Test
+    public void shouldFindOrderByUserIdAndFlashSaleItemId() {
+        final UUID userId1 = UUID.randomUUID();
+        final UUID userId2 = UUID.randomUUID();
+
+        final Product product = new Product(null, "Test Product", "Description", 100, BigDecimal.valueOf(99.99), 10);
+        final Product savedProduct = productRepository.save(product);
+
+        final FlashSale flashSale = new FlashSale(null, "Test Sale",
+            OffsetDateTime.now().minusHours(1),
+            OffsetDateTime.now().plusHours(1),
+            SaleStatus.ACTIVE, List.of());
+        final FlashSale savedFlashSale = flashSaleRepository.save(flashSale);
+
+        final FlashSaleItem flashSaleItem = new FlashSaleItem(null, savedFlashSale, savedProduct, 50, 0, BigDecimal.valueOf(79.99));
+        final FlashSaleItem savedFlashSaleItem = flashSaleItemRepository.save(flashSaleItem);
+
+        final Order order = new Order();
+        order.setUserId(userId1);
+        order.setFlashSaleItem(savedFlashSaleItem);
+        order.setProduct(savedProduct);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.PAID);
+        order.setCreatedAt(OffsetDateTime.now());
+        final Order savedOrder = orderRepository.save(order);
+
+        final Optional<Order> found = orderRepository.findByUserIdAndFlashSaleItemId(userId1, savedFlashSaleItem.getId());
+        assertTrue(found.isPresent());
+        assertEquals(savedOrder.getId(), found.get().getId());
+        assertEquals(userId1, found.get().getUserId());
+        assertEquals(savedFlashSaleItem.getId(), found.get().getFlashSaleItem().getId());
+        assertNotNull(found.get().getProduct());
+        assertNotNull(found.get().getFlashSaleItem().getFlashSale());
+
+        final Optional<Order> notFound = orderRepository.findByUserIdAndFlashSaleItemId(userId2, savedFlashSaleItem.getId());
+        assertFalse(notFound.isPresent());
+    }
+
+    @Test
     public void shouldFindOrdersByUserId() {
         final UUID userId1 = UUID.randomUUID();
         final UUID userId2 = UUID.randomUUID();

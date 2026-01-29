@@ -1,6 +1,7 @@
 package uk.co.aosd.flash.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -326,6 +327,43 @@ public class OrderServiceTest {
         assertThrows(OrderNotFoundException.class, () -> {
             orderService.getOrderById(orderId, userId);
         });
+    }
+
+    @Test
+    public void shouldFindOrderByUserAndFlashSaleItemWhenOrderExists() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.PAID);
+        order.setCreatedAt(OffsetDateTime.now());
+
+        Mockito.when(orderRepository.findByUserIdAndFlashSaleItemId(userId, flashSaleItemId))
+            .thenReturn(Optional.of(order));
+
+        final Optional<OrderDetailDto> result = orderService.findOrderByUserAndFlashSaleItem(userId, flashSaleItemId);
+
+        assertTrue(result.isPresent());
+        assertEquals(orderId, result.get().orderId());
+        assertEquals(userId, result.get().userId());
+        assertEquals(flashSaleItemId, result.get().flashSaleItemId());
+        assertEquals(BigDecimal.valueOf(79.99), result.get().soldPrice());
+        assertEquals(5, result.get().soldQuantity());
+        assertEquals(OrderStatus.PAID, result.get().status());
+    }
+
+    @Test
+    public void shouldFindOrderByUserAndFlashSaleItemReturnEmptyWhenNoOrder() {
+        Mockito.when(orderRepository.findByUserIdAndFlashSaleItemId(userId, flashSaleItemId))
+            .thenReturn(Optional.empty());
+
+        final Optional<OrderDetailDto> result = orderService.findOrderByUserAndFlashSaleItem(userId, flashSaleItemId);
+
+        assertFalse(result.isPresent());
     }
 
     @Test
