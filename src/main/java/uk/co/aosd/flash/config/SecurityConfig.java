@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.web.cors.CorsConfigurationSource;
 import uk.co.aosd.flash.security.CustomAuthenticationSuccessHandler;
 import uk.co.aosd.flash.security.JwtAuthenticationEntryPoint;
 import uk.co.aosd.flash.security.JwtAuthenticationFilter;
@@ -37,6 +38,7 @@ public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomAuthenticationSuccessHandler authenticationSuccessHandler;
+    private final CorsConfigurationSource corsConfigurationSource;
 
     /**
      * Security filter chain for API endpoints (JWT-based, stateless).
@@ -47,6 +49,8 @@ public class SecurityConfig {
     public SecurityFilterChain apiSecurityFilterChain(final HttpSecurity http) throws Exception {
         http
             .securityMatcher("/api/**")
+            // Enable CORS for cross-origin API requests (preflight and actual requests)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
             // Disable CSRF for stateless JWT-based API
             .csrf(AbstractHttpConfigurer::disable)
             // Configure stateless session management
