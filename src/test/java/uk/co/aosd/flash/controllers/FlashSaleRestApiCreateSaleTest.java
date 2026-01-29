@@ -104,8 +104,7 @@ public class FlashSaleRestApiCreateSaleTest {
             .andExpect(content().string(containsString("A non-empty title is needed for the sale.")))
             .andExpect(content().string(containsString("The sale needs a valid start time.")))
             .andExpect(content().string(containsString("The sale needs a valid end time.")))
-            .andExpect(content().string(containsString("The sale needs a valid status.")))
-            .andExpect(content().string(containsString("The sale needs at least one product.")));
+            .andExpect(content().string(containsString("The sale needs a valid status.")));
 
         verify(salesService, times(0)).createFlashSale(saleDto);
 

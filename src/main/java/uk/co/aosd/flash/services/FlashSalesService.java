@@ -24,6 +24,7 @@ import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.AddFlashSaleItemDto;
 import uk.co.aosd.flash.dto.CreateSaleDto;
 import uk.co.aosd.flash.dto.FlashSaleItemDto;
+import uk.co.aosd.flash.dto.SaleProductDto;
 import uk.co.aosd.flash.dto.FlashSaleResponseDto;
 import uk.co.aosd.flash.dto.UpdateFlashSaleDto;
 import uk.co.aosd.flash.dto.UpdateFlashSaleItemDto;
@@ -104,8 +105,9 @@ public class FlashSalesService {
             // there is enough.
             final List<String> missingProducts = new ArrayList<>();
             final List<Product> notEnoughStockProducts = new ArrayList<>();
+            final List<SaleProductDto> productList = sale.products() != null ? sale.products() : List.of();
 
-            sale.products().forEach(sp -> {
+            productList.forEach(sp -> {
                 final var maybeProduct = products.findById(UUID.fromString(sp.id()));
                 maybeProduct.ifPresentOrElse(p -> {
                     if (p.getReservedCount() + sp.reservedCount() > p.getTotalPhysicalStock()) {

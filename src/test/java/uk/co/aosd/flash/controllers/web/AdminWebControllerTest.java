@@ -44,7 +44,7 @@ import uk.co.aosd.flash.services.OrderService;
 import uk.co.aosd.flash.services.ProductsService;
 
 @WebMvcTest(controllers = AdminWebController.class)
-@Import({ TestSecurityConfig.class, uk.co.aosd.flash.errorhandling.ErrorMapper.class })
+@Import({ TestSecurityConfig.class, uk.co.aosd.flash.config.WebMvcConfig.class, uk.co.aosd.flash.errorhandling.ErrorMapper.class })
 @ActiveProfiles("test")
 class AdminWebControllerTest {
 
@@ -185,6 +185,27 @@ class AdminWebControllerTest {
             .andExpect(view().name("admin/sales/new"))
             .andExpect(model().attributeExists("createSaleDto"))
             .andExpect(model().attributeExists("products"));
+    }
+
+    @Test
+    void createSale_withDatetimeLocalFormatAndNoProducts_redirectsToSaleDetail() throws Exception {
+        final UUID saleId = UUID.randomUUID();
+        when(flashSalesService.createFlashSale(any())).thenReturn(saleId);
+        when(productsService.getAllProducts()).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(post("/admin/sales")
+                .with(user("admin").roles("ADMIN_USER"))
+                .with(csrf())
+                .param("id", "")
+                .param("title", "New Flash Sale")
+                .param("startTime", "2026-02-01T14:30")
+                .param("endTime", "2026-02-01T16:00")
+                .param("status", "DRAFT"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/sales/" + saleId))
+            .andExpect(flash().attribute("success", "Flash sale created successfully"));
+
+        verify(flashSalesService).createFlashSale(any());
     }
 
     @Test

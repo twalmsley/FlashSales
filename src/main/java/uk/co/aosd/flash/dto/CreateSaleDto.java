@@ -31,7 +31,7 @@ public record CreateSaleDto(
     @NotNull(message = "The sale needs a valid end time.") OffsetDateTime endTime,
     @Schema(description = "Initial sale status.", example = "DRAFT")
     @NotNull(message = "The sale needs a valid status.") SaleStatus status,
-    @Schema(description = "Products to include in the sale, with reserved allocations.")
-    @Valid @NotEmpty(message = "The sale needs at least one product.") List<SaleProductDto> products
+    @Schema(description = "Products to include in the sale, with reserved allocations. May be empty when creating via UI; products can be added after creation.")
+    @Valid List<SaleProductDto> products
 ) implements Serializable {
 }
