@@ -2,6 +2,7 @@ package uk.co.aosd.flash.controllers.web;
 
 import java.util.UUID;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -47,7 +48,10 @@ public class ClientWebController {
     }
 
     @GetMapping("/{itemId}")
-    public String saleDetail(@PathVariable final String itemId, final Model model) {
+    public String saleDetail(
+        @PathVariable final String itemId,
+        final Model model,
+        final HttpServletRequest request) {
         final var sales = activeSalesService.getActiveSales();
         final var sale = sales.stream()
             .filter(s -> s.flashSaleItemId().equals(itemId))
@@ -63,13 +67,26 @@ public class ClientWebController {
             model.addAttribute("createOrderDto", new CreateOrderDto(UUID.fromString(sale.flashSaleItemId()), 1));
         }
 
-        if (SecurityUtils.isAuthenticated()) {
-            try {
-                final UUID userId = getCurrentUserId();
-                orderService.findOrderByUserAndFlashSaleItem(userId, UUID.fromString(itemId))
-                    .ifPresent(order -> model.addAttribute("existingOrder", order));
-            } catch (final Exception e) {
-                log.debug("Could not resolve current user for existing order check: {}", e.getMessage());
+        // Use session first (same source as template's session.isAuthenticated) so we always
+        // show "Your order" when the user is logged in and has an order, even if SecurityContext
+        // is not populated on this request.
+        final var session = request.getSession(false);
+        if (session != null && Boolean.TRUE.equals(session.getAttribute("isAuthenticated"))) {
+            UUID userId = (UUID) session.getAttribute("userId");
+            if (userId == null) {
+                try {
+                    userId = getCurrentUserId();
+                } catch (final Exception e) {
+                    log.debug("Could not resolve current user for existing order check: {}", e.getMessage());
+                }
+            }
+            if (userId != null) {
+                try {
+                    orderService.findOrderByUserAndFlashSaleItem(userId, UUID.fromString(itemId))
+                        .ifPresent(order -> model.addAttribute("existingOrder", order));
+                } catch (final Exception e) {
+                    log.warn("Failed to load existing order for sale detail: {}", e.getMessage());
+                }
             }
         }
 
