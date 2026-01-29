@@ -4,25 +4,42 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Method;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Map;
+import java.util.UUID;
 
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.core.MethodParameter;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
+import uk.co.aosd.flash.exc.FlashSaleItemNotFoundException;
+import uk.co.aosd.flash.exc.FlashSaleNotFoundException;
 import uk.co.aosd.flash.exc.InsufficientResourcesException;
+import uk.co.aosd.flash.exc.InsufficientStockException;
+import uk.co.aosd.flash.exc.InvalidOrderStatusException;
 import uk.co.aosd.flash.exc.InvalidSaleTimesException;
+import uk.co.aosd.flash.exc.OrderNotFoundException;
 import uk.co.aosd.flash.exc.ProductNotFoundException;
 import uk.co.aosd.flash.exc.SaleDurationTooShortException;
+import uk.co.aosd.flash.exc.SaleNotActiveException;
+import uk.co.aosd.flash.domain.OrderStatus;
 
 /**
  * Tests for GlobalExceptionHandler.
@@ -175,5 +192,190 @@ public class GlobalExceptionHandlerTest {
         assertNotNull(response.getBody());
         assertTrue(response.getBody().containsKey("message"));
         assertTrue(response.getBody().get("message").contains("Resource not found"));
+    }
+
+    @Test
+    public void shouldHandleMethodArgumentNotValidException_withFieldError() throws Exception {
+        final MethodParameter parameter = new MethodParameter(
+            GlobalExceptionHandlerTest.class.getMethod("dummyMethodForParameter", String.class), 0);
+        final BindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "target");
+        bindingResult.addError(new FieldError("target", "username", "must not be blank"));
+        final MethodArgumentNotValidException ex = new MethodArgumentNotValidException(parameter, bindingResult);
+
+        final ResponseEntity<Map<String, String>> response = handler.handleMethodArgumentNotValidException(ex);
+
+        assertEquals(HttpStatus.UNPROCESSABLE_CONTENT, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().containsKey("message"));
+        assertTrue(response.getBody().get("message").contains("username"));
+        assertTrue(response.getBody().get("message").contains("must not be blank"));
+    }
+
+    @Test
+    public void shouldHandleMethodArgumentNotValidException_withObjectError() throws Exception {
+        final MethodParameter parameter = new MethodParameter(
+            GlobalExceptionHandlerTest.class.getMethod("dummyMethodForParameter", String.class), 0);
+        final BindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "target");
+        bindingResult.addError(new ObjectError("target", "Invalid target object"));
+        final MethodArgumentNotValidException ex = new MethodArgumentNotValidException(parameter, bindingResult);
+
+        final ResponseEntity<Map<String, String>> response = handler.handleMethodArgumentNotValidException(ex);
+
+        assertEquals(HttpStatus.UNPROCESSABLE_CONTENT, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().containsKey("message"));
+        assertTrue(response.getBody().get("message").contains("target"));
+        assertTrue(response.getBody().get("message").contains("Invalid target object"));
+    }
+
+    @Test
+    public void shouldHandleDataIntegrityViolationException_genericMessage() {
+        final DataIntegrityViolationException ex = new DataIntegrityViolationException("constraint violation");
+
+        final ResponseEntity<Map<String, String>> response = handler.handleDataIntegrityViolationException(ex);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().containsKey("message"));
+        assertTrue(response.getBody().get("message").contains("data constraint"));
+    }
+
+    @Test
+    public void shouldHandleDataIntegrityViolationException_reservedCountMessage() {
+        final DataIntegrityViolationException ex = new DataIntegrityViolationException(
+            "constraint reserved_count check failed");
+
+        final ResponseEntity<Map<String, String>> response = handler.handleDataIntegrityViolationException(ex);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("message").contains("Reserved count cannot exceed total physical stock"));
+    }
+
+    @Test
+    public void shouldHandleIllegalArgumentException() {
+        final IllegalArgumentException ex = new IllegalArgumentException("Invalid value");
+
+        final ResponseEntity<Map<String, String>> response = handler.handleIllegalArgumentException(ex);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Invalid value", response.getBody().get("message"));
+    }
+
+    @Test
+    public void shouldHandleSaleNotActiveException() {
+        final var endTime = OffsetDateTime.now(ZoneOffset.UTC);
+        final var currentTime = OffsetDateTime.now(ZoneOffset.UTC).plusSeconds(1);
+        final SaleNotActiveException ex = new SaleNotActiveException(UUID.randomUUID(), endTime, currentTime);
+
+        final ResponseEntity<Map<String, String>> response = handler.handleSaleNotActiveException(ex);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("message").contains("Sale has ended"));
+    }
+
+    @Test
+    public void shouldHandleInsufficientStockException() {
+        final InsufficientStockException ex = new InsufficientStockException(
+            UUID.randomUUID(), 5, 2);
+
+        final ResponseEntity<Map<String, String>> response = handler.handleInsufficientStockException(ex);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("message").contains("Insufficient stock"));
+        assertTrue(response.getBody().get("message").contains("5"));
+        assertTrue(response.getBody().get("message").contains("2"));
+    }
+
+    @Test
+    public void shouldHandleOrderNotFoundException() {
+        final var orderId = UUID.randomUUID();
+        final OrderNotFoundException ex = new OrderNotFoundException(orderId);
+
+        final ResponseEntity<Map<String, String>> response = handler.handleOrderNotFoundException(ex);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("message").contains(orderId.toString()));
+    }
+
+    @Test
+    public void shouldHandleFlashSaleNotFoundException() {
+        final var saleId = UUID.randomUUID();
+        final FlashSaleNotFoundException ex = new FlashSaleNotFoundException(saleId);
+
+        final ResponseEntity<Map<String, String>> response = handler.handleFlashSaleNotFoundException(ex);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("message").contains(saleId.toString()));
+    }
+
+    @Test
+    public void shouldHandleFlashSaleItemNotFoundException() {
+        final var itemId = UUID.randomUUID();
+        final FlashSaleItemNotFoundException ex = new FlashSaleItemNotFoundException(itemId);
+
+        final ResponseEntity<Map<String, String>> response = handler.handleFlashSaleItemNotFoundException(ex);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("message").contains(itemId.toString()));
+    }
+
+    @Test
+    public void shouldHandleInvalidOrderStatusException() {
+        final var orderId = UUID.randomUUID();
+        final InvalidOrderStatusException ex = new InvalidOrderStatusException(
+            orderId, OrderStatus.PENDING, OrderStatus.PAID, "dispatch");
+
+        final ResponseEntity<Map<String, String>> response = handler.handleInvalidOrderStatusException(ex);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("message").contains("Invalid order status"));
+        assertTrue(response.getBody().get("message").contains("PENDING"));
+        assertTrue(response.getBody().get("message").contains("PAID"));
+    }
+
+    @Test
+    public void shouldHandleBadCredentialsException() {
+        final BadCredentialsException ex = new BadCredentialsException("Bad credentials");
+
+        final ResponseEntity<Map<String, String>> response = handler.handleBadCredentialsException(ex);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Invalid credentials", response.getBody().get("message"));
+    }
+
+    @Test
+    public void shouldHandleIllegalStateException_notAuthenticated_returns401() {
+        final IllegalStateException ex = new IllegalStateException("User is not authenticated");
+
+        final ResponseEntity<Map<String, String>> response = handler.handleIllegalStateException(ex);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Authentication required", response.getBody().get("message"));
+    }
+
+    @Test
+    public void shouldHandleIllegalStateException_generic_returns500() {
+        final IllegalStateException ex = new IllegalStateException("Invalid state");
+
+        final ResponseEntity<Map<String, String>> response = handler.handleIllegalStateException(ex);
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().get("message").contains("unexpected error"));
+    }
+
+    @SuppressWarnings("unused")
+    public static void dummyMethodForParameter(final String arg) {
+        // Used only to obtain a MethodParameter for MethodArgumentNotValidException tests
     }
 }
