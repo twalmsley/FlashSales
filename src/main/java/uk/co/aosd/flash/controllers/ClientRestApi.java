@@ -40,6 +40,7 @@ import uk.co.aosd.flash.dto.ProductDto;
 import uk.co.aosd.flash.security.SecurityUtils;
 import uk.co.aosd.flash.services.ActiveSalesService;
 import uk.co.aosd.flash.services.DraftSalesService;
+import uk.co.aosd.flash.services.OrderMessageSender;
 import uk.co.aosd.flash.services.OrderService;
 import uk.co.aosd.flash.services.ProductsService;
 
@@ -65,6 +66,7 @@ public class ClientRestApi {
     private final DraftSalesService draftSalesService;
 
     private final OrderService orderService;
+    private final OrderMessageSender orderMessageSender;
 
     /**
      * Get a client's view of a product.
@@ -210,6 +212,7 @@ public class ClientRestApi {
         try {
             final OrderResponseDto response = orderService.createOrder(createOrderDto, userId);
             log.info("Order created successfully: {}", response.orderId());
+            orderMessageSender.sendForProcessing(response.orderId());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (final Exception e) {
             log.error("Failed to create order", e);
@@ -368,6 +371,7 @@ public class ClientRestApi {
             // Validate ownership before processing refund
             orderService.getOrderById(orderUuid, userId);
             orderService.handleRefund(orderUuid);
+            orderMessageSender.sendForRefund(orderUuid);
             log.info("Refund processed successfully for order {}", orderId);
             return ResponseEntity.ok(new OrderResponseDto(orderUuid, null, "Refund processed successfully"));
         } catch (final IllegalArgumentException e) {

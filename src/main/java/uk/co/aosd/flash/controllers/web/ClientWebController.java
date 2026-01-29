@@ -20,6 +20,7 @@ import uk.co.aosd.flash.dto.CreateOrderDto;
 import uk.co.aosd.flash.security.CustomUserDetailsService;
 import uk.co.aosd.flash.security.SecurityUtils;
 import uk.co.aosd.flash.services.ActiveSalesService;
+import uk.co.aosd.flash.services.OrderMessageSender;
 import uk.co.aosd.flash.services.OrderService;
 import uk.co.aosd.flash.services.ProductsService;
 
@@ -36,6 +37,7 @@ public class ClientWebController {
     private final ActiveSalesService activeSalesService;
     private final ProductsService productsService;
     private final OrderService orderService;
+    private final OrderMessageSender orderMessageSender;
     private final CustomUserDetailsService userDetailsService;
 
     @GetMapping
@@ -80,6 +82,7 @@ public class ClientWebController {
         try {
             final UUID userId = getCurrentUserId();
             final var order = orderService.createOrder(createOrderDto, userId);
+            orderMessageSender.sendForProcessing(order.orderId());
             redirectAttributes.addFlashAttribute("success", "Order created successfully! Order ID: " + order.orderId());
             return "redirect:/orders";
         } catch (final Exception e) {
