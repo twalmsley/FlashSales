@@ -382,6 +382,38 @@ The application includes comprehensive test coverage using Testcontainers for in
 ./mvnw test
 ```
 
+## Releasing
+
+The project uses the [Maven Release Plugin](https://maven.apache.org/maven-release/maven-release-plugin/) to create versioned releases, tag the repository, and publish artifacts.
+
+### Prerequisites
+
+- Clean working tree (no uncommitted changes)
+- Git credentials configured (SSH or token) for pushing and tagging
+- For `release:perform` deploy: GitHub Packages credentials in `~/.m2/settings.xml` (server id `github`) if publishing to GitHub Packages
+
+### Release workflow
+
+1. **Prepare a release** (validates SCM, runs tests, updates POM version, creates tag, commits):
+   ```bash
+   ./mvnw release:prepare
+   ```
+   To validate without committing or tagging:
+   ```bash
+   ./mvnw release:prepare -DdryRun=true
+   ```
+
+2. **Perform the release** (checks out the tag, builds, and deploys artifacts):
+   ```bash
+   ./mvnw release:perform
+   ```
+   To validate deploy configuration without deploying:
+   ```bash
+   ./mvnw release:perform -DdryRun=true
+   ```
+
+The plugin uses tag format `v@{project.version}` (e.g. `v0.0.1`). It does not skip tests by default; ensure the environment (e.g. Testcontainers, ports) is suitable for release runs.
+
 ## License
 
 This is a skills demonstration project.
