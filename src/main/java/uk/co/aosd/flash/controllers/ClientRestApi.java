@@ -133,6 +133,51 @@ public class ClientRestApi {
     }
 
     /**
+     * Get a single active sale by flash sale item id.
+     *
+     * @param flashSaleItemId the flash sale item id (UUID)
+     * @return ClientActiveSaleDto if found and active with remaining stock, 404 otherwise
+     */
+    @GetMapping("/sales/{flashSaleItemId}")
+    @Operation(
+        summary = "Get active sale by id",
+        description = "Returns a single active flash sale item by its id, with product details. Returns 404 if not found or not active."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Active sale found.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ClientActiveSaleDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Active sale not found.",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid UUID format.",
+            content = @Content
+        )
+    })
+    public ResponseEntity<ClientActiveSaleDto> getActiveSaleById(
+        @Parameter(description = "Flash sale item identifier (UUID).", example = "b1b7a3c0-8d3b-4d10-8cc1-3c5f88f4bb5a")
+        @PathVariable final String flashSaleItemId) {
+        try {
+            final UUID itemId = UUID.fromString(flashSaleItemId);
+            final var sale = activeSalesService.getActiveSaleByFlashSaleItemId(itemId);
+            if (sale.isEmpty()) {
+                log.info("Active sale not found for flash sale item id: {}", flashSaleItemId);
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(sale.get());
+        } catch (final IllegalArgumentException e) {
+            log.warn("Invalid flash sale item id: {}", flashSaleItemId);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
      * Get all DRAFT flash sales coming up within the next N days.
      *
      * @param days

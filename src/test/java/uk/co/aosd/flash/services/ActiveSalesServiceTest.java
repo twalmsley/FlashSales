@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -60,7 +61,10 @@ public class ActiveSalesServiceTest {
             UUID.fromString(productId1),
             10,
             5,
-            BigDecimal.valueOf(89.99));
+            BigDecimal.valueOf(89.99),
+            "Product 1",
+            "Description 1",
+            BigDecimal.valueOf(99.99));
 
         final RemainingActiveStock stock2 = new RemainingActiveStock(
             UUID.fromString(itemId2),
@@ -71,7 +75,10 @@ public class ActiveSalesServiceTest {
             UUID.fromString(productId2),
             20,
             10,
-            BigDecimal.valueOf(79.99));
+            BigDecimal.valueOf(79.99),
+            "Product 2",
+            "Description 2",
+            BigDecimal.valueOf(89.99));
 
         final List<RemainingActiveStock> seed = List.of(stock1, stock2);
         Mockito.when(repository.findAll()).thenReturn(seed);
@@ -98,7 +105,10 @@ public class ActiveSalesServiceTest {
             UUID.fromString(productId1),
             15,
             8,
-            BigDecimal.valueOf(99.99));
+            BigDecimal.valueOf(99.99),
+            "Test Product",
+            "Test description",
+            BigDecimal.valueOf(109.99));
 
         Mockito.when(repository.findAll()).thenReturn(List.of(stock));
 
@@ -114,8 +124,41 @@ public class ActiveSalesServiceTest {
         assertEquals(startTime, dto.startTime());
         assertEquals(endTime, dto.endTime());
         assertEquals(productId1, dto.productId());
+        assertEquals("Test Product", dto.productName());
+        assertEquals("Test description", dto.productDescription());
+        assertEquals(0, BigDecimal.valueOf(109.99).compareTo(dto.basePrice()));
         assertEquals(15, dto.allocatedStock());
         assertEquals(8, dto.soldCount());
         assertEquals(0, BigDecimal.valueOf(99.99).compareTo(dto.salePrice()));
+    }
+
+    @Test
+    public void shouldReturnEmptyWhenActiveSaleByItemIdNotFound() {
+        Mockito.when(repository.findById(UUID.fromString(itemId1))).thenReturn(Optional.empty());
+        assertTrue(service.getActiveSaleByFlashSaleItemId(UUID.fromString(itemId1)).isEmpty());
+    }
+
+    @Test
+    public void shouldReturnActiveSaleByFlashSaleItemId() {
+        final OffsetDateTime startTime = OffsetDateTime.of(2026, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC);
+        final OffsetDateTime endTime = startTime.plusHours(1);
+        final RemainingActiveStock stock = new RemainingActiveStock(
+            UUID.fromString(itemId1),
+            UUID.fromString(saleId1),
+            "Sale 1",
+            startTime,
+            endTime,
+            UUID.fromString(productId1),
+            10,
+            5,
+            BigDecimal.valueOf(89.99),
+            "Product 1",
+            "Desc 1",
+            BigDecimal.valueOf(99.99));
+        Mockito.when(repository.findById(UUID.fromString(itemId1))).thenReturn(Optional.of(stock));
+        final var result = service.getActiveSaleByFlashSaleItemId(UUID.fromString(itemId1));
+        assertTrue(result.isPresent());
+        assertEquals(itemId1, result.get().flashSaleItemId());
+        assertEquals("Product 1", result.get().productName());
     }
 }

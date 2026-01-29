@@ -130,6 +130,9 @@ public class ClientRestApiTest {
             startTime,
             endTime,
             "11111111-1111-1111-1111-111111111111",
+            "Product 1",
+            "Description 1",
+            BigDecimal.valueOf(99.99),
             10,
             5,
             BigDecimal.valueOf(89.99));
@@ -141,6 +144,9 @@ public class ClientRestApiTest {
             startTime.plusDays(1),
             endTime.plusDays(1),
             "22222222-2222-2222-2222-222222222222",
+            "Product 2",
+            "Description 2",
+            BigDecimal.valueOf(89.99),
             20,
             10,
             BigDecimal.valueOf(79.99));
@@ -163,6 +169,9 @@ public class ClientRestApiTest {
         assertEquals(sale1.flashSaleItemId(), result.get(0).flashSaleItemId());
         assertEquals(sale1.title(), result.get(0).title());
         assertEquals(sale1.productId(), result.get(0).productId());
+        assertEquals(sale1.productName(), result.get(0).productName());
+        assertEquals(sale1.productDescription(), result.get(0).productDescription());
+        assertEquals(0, sale1.basePrice().compareTo(result.get(0).basePrice()));
         assertEquals(sale1.allocatedStock(), result.get(0).allocatedStock());
         assertEquals(sale1.soldCount(), result.get(0).soldCount());
         assertEquals(0, sale1.salePrice().compareTo(result.get(0).salePrice()));
@@ -171,9 +180,63 @@ public class ClientRestApiTest {
         assertEquals(sale2.flashSaleItemId(), result.get(1).flashSaleItemId());
         assertEquals(sale2.title(), result.get(1).title());
         assertEquals(sale2.productId(), result.get(1).productId());
+        assertEquals(sale2.productName(), result.get(1).productName());
+        assertEquals(sale2.productDescription(), result.get(1).productDescription());
+        assertEquals(0, sale2.basePrice().compareTo(result.get(1).basePrice()));
         assertEquals(sale2.allocatedStock(), result.get(1).allocatedStock());
         assertEquals(sale2.soldCount(), result.get(1).soldCount());
         assertEquals(0, sale2.salePrice().compareTo(result.get(1).salePrice()));
+    }
+
+    @Test
+    public void shouldReturnActiveSaleByIdWhenFound() throws Exception {
+        final OffsetDateTime startTime = OffsetDateTime.of(2026, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC);
+        final OffsetDateTime endTime = startTime.plusHours(1);
+        final String itemId = "ab3b715e-e2c2-4c28-925d-83ac93c32d02";
+        final ClientActiveSaleDto sale = new ClientActiveSaleDto(
+            "547cf74d-7b64-44ea-b70f-cbcde09cadc9",
+            itemId,
+            "Sale 1",
+            startTime,
+            endTime,
+            "11111111-1111-1111-1111-111111111111",
+            "Product 1",
+            "Description 1",
+            BigDecimal.valueOf(99.99),
+            10,
+            5,
+            BigDecimal.valueOf(89.99));
+        Mockito.when(activeSalesService.getActiveSaleByFlashSaleItemId(java.util.UUID.fromString(itemId)))
+            .thenReturn(Optional.of(sale));
+
+        final var getResult = mockMvc.perform(get("/api/v1/clients/sales/" + itemId)
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final var result = objectMapper.readValue(getResult.getResponse().getContentAsString(), ClientActiveSaleDto.class);
+        assertEquals(sale.saleId(), result.saleId());
+        assertEquals(sale.flashSaleItemId(), result.flashSaleItemId());
+        assertEquals(sale.productName(), result.productName());
+        assertEquals(sale.productDescription(), result.productDescription());
+    }
+
+    @Test
+    public void shouldReturn404WhenActiveSaleByIdNotFound() throws Exception {
+        final String itemId = "ab3b715e-e2c2-4c28-925d-83ac93c32d02";
+        Mockito.when(activeSalesService.getActiveSaleByFlashSaleItemId(java.util.UUID.fromString(itemId)))
+            .thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/v1/clients/sales/" + itemId)
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void shouldReturn400WhenActiveSaleByIdInvalidUuid() throws Exception {
+        mockMvc.perform(get("/api/v1/clients/sales/not-a-uuid")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -199,11 +262,17 @@ public class ClientRestApiTest {
 
         final ClientDraftSaleDto.DraftSaleProductDto product1 = new ClientDraftSaleDto.DraftSaleProductDto(
             "11111111-1111-1111-1111-111111111111",
+            "Product 1",
+            "Description 1",
+            BigDecimal.valueOf(99.99),
             10,
             BigDecimal.valueOf(89.99));
 
         final ClientDraftSaleDto.DraftSaleProductDto product2 = new ClientDraftSaleDto.DraftSaleProductDto(
             "22222222-2222-2222-2222-222222222222",
+            "Product 2",
+            "Description 2",
+            BigDecimal.valueOf(89.99),
             20,
             BigDecimal.valueOf(79.99));
 
@@ -241,6 +310,9 @@ public class ClientRestApiTest {
         assertEquals(sale1.endTime(), result.get(0).endTime());
         assertEquals(1, result.get(0).products().size());
         assertEquals(product1.productId(), result.get(0).products().get(0).productId());
+        assertEquals(product1.productName(), result.get(0).products().get(0).productName());
+        assertEquals(product1.productDescription(), result.get(0).products().get(0).productDescription());
+        assertEquals(0, product1.basePrice().compareTo(result.get(0).products().get(0).basePrice()));
         assertEquals(product1.allocatedStock(), result.get(0).products().get(0).allocatedStock());
         assertEquals(0, product1.salePrice().compareTo(result.get(0).products().get(0).salePrice()));
 
@@ -250,6 +322,9 @@ public class ClientRestApiTest {
         assertEquals(sale2.endTime(), result.get(1).endTime());
         assertEquals(1, result.get(1).products().size());
         assertEquals(product2.productId(), result.get(1).products().get(0).productId());
+        assertEquals(product2.productName(), result.get(1).products().get(0).productName());
+        assertEquals(product2.productDescription(), result.get(1).products().get(0).productDescription());
+        assertEquals(0, product2.basePrice().compareTo(result.get(1).products().get(0).basePrice()));
         assertEquals(product2.allocatedStock(), result.get(1).products().get(0).allocatedStock());
         assertEquals(0, product2.salePrice().compareTo(result.get(1).products().get(0).salePrice()));
     }

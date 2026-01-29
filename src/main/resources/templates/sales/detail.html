@@ -18,6 +18,20 @@
 
         <div th:if="${sale}">
             <h1 th:text="${sale.title()}">Sale Title</h1>
+            <div th:if="${sale.productName() != null}" class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Product</h5>
+                    <p class="card-text">
+                        <strong>Name:</strong> <span th:text="${sale.productName()}">Product name</span><br>
+                        <th:block th:if="${sale.productDescription() != null and !sale.productDescription().isEmpty()}">
+                            <strong>Description:</strong> <span th:text="${sale.productDescription()}">Description</span><br>
+                        </th:block>
+                        <th:block th:if="${sale.basePrice() != null}">
+                            <strong>Base price:</strong> $<span th:text="${#numbers.formatDecimal(sale.basePrice(), 1, 2)}">0.00</span><br>
+                        </th:block>
+                    </p>
+                </div>
+            </div>
             <div class="card mb-4">
                 <div class="card-body">
                     <h5 class="card-title">Sale Information</h5>
