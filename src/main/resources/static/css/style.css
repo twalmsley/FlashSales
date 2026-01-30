@@ -16,3 +16,13 @@ main {
 .card:hover {
     transform: translateY(-5px);
 }
+
+/* Dark mode overrides: footer and custom elements */
+[data-bs-theme="dark"] footer.bg-light {
+    background-color: var(--bs-dark) !important;
+    color: var(--bs-body-color);
+}
+
+[data-bs-theme="dark"] footer .text-muted {
+    color: var(--bs-secondary-color) !important;
+}
