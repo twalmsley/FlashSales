@@ -27,7 +27,7 @@
                         <td th:text="${product.id()}">ID</td>
                         <td th:text="${product.name()}">Name</td>
                         <td th:text="${product.description()}">Description</td>
-                        <td>$<span th:text="${#numbers.formatDecimal(product.basePrice(), 1, 2)}">0.00</span></td>
+                        <td>£<span th:text="${#numbers.formatDecimal(product.basePrice(), 1, 2)}">0.00</span></td>
                         <td th:text="${product.totalPhysicalStock()}">0</td>
                         <td><a th:href="@{/admin/products/{id}(id=${product.id()})}" class="btn btn-sm btn-outline-primary">View</a></td>
                     </tr>

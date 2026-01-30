@@ -31,9 +31,9 @@
                     <div class="card-body">
                         <h5 class="card-title">Revenue Metrics</h5>
                         <p th:if="${revenueMetrics}" class="card-text">
-                            <strong>Total Revenue:</strong> $<span
+                            <strong>Total Revenue:</strong> £<span
                                 th:text="${#numbers.formatDecimal(revenueMetrics.totalRevenue(), 1, 2)}">0.00</span><br>
-                            <strong>Average Order Value:</strong> $<span
+                            <strong>Average Order Value:</strong> £<span
                                 th:text="${#numbers.formatDecimal(revenueMetrics.averageOrderValue(), 1, 2)}">0.00</span>
                         </p>
                     </div>

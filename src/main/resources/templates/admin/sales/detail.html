@@ -52,7 +52,7 @@
                             <tbody>
                                 <tr th:each="item : ${sale.items()}">
                                     <td th:text="${item.productId()}">Product ID</td>
-                                    <td>$<span th:text="${#numbers.formatDecimal(item.salePrice(), 1, 2)}">0.00</span>
+                                    <td>£<span th:text="${#numbers.formatDecimal(item.salePrice(), 1, 2)}">0.00</span>
                                     </td>
                                     <td th:text="${item.allocatedStock()}">0</td>
                                     <td th:text="${item.soldCount()}">0</td>

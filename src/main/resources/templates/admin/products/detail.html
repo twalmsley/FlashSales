@@ -13,7 +13,7 @@
                     <p class="card-text">
                         <strong>ID:</strong> <span th:text="${product.id()}">ID</span><br>
                         <strong>Description:</strong> <span th:text="${product.description()}">Description</span><br>
-                        <strong>Base Price:</strong> $<span th:text="${#numbers.formatDecimal(product.basePrice(), 1, 2)}">0.00</span><br>
+                        <strong>Base Price:</strong> £<span th:text="${#numbers.formatDecimal(product.basePrice(), 1, 2)}">0.00</span><br>
                         <strong>Total Physical Stock:</strong> <span th:text="${product.totalPhysicalStock()}">0</span><br>
                         <strong>Reserved Count:</strong> <span th:text="${product.reservedCount()}">0</span>
                     </p>

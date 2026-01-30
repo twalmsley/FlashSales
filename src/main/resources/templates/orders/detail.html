@@ -17,10 +17,10 @@
                         <strong>Status:</strong> <span class="badge"
                             th:classappend="${order.status().name() == 'PAID' ? 'bg-success' : (order.status().name() == 'PENDING' ? 'bg-warning' : 'bg-secondary')}"
                             th:text="${order.status()}">Status</span><br>
-                        <strong>Price per Item:</strong> $<span
+                        <strong>Price per Item:</strong> £<span
                             th:text="${#numbers.formatDecimal(order.soldPrice(), 1, 2)}">0.00</span><br>
                         <strong>Quantity:</strong> <span th:text="${order.soldQuantity()}">0</span><br>
-                        <strong>Total:</strong> $<span
+                        <strong>Total:</strong> £<span
                             th:text="${#numbers.formatDecimal(order.totalAmount(), 1, 2)}">0.00</span><br>
                         <strong>Created:</strong> <span
                             th:text="${#temporals.format(order.createdAt(), 'yyyy-MM-dd HH:mm')}">Date</span>

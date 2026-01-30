@@ -27,7 +27,7 @@
                             <strong>Description:</strong> <span th:text="${sale.productDescription()}">Description</span><br>
                         </th:block>
                         <th:block th:if="${sale.basePrice() != null}">
-                            <strong>Base price:</strong> $<span th:text="${#numbers.formatDecimal(sale.basePrice(), 1, 2)}">0.00</span><br>
+                            <strong>Base price:</strong> £<span th:text="${#numbers.formatDecimal(sale.basePrice(), 1, 2)}">0.00</span><br>
                         </th:block>
                     </p>
                 </div>
@@ -36,7 +36,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Sale Information</h5>
                     <p class="card-text">
-                        <strong>Price:</strong> $<span
+                        <strong>Price:</strong> £<span
                             th:text="${#numbers.formatDecimal(sale.salePrice(), 1, 2)}">0.00</span><br>
                         <strong>Available Stock:</strong> <span
                             th:text="${sale.allocatedStock() - sale.soldCount()}">0</span><br>
@@ -58,10 +58,10 @@
                         <strong>Status:</strong> <span class="badge"
                             th:classappend="${existingOrder.status().name() == 'PAID' ? 'bg-success' : (existingOrder.status().name() == 'PENDING' ? 'bg-warning' : 'bg-secondary')}"
                             th:text="${existingOrder.status()}">Status</span><br>
-                        <strong>Price per Item:</strong> $<span
+                        <strong>Price per Item:</strong> £<span
                             th:text="${#numbers.formatDecimal(existingOrder.soldPrice(), 1, 2)}">0.00</span><br>
                         <strong>Quantity:</strong> <span th:text="${existingOrder.soldQuantity()}">0</span><br>
-                        <strong>Total:</strong> $<span
+                        <strong>Total:</strong> £<span
                             th:text="${#numbers.formatDecimal(existingOrder.totalAmount(), 1, 2)}">0.00</span><br>
                         <strong>Created:</strong> <span
                             th:text="${#temporals.format(existingOrder.createdAt(), 'yyyy-MM-dd HH:mm')}">Date</span>

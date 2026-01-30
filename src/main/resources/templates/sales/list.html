@@ -26,7 +26,7 @@
                             <strong>Product:</strong> <span th:text="${sale.productName()}">Product name</span><br>
                         </p>
                         <p class="card-text">
-                            <strong>Price:</strong> $<span
+                            <strong>Price:</strong> £<span
                                 th:text="${#numbers.formatDecimal(sale.salePrice(), 1, 2)}">0.00</span><br>
                             <strong>Stock:</strong> <span th:text="${sale.allocatedStock() - sale.soldCount()}">0</span>
                             available<br>
