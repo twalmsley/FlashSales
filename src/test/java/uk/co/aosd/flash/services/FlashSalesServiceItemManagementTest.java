@@ -398,18 +398,19 @@ public class FlashSalesServiceItemManagementTest {
             BigDecimal.valueOf(50.0), 30);
         final var sale = createTestSale(saleId, "Draft Sale", SaleStatus.DRAFT);
         final var item = new FlashSaleItem(itemId, sale, product, 20, 0, BigDecimal.valueOf(40.0));
+        sale.getItems().add(item);
 
         when(sales.findByIdWithItems(saleId)).thenReturn(Optional.of(sale));
-        when(items.findByIdAndFlashSaleId(itemId, saleId)).thenReturn(Optional.of(item));
         when(products.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(sales.findByIdWithItems(saleId)).thenReturn(Optional.of(sale));
+        when(sales.save(any(FlashSale.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         final FlashSaleResponseDto result = service.removeFlashSaleItem(saleId, itemId);
 
         assertNotNull(result);
         assertEquals(10, product.getReservedCount()); // 30 - 20 = 10
-        verify(items, times(1)).delete(item);
         verify(products, times(1)).save(product);
+        verify(sales, times(1)).save(sale);
+        verify(sales, times(1)).flush();
     }
 
     @Test
@@ -421,18 +422,19 @@ public class FlashSalesServiceItemManagementTest {
             BigDecimal.valueOf(50.0), 30);
         final var sale = createTestSale(saleId, "Draft Sale", SaleStatus.DRAFT);
         final var item = new FlashSaleItem(itemId, sale, product, 20, 5, BigDecimal.valueOf(40.0)); // 5 sold
+        sale.getItems().add(item);
 
         when(sales.findByIdWithItems(saleId)).thenReturn(Optional.of(sale));
-        when(items.findByIdAndFlashSaleId(itemId, saleId)).thenReturn(Optional.of(item));
         when(products.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(sales.findByIdWithItems(saleId)).thenReturn(Optional.of(sale));
+        when(sales.save(any(FlashSale.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         final FlashSaleResponseDto result = service.removeFlashSaleItem(saleId, itemId);
 
         assertNotNull(result);
         assertEquals(15, product.getReservedCount()); // 30 - (20 - 5) = 15
-        verify(items, times(1)).delete(item);
         verify(products, times(1)).save(product);
+        verify(sales, times(1)).save(sale);
+        verify(sales, times(1)).flush();
     }
 
     @Test

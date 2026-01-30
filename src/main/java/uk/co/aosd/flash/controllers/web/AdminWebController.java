@@ -1,5 +1,6 @@
 package uk.co.aosd.flash.controllers.web;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -20,13 +21,21 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import jakarta.servlet.http.HttpServletResponse;
 import uk.co.aosd.flash.domain.SaleStatus;
+import uk.co.aosd.flash.dto.AddFlashSaleItemDto;
 import uk.co.aosd.flash.dto.CreateSaleDto;
 import uk.co.aosd.flash.dto.FlashSaleResponseDto;
 import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.ProductDto;
+import uk.co.aosd.flash.dto.UpdateFlashSaleItemDto;
 import uk.co.aosd.flash.dto.UpdateOrderStatusDto;
+import uk.co.aosd.flash.exc.FlashSaleItemNotFoundException;
+import uk.co.aosd.flash.exc.FlashSaleNotFoundException;
+import uk.co.aosd.flash.exc.InsufficientResourcesException;
 import uk.co.aosd.flash.exc.InvalidOrderStatusException;
+import uk.co.aosd.flash.exc.ProductNotFoundException;
 import uk.co.aosd.flash.services.AnalyticsService;
 import uk.co.aosd.flash.services.FlashSalesService;
 import uk.co.aosd.flash.services.OrderService;
@@ -157,15 +166,134 @@ public class AdminWebController {
     }
 
     @GetMapping("/sales/{id}")
-    public String viewSale(@PathVariable final String id, final Model model) {
+    public String viewSale(@PathVariable final String id, final Model model, final HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setDateHeader("Expires", 0);
         try {
             final UUID saleId = UUID.fromString(id);
             final FlashSaleResponseDto sale = flashSalesService.getFlashSaleById(saleId);
             model.addAttribute("sale", sale);
             model.addAttribute("products", productsService.getAllProducts());
+            if (!model.containsAttribute("addFlashSaleItemDto")) {
+                model.addAttribute("addFlashSaleItemDto", new AddFlashSaleItemDto("", 0, null));
+            }
             return "admin/sales/detail";
         } catch (final Exception e) {
             return "redirect:/admin/sales?error=notfound";
+        }
+    }
+
+    @PostMapping("/sales/{id}/items")
+    public String addSaleItem(
+        @PathVariable final String id,
+        @Valid @ModelAttribute("addFlashSaleItemDto") final AddFlashSaleItemDto dto,
+        final BindingResult bindingResult,
+        final RedirectAttributes redirectAttributes) {
+
+        if (bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.addFlashSaleItemDto", bindingResult);
+            redirectAttributes.addFlashAttribute("addFlashSaleItemDto", dto);
+            return "redirect:/admin/sales/" + id;
+        }
+
+        try {
+            final UUID saleId = UUID.fromString(id);
+            flashSalesService.addItemsToFlashSale(saleId, List.of(dto));
+            redirectAttributes.addFlashAttribute("success", "Flash sale item added successfully");
+            return "redirect:/admin/sales/" + id;
+        } catch (final IllegalArgumentException e) {
+            log.warn("Cannot add item to sale {}: {}", id, e.getMessage());
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/admin/sales/" + id;
+        } catch (final FlashSaleNotFoundException e) {
+            log.warn("Flash sale not found: {}", id);
+            redirectAttributes.addFlashAttribute("error", "Flash sale not found");
+            return "redirect:/admin/sales/" + id;
+        } catch (final ProductNotFoundException e) {
+            final String msg = e.getMessage() != null && !e.getMessage().isEmpty() ? e.getMessage() : "Product not found";
+            redirectAttributes.addFlashAttribute("error", msg);
+            return "redirect:/admin/sales/" + id;
+        } catch (final InsufficientResourcesException e) {
+            redirectAttributes.addFlashAttribute("error", "Insufficient stock: " + e.getMessage());
+            return "redirect:/admin/sales/" + id;
+        } catch (final Exception e) {
+            log.error("Error adding flash sale item", e);
+            redirectAttributes.addFlashAttribute("error", "Failed to add item: " + e.getMessage());
+            return "redirect:/admin/sales/" + id;
+        }
+    }
+
+    @PostMapping("/sales/{id}/items/{itemId}")
+    public String updateSaleItem(
+        @PathVariable final String id,
+        @PathVariable final String itemId,
+        @RequestParam(required = false) final Integer allocatedStock,
+        @RequestParam(required = false) final BigDecimal salePrice,
+        final RedirectAttributes redirectAttributes) {
+
+        if (allocatedStock == null && salePrice == null) {
+            redirectAttributes.addFlashAttribute("error", "Provide at least one of allocated stock or sale price");
+            return "redirect:/admin/sales/" + id;
+        }
+
+        try {
+            final UUID saleUuid = UUID.fromString(id);
+            final UUID itemUuid = UUID.fromString(itemId);
+            final UpdateFlashSaleItemDto updateDto = new UpdateFlashSaleItemDto(allocatedStock, salePrice);
+            flashSalesService.updateFlashSaleItem(saleUuid, itemUuid, updateDto);
+            redirectAttributes.addFlashAttribute("success", "Flash sale item updated successfully");
+            return "redirect:/admin/sales/" + id;
+        } catch (final IllegalArgumentException e) {
+            log.warn("Cannot update item {} in sale {}: {}", itemId, id, e.getMessage());
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/admin/sales/" + id;
+        } catch (final FlashSaleNotFoundException e) {
+            redirectAttributes.addFlashAttribute("error", "Flash sale not found");
+            return "redirect:/admin/sales/" + id;
+        } catch (final FlashSaleItemNotFoundException e) {
+            redirectAttributes.addFlashAttribute("error", "Flash sale item not found");
+            return "redirect:/admin/sales/" + id;
+        } catch (final InsufficientResourcesException e) {
+            redirectAttributes.addFlashAttribute("error", "Insufficient stock: " + e.getMessage());
+            return "redirect:/admin/sales/" + id;
+        } catch (final Exception e) {
+            log.error("Error updating flash sale item", e);
+            redirectAttributes.addFlashAttribute("error", "Failed to update item: " + e.getMessage());
+            return "redirect:/admin/sales/" + id;
+        }
+    }
+
+    @PostMapping("/sales/{id}/items/{itemId}/delete")
+    public String deleteSaleItem(
+        @PathVariable final String id,
+        @PathVariable final String itemId,
+        final Model model,
+        final RedirectAttributes redirectAttributes) {
+
+        try {
+            final UUID saleUuid = UUID.fromString(id);
+            final UUID itemUuid = UUID.fromString(itemId);
+            final FlashSaleResponseDto updatedSale = flashSalesService.removeFlashSaleItem(saleUuid, itemUuid);
+            model.addAttribute("sale", updatedSale);
+            model.addAttribute("products", productsService.getAllProducts());
+            model.addAttribute("addFlashSaleItemDto", new AddFlashSaleItemDto("", 0, null));
+            model.addAttribute("success", "Flash sale item removed successfully");
+            return "admin/sales/detail";
+        } catch (final IllegalArgumentException e) {
+            log.warn("Cannot remove item from sale {}: {}", id, e.getMessage());
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/admin/sales/" + id;
+        } catch (final FlashSaleNotFoundException e) {
+            redirectAttributes.addFlashAttribute("error", "Flash sale not found");
+            return "redirect:/admin/sales/" + id;
+        } catch (final FlashSaleItemNotFoundException e) {
+            redirectAttributes.addFlashAttribute("error", "Flash sale item not found");
+            return "redirect:/admin/sales/" + id;
+        } catch (final Exception e) {
+            log.error("Error removing flash sale item", e);
+            redirectAttributes.addFlashAttribute("error", "Failed to remove item: " + e.getMessage());
+            return "redirect:/admin/sales/" + id;
         }
     }
 
