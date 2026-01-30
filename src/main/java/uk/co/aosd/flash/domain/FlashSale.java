@@ -35,6 +35,6 @@ public class FlashSale {
     @Enumerated(EnumType.STRING)
     private SaleStatus status;
 
-    @OneToMany(mappedBy = "flashSale", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "flashSale", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<FlashSaleItem> items = new ArrayList<>();
 }

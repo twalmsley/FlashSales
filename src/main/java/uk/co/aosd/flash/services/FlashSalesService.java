@@ -673,7 +673,9 @@ public class FlashSalesService {
             throw new IllegalArgumentException("Only DRAFT flash sales can have items removed");
         }
 
-        final FlashSaleItem item = items.findByIdAndFlashSaleId(itemId, saleId)
+        final FlashSaleItem item = sale.getItems().stream()
+            .filter(i -> i.getId().equals(itemId))
+            .findFirst()
             .orElseThrow(() -> {
                 log.error("Flash sale item not found: {} in sale {}", itemId, saleId);
                 return new FlashSaleItemNotFoundException(itemId);
@@ -694,8 +696,10 @@ public class FlashSalesService {
                 stockToRelease, product.getId(), saleId);
         }
 
-        // Delete the item
-        items.delete(item);
+        // Remove from parent collection so JPA orphanRemoval deletes the row
+        sale.getItems().remove(item);
+        sales.save(sale);
+        sales.flush();
         log.info("Removed FlashSaleItem: {} from sale {}", itemId, saleId);
 
         // Reload with items for response

@@ -38,6 +38,36 @@
                 </div>
             </div>
 
+            <div th:if="${sale.status().name() == 'DRAFT'}" class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Add Flash Sale Item</h5>
+                    <form th:action="@{/admin/sales/{id}/items(id=${sale.id()})}" th:object="${addFlashSaleItemDto}" method="post" class="row g-3">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <div class="col-md-4">
+                            <label for="productId" class="form-label">Product</label>
+                            <select th:field="*{productId}" id="productId" class="form-select" required>
+                                <option value="">-- Select product --</option>
+                                <option th:each="p : ${products}" th:value="${p.id()}" th:text="${p.name()}">Product</option>
+                            </select>
+                            <span th:if="${#fields.hasErrors('productId')}" th:errors="*{productId}" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="allocatedStock" class="form-label">Allocated Stock</label>
+                            <input type="number" th:field="*{allocatedStock}" id="allocatedStock" class="form-control" min="0" required />
+                            <span th:if="${#fields.hasErrors('allocatedStock')}" th:errors="*{allocatedStock}" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="salePrice" class="form-label">Sale Price (£)</label>
+                            <input type="number" th:field="*{salePrice}" id="salePrice" class="form-control" step="0.01" min="0" placeholder="Optional" />
+                            <span th:if="${#fields.hasErrors('salePrice')}" th:errors="*{salePrice}" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">Add Item</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Sale Items</h5>
@@ -45,25 +75,39 @@
                         <table class="table table-striped">
                             <thead>
                                 <tr>
-                                    <th>Product ID</th>
+                                    <th>Product</th>
                                     <th>Sale Price</th>
                                     <th>Allocated Stock</th>
                                     <th>Sold Count</th>
+                                    <th th:if="${sale.status().name() == 'DRAFT'}">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr th:each="item : ${sale.items()}">
-                                    <td th:text="${item.productId()}">Product ID</td>
+                                    <td th:text="${item.productName() != null ? item.productName() : item.productId()}">Product</td>
                                     <td>£<span th:text="${#numbers.formatDecimal(item.salePrice(), 1, 2)}">0.00</span>
                                     </td>
                                     <td th:text="${item.allocatedStock()}">0</td>
                                     <td th:text="${item.soldCount()}">0</td>
+                                    <td th:if="${sale.status().name() == 'DRAFT'}">
+                                        <form th:action="@{/admin/sales/{id}/items/{itemId}(id=${sale.id()}, itemId=${item.id()})}" method="post" class="d-inline me-1">
+                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                            <input type="number" name="allocatedStock" th:value="${item.allocatedStock()}" class="form-control form-control-sm d-inline-block w-auto" min="0" style="width: 4em;" />
+                                            <input type="number" name="salePrice" th:value="${item.salePrice()}" class="form-control form-control-sm d-inline-block w-auto" step="0.01" min="0.01" style="width: 5em;" />
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
+                                        </form>
+                                        <form th:action="@{/admin/sales/{id}/items/{itemId}/delete(id=${sale.id()}, itemId=${item.id()})}" method="post" class="d-inline delete-item-form" onsubmit="var btn = this.querySelector('.btn-delete-item'); if(btn) { btn.disabled = true; btn.textContent = 'Removing…'; } var row = this.closest('tr'); if(row) row.style.display = 'none'; return true;">
+                                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger btn-delete-item" onclick="return confirm('Remove this item from the sale?');">Delete</button>
+                                        </form>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                     <div th:if="${sale.items() == null or sale.items().isEmpty()}" class="alert alert-info">
-                        No items in this sale yet. Use the API to add items.
+                        <span th:if="${sale.status().name() == 'DRAFT'}">No items in this sale yet. Add one using the form above.</span>
+                        <span th:unless="${sale.status().name() == 'DRAFT'}">No items in this sale.</span>
                     </div>
                 </div>
             </div>
