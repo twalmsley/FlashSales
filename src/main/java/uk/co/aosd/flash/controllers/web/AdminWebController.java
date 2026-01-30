@@ -268,14 +268,18 @@ public class AdminWebController {
     public String deleteSaleItem(
         @PathVariable final String id,
         @PathVariable final String itemId,
+        final Model model,
         final RedirectAttributes redirectAttributes) {
 
         try {
             final UUID saleUuid = UUID.fromString(id);
             final UUID itemUuid = UUID.fromString(itemId);
-            flashSalesService.removeFlashSaleItem(saleUuid, itemUuid);
-            redirectAttributes.addFlashAttribute("success", "Flash sale item removed successfully");
-            return "redirect:/admin/sales/" + id;
+            final FlashSaleResponseDto updatedSale = flashSalesService.removeFlashSaleItem(saleUuid, itemUuid);
+            model.addAttribute("sale", updatedSale);
+            model.addAttribute("products", productsService.getAllProducts());
+            model.addAttribute("addFlashSaleItemDto", new AddFlashSaleItemDto("", 0, null));
+            model.addAttribute("success", "Flash sale item removed successfully");
+            return "admin/sales/detail";
         } catch (final IllegalArgumentException e) {
             log.warn("Cannot remove item from sale {}: {}", id, e.getMessage());
             redirectAttributes.addFlashAttribute("error", e.getMessage());

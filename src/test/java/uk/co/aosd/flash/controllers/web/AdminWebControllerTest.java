@@ -384,20 +384,22 @@ class AdminWebControllerTest {
     }
 
     @Test
-    void postDeleteItem_success_redirectsWithSuccess() throws Exception {
+    void postDeleteItem_success_rendersDetailWithUpdatedSale() throws Exception {
         final var saleId = UUID.randomUUID();
         final var itemId = UUID.randomUUID();
         final var now = OffsetDateTime.now(ZoneOffset.UTC);
         final var updatedSale = new FlashSaleResponseDto(saleId.toString(), "Sale", now, now.plusHours(1),
             SaleStatus.DRAFT, Collections.emptyList());
         when(flashSalesService.removeFlashSaleItem(eq(saleId), eq(itemId))).thenReturn(updatedSale);
+        when(productsService.getAllProducts()).thenReturn(Collections.emptyList());
 
         mockMvc.perform(post("/admin/sales/" + saleId + "/items/" + itemId + "/delete")
                 .with(user("admin").roles("ADMIN_USER"))
                 .with(csrf()))
-            .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("/admin/sales/" + saleId))
-            .andExpect(flash().attribute("success", "Flash sale item removed successfully"));
+            .andExpect(status().isOk())
+            .andExpect(view().name("admin/sales/detail"))
+            .andExpect(model().attribute("sale", updatedSale))
+            .andExpect(model().attribute("success", "Flash sale item removed successfully"));
 
         verify(flashSalesService, times(1)).removeFlashSaleItem(eq(saleId), eq(itemId));
     }
