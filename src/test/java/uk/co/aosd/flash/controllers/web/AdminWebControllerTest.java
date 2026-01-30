@@ -228,7 +228,7 @@ class AdminWebControllerTest {
             .andExpect(status().isOk())
             .andExpect(view().name("admin/sales/detail"))
             .andExpect(model().attribute("sale", sale))
-            .andExpect(content().string(containsString("ACTIVE")));
+            .andExpect(content().string(containsString("ACTIVE")))
             .andExpect(model().attributeExists("addFlashSaleItemDto"));
     }
 
