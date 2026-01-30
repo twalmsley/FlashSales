@@ -44,6 +44,17 @@ app:
     min-sale-duration-minutes: 5
   scheduler:
     interval-seconds: 30  # Default: check every 30 seconds
+  logging:
+    api:
+      enabled: true
+      level: INFO       # INFO = method, URI, status, duration; DEBUG = include bodies (truncated)
+      max-body-length: 1024
+      sensitive-headers:
+        - Authorization
+        - Cookie
+      exclude-body-paths:
+        - /api/v1/auth/login
+        - /api/v1/auth/register
   cors:
     # Allowed origins for cross-origin API requests (e.g. SPA frontends).
     # Override in production with actual frontend origin(s). Avoid '*' with credentials.

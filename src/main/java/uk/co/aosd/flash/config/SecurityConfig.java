@@ -16,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.cors.CorsConfigurationSource;
 import uk.co.aosd.flash.security.CustomAuthenticationSuccessHandler;
@@ -39,6 +40,7 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomAuthenticationSuccessHandler authenticationSuccessHandler;
     private final CorsConfigurationSource corsConfigurationSource;
+    private final RequestResponseLoggingFilter requestResponseLoggingFilter;
 
     /**
      * Security filter chain for API endpoints (JWT-based, stateless).
@@ -72,7 +74,8 @@ public class SecurityConfig {
                 .anyRequest().authenticated())
             // Configure exception handling
             .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint()))
-            // Add JWT filter before username/password authentication filter
+            // Log API requests/responses (correlation ID, method, URI, status, duration) after security context, before JWT
+            .addFilterAfter(requestResponseLoggingFilter, SecurityContextHolderFilter.class)
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
