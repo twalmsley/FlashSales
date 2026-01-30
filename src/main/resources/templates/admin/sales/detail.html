@@ -94,9 +94,9 @@
                                             <input type="number" name="salePrice" th:value="${item.salePrice()}" class="form-control form-control-sm d-inline-block w-auto" step="0.01" min="0.01" style="width: 5em;" />
                                             <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
                                         </form>
-                                        <form th:action="@{/admin/sales/{id}/items/{itemId}/delete(id=${sale.id()}, itemId=${item.id()})}" method="post" class="d-inline">
+                                        <form th:action="@{/admin/sales/{id}/items/{itemId}/delete(id=${sale.id()}, itemId=${item.id()})}" method="post" class="d-inline delete-item-form" onsubmit="var btn = this.querySelector('.btn-delete-item'); if(btn) { btn.disabled = true; btn.textContent = 'Removing…'; } var row = this.closest('tr'); if(row) row.style.display = 'none'; return true;">
                                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this item from the sale?');">Delete</button>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger btn-delete-item" onclick="return confirm('Remove this item from the sale?');">Delete</button>
                                         </form>
                                     </td>
                                 </tr>

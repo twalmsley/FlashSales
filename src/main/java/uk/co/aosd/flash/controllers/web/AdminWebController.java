@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import jakarta.servlet.http.HttpServletResponse;
 import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.AddFlashSaleItemDto;
 import uk.co.aosd.flash.dto.CreateSaleDto;
@@ -164,7 +166,10 @@ public class AdminWebController {
     }
 
     @GetMapping("/sales/{id}")
-    public String viewSale(@PathVariable final String id, final Model model) {
+    public String viewSale(@PathVariable final String id, final Model model, final HttpServletResponse response) {
+        response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setDateHeader("Expires", 0);
         try {
             final UUID saleId = UUID.fromString(id);
             final FlashSaleResponseDto sale = flashSalesService.getFlashSaleById(saleId);
