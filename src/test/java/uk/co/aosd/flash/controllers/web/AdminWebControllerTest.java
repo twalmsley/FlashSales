@@ -3,6 +3,7 @@ package uk.co.aosd.flash.controllers.web;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -37,7 +38,11 @@ import uk.co.aosd.flash.dto.FlashSaleResponseDto;
 import uk.co.aosd.flash.dto.FlashSaleItemDto;
 import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.ProductDto;
+import uk.co.aosd.flash.exc.FlashSaleItemNotFoundException;
+import uk.co.aosd.flash.exc.FlashSaleNotFoundException;
+import uk.co.aosd.flash.exc.InsufficientResourcesException;
 import uk.co.aosd.flash.exc.InvalidOrderStatusException;
+import uk.co.aosd.flash.exc.ProductNotFoundException;
 import uk.co.aosd.flash.services.AnalyticsService;
 import uk.co.aosd.flash.services.FlashSalesService;
 import uk.co.aosd.flash.services.OrderService;
@@ -220,7 +225,8 @@ class AdminWebControllerTest {
         mockMvc.perform(get("/admin/sales/" + saleId).with(user("admin").roles("ADMIN_USER")))
             .andExpect(status().isOk())
             .andExpect(view().name("admin/sales/detail"))
-            .andExpect(model().attribute("sale", sale));
+            .andExpect(model().attribute("sale", sale))
+            .andExpect(model().attributeExists("addFlashSaleItemDto"));
     }
 
     @Test
@@ -228,6 +234,202 @@ class AdminWebControllerTest {
         mockMvc.perform(get("/admin/sales/not-a-uuid").with(user("admin").roles("ADMIN_USER")))
             .andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl("/admin/sales?error=notfound"));
+    }
+
+    @Test
+    void postAddItem_success_redirectsWithSuccess() throws Exception {
+        final var saleId = UUID.randomUUID();
+        final var productId = UUID.randomUUID().toString();
+        final var now = OffsetDateTime.now(ZoneOffset.UTC);
+        final var updatedSale = new FlashSaleResponseDto(saleId.toString(), "Sale", now, now.plusHours(1),
+            SaleStatus.DRAFT, Collections.emptyList());
+        when(flashSalesService.addItemsToFlashSale(eq(saleId), any())).thenReturn(updatedSale);
+
+        mockMvc.perform(post("/admin/sales/" + saleId + "/items")
+                .with(user("admin").roles("ADMIN_USER"))
+                .with(csrf())
+                .param("productId", productId)
+                .param("allocatedStock", "10")
+                .param("salePrice", "19.99"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/sales/" + saleId))
+            .andExpect(flash().attribute("success", "Flash sale item added successfully"));
+
+        verify(flashSalesService, times(1)).addItemsToFlashSale(eq(saleId), any());
+    }
+
+    @Test
+    void postAddItem_whenNotDraft_redirectsWithError() throws Exception {
+        final var saleId = UUID.randomUUID();
+        final var productId = UUID.randomUUID().toString();
+        when(flashSalesService.addItemsToFlashSale(eq(saleId), any()))
+            .thenThrow(new IllegalArgumentException("Only DRAFT flash sales can have items added"));
+
+        mockMvc.perform(post("/admin/sales/" + saleId + "/items")
+                .with(user("admin").roles("ADMIN_USER"))
+                .with(csrf())
+                .param("productId", productId)
+                .param("allocatedStock", "10")
+                .param("salePrice", "19.99"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/sales/" + saleId))
+            .andExpect(flash().attributeExists("error"));
+
+        verify(flashSalesService, times(1)).addItemsToFlashSale(eq(saleId), any());
+    }
+
+    @Test
+    void postAddItem_invalidProduct_redirectsWithError() throws Exception {
+        final var saleId = UUID.randomUUID();
+        final var productId = UUID.randomUUID().toString();
+        when(flashSalesService.addItemsToFlashSale(eq(saleId), any()))
+            .thenThrow(new ProductNotFoundException(productId));
+
+        mockMvc.perform(post("/admin/sales/" + saleId + "/items")
+                .with(user("admin").roles("ADMIN_USER"))
+                .with(csrf())
+                .param("productId", productId)
+                .param("allocatedStock", "10")
+                .param("salePrice", "19.99"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/sales/" + saleId))
+            .andExpect(flash().attributeExists("error"));
+    }
+
+    @Test
+    void postAddItem_validationError_redirectsWithErrors() throws Exception {
+        final var saleId = UUID.randomUUID();
+
+        mockMvc.perform(post("/admin/sales/" + saleId + "/items")
+                .with(user("admin").roles("ADMIN_USER"))
+                .with(csrf())
+                .param("productId", "")
+                .param("allocatedStock", "-1")
+                .param("salePrice", "19.99"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/sales/" + saleId))
+            .andExpect(flash().attributeExists("org.springframework.validation.BindingResult.addFlashSaleItemDto"));
+
+        verify(flashSalesService, never()).addItemsToFlashSale(any(), any());
+    }
+
+    @Test
+    void postUpdateItem_success_redirectsWithSuccess() throws Exception {
+        final var saleId = UUID.randomUUID();
+        final var itemId = UUID.randomUUID();
+        final var now = OffsetDateTime.now(ZoneOffset.UTC);
+        final var updatedSale = new FlashSaleResponseDto(saleId.toString(), "Sale", now, now.plusHours(1),
+            SaleStatus.DRAFT, Collections.emptyList());
+        when(flashSalesService.updateFlashSaleItem(eq(saleId), eq(itemId), any())).thenReturn(updatedSale);
+
+        mockMvc.perform(post("/admin/sales/" + saleId + "/items/" + itemId)
+                .with(user("admin").roles("ADMIN_USER"))
+                .with(csrf())
+                .param("allocatedStock", "20")
+                .param("salePrice", "14.99"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/sales/" + saleId))
+            .andExpect(flash().attribute("success", "Flash sale item updated successfully"));
+
+        verify(flashSalesService, times(1)).updateFlashSaleItem(eq(saleId), eq(itemId), any());
+    }
+
+    @Test
+    void postUpdateItem_whenNotDraft_redirectsWithError() throws Exception {
+        final var saleId = UUID.randomUUID();
+        final var itemId = UUID.randomUUID();
+        when(flashSalesService.updateFlashSaleItem(eq(saleId), eq(itemId), any()))
+            .thenThrow(new IllegalArgumentException("Only DRAFT flash sales can have items updated"));
+
+        mockMvc.perform(post("/admin/sales/" + saleId + "/items/" + itemId)
+                .with(user("admin").roles("ADMIN_USER"))
+                .with(csrf())
+                .param("allocatedStock", "20")
+                .param("salePrice", "14.99"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/sales/" + saleId))
+            .andExpect(flash().attributeExists("error"));
+    }
+
+    @Test
+    void postUpdateItem_itemNotFound_redirectsWithError() throws Exception {
+        final var saleId = UUID.randomUUID();
+        final var itemId = UUID.randomUUID();
+        when(flashSalesService.updateFlashSaleItem(eq(saleId), eq(itemId), any()))
+            .thenThrow(new FlashSaleItemNotFoundException(itemId));
+
+        mockMvc.perform(post("/admin/sales/" + saleId + "/items/" + itemId)
+                .with(user("admin").roles("ADMIN_USER"))
+                .with(csrf())
+                .param("allocatedStock", "20")
+                .param("salePrice", "14.99"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/sales/" + saleId))
+            .andExpect(flash().attributeExists("error"));
+    }
+
+    @Test
+    void postUpdateItem_bothParamsNull_redirectsWithError() throws Exception {
+        final var saleId = UUID.randomUUID();
+        final var itemId = UUID.randomUUID();
+
+        mockMvc.perform(post("/admin/sales/" + saleId + "/items/" + itemId)
+                .with(user("admin").roles("ADMIN_USER"))
+                .with(csrf()))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/sales/" + saleId))
+            .andExpect(flash().attribute("error", "Provide at least one of allocated stock or sale price"));
+
+        verify(flashSalesService, never()).updateFlashSaleItem(any(), any(), any());
+    }
+
+    @Test
+    void postDeleteItem_success_redirectsWithSuccess() throws Exception {
+        final var saleId = UUID.randomUUID();
+        final var itemId = UUID.randomUUID();
+        final var now = OffsetDateTime.now(ZoneOffset.UTC);
+        final var updatedSale = new FlashSaleResponseDto(saleId.toString(), "Sale", now, now.plusHours(1),
+            SaleStatus.DRAFT, Collections.emptyList());
+        when(flashSalesService.removeFlashSaleItem(eq(saleId), eq(itemId))).thenReturn(updatedSale);
+
+        mockMvc.perform(post("/admin/sales/" + saleId + "/items/" + itemId + "/delete")
+                .with(user("admin").roles("ADMIN_USER"))
+                .with(csrf()))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/sales/" + saleId))
+            .andExpect(flash().attribute("success", "Flash sale item removed successfully"));
+
+        verify(flashSalesService, times(1)).removeFlashSaleItem(eq(saleId), eq(itemId));
+    }
+
+    @Test
+    void postDeleteItem_whenNotDraft_redirectsWithError() throws Exception {
+        final var saleId = UUID.randomUUID();
+        final var itemId = UUID.randomUUID();
+        when(flashSalesService.removeFlashSaleItem(eq(saleId), eq(itemId)))
+            .thenThrow(new IllegalArgumentException("Only DRAFT flash sales can have items removed"));
+
+        mockMvc.perform(post("/admin/sales/" + saleId + "/items/" + itemId + "/delete")
+                .with(user("admin").roles("ADMIN_USER"))
+                .with(csrf()))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/sales/" + saleId))
+            .andExpect(flash().attributeExists("error"));
+    }
+
+    @Test
+    void postDeleteItem_itemNotFound_redirectsWithError() throws Exception {
+        final var saleId = UUID.randomUUID();
+        final var itemId = UUID.randomUUID();
+        when(flashSalesService.removeFlashSaleItem(eq(saleId), eq(itemId)))
+            .thenThrow(new FlashSaleItemNotFoundException(itemId));
+
+        mockMvc.perform(post("/admin/sales/" + saleId + "/items/" + itemId + "/delete")
+                .with(user("admin").roles("ADMIN_USER"))
+                .with(csrf()))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/sales/" + saleId))
+            .andExpect(flash().attributeExists("error"));
     }
 
     @Test
