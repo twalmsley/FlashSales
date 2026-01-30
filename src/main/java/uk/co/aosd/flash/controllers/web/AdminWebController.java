@@ -173,6 +173,7 @@ public class AdminWebController {
         try {
             final UUID saleId = UUID.fromString(id);
             final FlashSaleResponseDto sale = flashSalesService.getFlashSaleById(saleId);
+            log.debug("Flash Sale Status: {}", sale.status());
             model.addAttribute("sale", sale);
             model.addAttribute("products", productsService.getAllProducts());
             if (!model.containsAttribute("addFlashSaleItemDto")) {

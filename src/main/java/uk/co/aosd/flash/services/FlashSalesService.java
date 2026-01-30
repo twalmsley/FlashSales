@@ -21,20 +21,8 @@ import uk.co.aosd.flash.domain.FlashSale;
 import uk.co.aosd.flash.domain.FlashSaleItem;
 import uk.co.aosd.flash.domain.Product;
 import uk.co.aosd.flash.domain.SaleStatus;
-import uk.co.aosd.flash.dto.AddFlashSaleItemDto;
-import uk.co.aosd.flash.dto.CreateSaleDto;
-import uk.co.aosd.flash.dto.FlashSaleItemDto;
-import uk.co.aosd.flash.dto.SaleProductDto;
-import uk.co.aosd.flash.dto.FlashSaleResponseDto;
-import uk.co.aosd.flash.dto.UpdateFlashSaleDto;
-import uk.co.aosd.flash.dto.UpdateFlashSaleItemDto;
-import uk.co.aosd.flash.exc.DuplicateEntityException;
-import uk.co.aosd.flash.exc.FlashSaleItemNotFoundException;
-import uk.co.aosd.flash.exc.FlashSaleNotFoundException;
-import uk.co.aosd.flash.exc.InsufficientResourcesException;
-import uk.co.aosd.flash.exc.InvalidSaleTimesException;
-import uk.co.aosd.flash.exc.ProductNotFoundException;
-import uk.co.aosd.flash.exc.SaleDurationTooShortException;
+import uk.co.aosd.flash.dto.*;
+import uk.co.aosd.flash.exc.*;
 import uk.co.aosd.flash.repository.FlashSaleItemRepository;
 import uk.co.aosd.flash.repository.FlashSaleRepository;
 import uk.co.aosd.flash.repository.ProductRepository;
@@ -75,7 +63,7 @@ public class FlashSalesService {
      *             if there is not enough stock to reserve for a product.
      */
     @Transactional
-    @CacheEvict(value = {"flashSales", "activeSales", "draftSales"}, allEntries = true)
+    @CacheEvict(value = { "flashSales", "activeSales", "draftSales" }, allEntries = true)
     public UUID createFlashSale(@Valid final CreateSaleDto sale) {
         log.info("Creating FlashSale: " + sale);
         if (!sale.startTime().isBefore(sale.endTime())) {
@@ -153,7 +141,7 @@ public class FlashSalesService {
      * @return the number of sales activated
      */
     @Transactional
-    @CacheEvict(value = {"draftSales", "activeSales"}, allEntries = true)
+    @CacheEvict(value = { "draftSales", "activeSales" }, allEntries = true)
     public int activateDraftSales() {
         final OffsetDateTime now = OffsetDateTime.now();
         log.debug("Checking for DRAFT sales ready to activate at {}", now);
@@ -249,7 +237,7 @@ public class FlashSalesService {
      *             if the sale is already COMPLETED or CANCELLED
      */
     @Transactional
-    @CacheEvict(value = {"flashSales", "activeSales"}, key = "#saleId")
+    @CacheEvict(value = { "flashSales", "activeSales" }, key = "#saleId")
     public void cancelFlashSale(final UUID saleId) {
         log.info("Cancelling FlashSale: {}", saleId);
 
@@ -302,10 +290,12 @@ public class FlashSalesService {
      * @param status
      *            optional status filter
      * @param startDate
-     *            optional filter window start (inclusive). When provided, only sales whose time period overlaps
+     *            optional filter window start (inclusive). When provided, only
+     *            sales whose time period overlaps
      *            the specified window are returned.
      * @param endDate
-     *            optional filter window end (inclusive). When provided, only sales whose time period overlaps
+     *            optional filter window end (inclusive). When provided, only sales
+     *            whose time period overlaps
      *            the specified window are returned.
      * @return list of flash sales matching the filters
      */
@@ -337,6 +327,7 @@ public class FlashSalesService {
                 log.error("Flash sale not found: {}", id);
                 return new FlashSaleNotFoundException(id);
             });
+        log.debug("Returning flash sale: {}", sale.getStatus());
         return mapToResponseDto(sale);
     }
 
@@ -356,7 +347,7 @@ public class FlashSalesService {
      *             if the duration is too short
      */
     @Transactional
-    @CacheEvict(value = {"flashSales", "activeSales", "draftSales"}, key = "#id", allEntries = true)
+    @CacheEvict(value = { "flashSales", "activeSales", "draftSales" }, key = "#id", allEntries = true)
     public FlashSaleResponseDto updateFlashSale(final UUID id, @Valid final UpdateFlashSaleDto updateDto) {
         log.info("Updating FlashSale: {} with {}", id, updateDto);
 
@@ -421,7 +412,7 @@ public class FlashSalesService {
      *             if the sale is not in DRAFT status
      */
     @Transactional
-    @CacheEvict(value = {"flashSales", "draftSales"}, key = "#id", allEntries = true)
+    @CacheEvict(value = { "flashSales", "draftSales" }, key = "#id", allEntries = true)
     public void deleteFlashSale(final UUID id) {
         log.info("Deleting FlashSale: {}", id);
 
@@ -478,7 +469,7 @@ public class FlashSalesService {
      *             if a product is already in the sale
      */
     @Transactional
-    @CacheEvict(value = {"flashSales", "draftSales"}, key = "#saleId", allEntries = true)
+    @CacheEvict(value = { "flashSales", "draftSales" }, key = "#saleId", allEntries = true)
     public FlashSaleResponseDto addItemsToFlashSale(final UUID saleId, @Valid final List<AddFlashSaleItemDto> items) {
         log.info("Adding items to FlashSale: {}", saleId);
 
@@ -575,7 +566,7 @@ public class FlashSalesService {
      *             if there is not enough stock
      */
     @Transactional
-    @CacheEvict(value = {"flashSales", "draftSales"}, key = "#saleId", allEntries = true)
+    @CacheEvict(value = { "flashSales", "draftSales" }, key = "#saleId", allEntries = true)
     public FlashSaleResponseDto updateFlashSaleItem(final UUID saleId, final UUID itemId, @Valid final UpdateFlashSaleItemDto updateDto) {
         log.info("Updating FlashSaleItem: {} in sale {}", itemId, saleId);
 
@@ -666,7 +657,7 @@ public class FlashSalesService {
      *             if the sale is not in DRAFT status
      */
     @Transactional
-    @CacheEvict(value = {"flashSales", "draftSales"}, key = "#saleId", allEntries = true)
+    @CacheEvict(value = { "flashSales", "draftSales" }, key = "#saleId", allEntries = true)
     public FlashSaleResponseDto removeFlashSaleItem(final UUID saleId, final UUID itemId) {
         log.info("Removing FlashSaleItem: {} from sale {}", itemId, saleId);
 
