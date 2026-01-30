@@ -181,6 +181,22 @@ public class FlashSalesServiceManagementTest {
         assertEquals("Test Product", result.items().get(0).productName());
     }
 
+    @Test
+    public void shouldReturnDtoWithDraftStatusWhenEntityStatusIsNull() {
+        final UUID saleId = UUID.randomUUID();
+        final var sale = createTestSale(saleId, "Legacy Sale", null);
+
+        when(sales.findByIdWithItems(saleId)).thenReturn(Optional.of(sale));
+
+        final FlashSaleResponseDto result = service.getFlashSaleById(saleId);
+
+        assertNotNull(result);
+        assertEquals(saleId.toString(), result.id());
+        assertEquals("Legacy Sale", result.title());
+        assertEquals(SaleStatus.DRAFT, result.status());
+        verify(sales, times(1)).findByIdWithItems(saleId);
+    }
+
     // updateFlashSale tests
 
     @Test

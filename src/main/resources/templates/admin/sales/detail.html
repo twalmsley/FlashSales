@@ -27,7 +27,7 @@
                     <h5 class="card-title">Sale Information</h5>
                     <p class="card-text">
                         <strong>ID:</strong> <span th:text="${sale.id()}">ID</span><br>
-                        <strong>Status:</strong> <span class="badge" th:text="${sale.status()}">Status</span><br>
+                        <strong>Status:</strong> <span class="badge" th:text="${sale.status() != null ? sale.status() : '—'}">Status</span><br>
                         <strong>Start Time:</strong> <span
                             th:text="${#temporals.format(sale.startTime(), 'yyyy-MM-dd HH:mm')}">Date</span><br>
                         <strong>End Time:</strong> <span
