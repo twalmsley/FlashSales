@@ -64,7 +64,7 @@ class OrdersWebControllerTest {
         when(userDetailsService.getUserIdByUsername("user")).thenReturn(userId);
         final var order = new OrderDetailDto(orderId, userId, UUID.randomUUID(), "Product",
             UUID.randomUUID(), UUID.randomUUID(), "Sale", BigDecimal.TEN, 1, BigDecimal.TEN, OrderStatus.PENDING,
-            OffsetDateTime.now(ZoneOffset.UTC));
+            OffsetDateTime.now(ZoneOffset.UTC), List.of());
         when(orderService.getOrderById(eq(orderId), eq(userId))).thenReturn(order);
 
         mockMvc.perform(get("/orders/" + orderId).with(user("user").roles("USER")))

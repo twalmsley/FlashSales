@@ -21,13 +21,16 @@ import uk.co.aosd.flash.domain.SaleStatus;
 import uk.co.aosd.flash.dto.CreateOrderDto;
 import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.OrderResponseDto;
+import uk.co.aosd.flash.dto.OrderStatusHistoryDto;
 import uk.co.aosd.flash.dto.ProcessPaymentResult;
 import uk.co.aosd.flash.exc.InsufficientStockException;
 import uk.co.aosd.flash.exc.InvalidOrderStatusException;
 import uk.co.aosd.flash.exc.OrderNotFoundException;
 import uk.co.aosd.flash.exc.SaleNotActiveException;
+import uk.co.aosd.flash.domain.OrderStatusHistory;
 import uk.co.aosd.flash.repository.FlashSaleItemRepository;
 import uk.co.aosd.flash.repository.OrderRepository;
+import uk.co.aosd.flash.repository.OrderStatusHistoryRepository;
 import uk.co.aosd.flash.repository.ProductRepository;
 
 /**
@@ -42,6 +45,8 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final FlashSaleItemRepository flashSaleItemRepository;
     private final ProductRepository productRepository;
+    private final OrderStatusHistoryRepository orderStatusHistoryRepository;
+    private final AuditLogService auditLogService;
     private final PaymentService paymentService;
     private final NotificationService notificationService;
 
@@ -156,11 +161,13 @@ public class OrderService {
         if (paymentSuccess) {
             order.setStatus(OrderStatus.PAID);
             orderRepository.save(order);
+            recordOrderStatusChange(orderId, OrderStatus.PENDING, OrderStatus.PAID, null);
             log.info("Payment succeeded for order {}. Status updated to PAID", orderId);
             return new ProcessPaymentResult(true, orderId);
         }
         order.setStatus(OrderStatus.FAILED);
         orderRepository.save(order);
+        recordOrderStatusChange(orderId, OrderStatus.PENDING, OrderStatus.FAILED, null);
         log.warn("Payment failed for order {}. Status updated to FAILED", orderId);
         return new ProcessPaymentResult(false, orderId);
     }
@@ -201,6 +208,7 @@ public class OrderService {
         // Update order status
         order.setStatus(OrderStatus.REFUNDED);
         orderRepository.save(order);
+        recordOrderStatusChange(orderId, OrderStatus.PAID, OrderStatus.REFUNDED, null);
         log.info("Order {} status updated to REFUNDED", orderId);
 
         // Notify user (can be done synchronously as it's just logging)
@@ -239,6 +247,7 @@ public class OrderService {
         if (order.getStatus() != OrderStatus.FAILED) {
             order.setStatus(OrderStatus.FAILED);
             orderRepository.save(order);
+            recordOrderStatusChange(orderId, OrderStatus.PENDING, OrderStatus.FAILED, null);
         }
 
         log.info("Processed failed payment for order {}", orderId);
@@ -283,6 +292,7 @@ public class OrderService {
         // Update order status to DISPATCHED
         order.setStatus(OrderStatus.DISPATCHED);
         orderRepository.save(order);
+        recordOrderStatusChange(orderId, OrderStatus.PAID, OrderStatus.DISPATCHED, null);
         log.info("Order {} status updated to DISPATCHED", orderId);
 
         // Notify user
@@ -465,7 +475,24 @@ public class OrderService {
         // Update order status
         order.setStatus(newStatus);
         orderRepository.save(order);
+        recordOrderStatusChange(orderId, currentStatus, newStatus, uk.co.aosd.flash.security.SecurityUtils.getCurrentUserIdOrNull());
+        auditLogService.recordAdminAction(AuditLogService.ACTION_UPDATE_ORDER_STATUS, AuditLogService.ENTITY_ORDER, orderId,
+            "{\"from\":\"" + currentStatus + "\",\"to\":\"" + newStatus + "\"}");
         log.info("Order {} status updated to {}", orderId, newStatus);
+    }
+
+    /**
+     * Record an order status change in the history table.
+     */
+    private void recordOrderStatusChange(final UUID orderId, final OrderStatus fromStatus, final OrderStatus toStatus, final UUID changedByUserId) {
+        final OrderStatusHistory history = OrderStatusHistory.builder()
+            .orderId(orderId)
+            .fromStatus(fromStatus)
+            .toStatus(toStatus)
+            .changedAt(OffsetDateTime.now())
+            .changedByUserId(changedByUserId)
+            .build();
+        orderStatusHistoryRepository.save(history);
     }
 
     /**
@@ -561,14 +588,17 @@ public class OrderService {
     }
 
     /**
-     * Maps an Order entity to OrderDetailDto.
+     * Maps an Order entity to OrderDetailDto, including status history.
      *
      * @param order the order entity
      * @return OrderDetailDto
      */
     private OrderDetailDto mapToOrderDetailDto(final Order order) {
         final BigDecimal totalAmount = order.getSoldPrice().multiply(BigDecimal.valueOf(order.getSoldQuantity()));
-
+        final List<OrderStatusHistoryDto> statusHistory = orderStatusHistoryRepository.findByOrderIdOrderByChangedAtAsc(order.getId())
+            .stream()
+            .map(h -> new OrderStatusHistoryDto(h.getId(), h.getFromStatus(), h.getToStatus(), h.getChangedAt(), h.getChangedByUserId()))
+            .toList();
         return new OrderDetailDto(
             order.getId(),
             order.getUserId(),
@@ -581,6 +611,7 @@ public class OrderService {
             order.getSoldQuantity(),
             totalAmount,
             order.getStatus(),
-            order.getCreatedAt());
+            order.getCreatedAt(),
+            statusHistory);
     }
 }

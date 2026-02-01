@@ -27,8 +27,9 @@ public class ProductsServiceTest {
     private static final String uuid3 = "ab3b715e-e2c2-4c28-925d-83ac93c32d02";
 
     private ProductRepository repository = Mockito.mock(ProductRepository.class);
+    private AuditLogService auditLogService = Mockito.mock(AuditLogService.class);
 
-    private ProductsService service = new ProductsService(repository);
+    private ProductsService service = new ProductsService(repository, auditLogService);
 
     @BeforeEach
     public void beforeEach() {

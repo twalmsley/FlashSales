@@ -393,7 +393,7 @@ public class ClientRestApiTest {
         Mockito.doNothing().when(orderService).handleRefund(orderId);
         Mockito.when(orderService.getOrderById(orderId, userId)).thenReturn(
             new OrderDetailDto(orderId, userId, UUID.randomUUID(), "Product", UUID.randomUUID(), UUID.randomUUID(), "Sale",
-                BigDecimal.valueOf(79.99), 5, BigDecimal.valueOf(399.95), OrderStatus.PAID, OffsetDateTime.now()));
+                BigDecimal.valueOf(79.99), 5, BigDecimal.valueOf(399.95), OrderStatus.PAID, OffsetDateTime.now(), List.of()));
 
         TestJwtUtils.setSecurityContext(userId, UserRole.USER);
 
@@ -442,7 +442,8 @@ public class ClientRestApiTest {
             5,
             BigDecimal.valueOf(399.95),
             OrderStatus.PAID,
-            createdAt);
+            createdAt,
+            List.of());
 
         Mockito.when(orderService.getOrderById(orderId, userId)).thenReturn(orderDetail);
 
@@ -520,7 +521,8 @@ public class ClientRestApiTest {
             5,
             BigDecimal.valueOf(399.95),
             OrderStatus.PAID,
-            now.minusDays(1));
+            now.minusDays(1),
+            List.of());
 
         final OrderDetailDto order2 = new OrderDetailDto(
             orderId2,
@@ -534,7 +536,8 @@ public class ClientRestApiTest {
             3,
             BigDecimal.valueOf(269.97),
             OrderStatus.PENDING,
-            now);
+            now,
+            List.of());
 
         final List<OrderDetailDto> orders = List.of(order2, order1);
 
@@ -576,7 +579,8 @@ public class ClientRestApiTest {
             5,
             BigDecimal.valueOf(399.95),
             OrderStatus.PAID,
-            now);
+            now,
+            List.of());
 
         final List<OrderDetailDto> orders = List.of(order);
 
@@ -621,7 +625,8 @@ public class ClientRestApiTest {
             5,
             BigDecimal.valueOf(399.95),
             OrderStatus.PAID,
-            orderDate);
+            orderDate,
+            List.of());
 
         final List<OrderDetailDto> orders = List.of(order);
 
@@ -666,7 +671,8 @@ public class ClientRestApiTest {
             5,
             BigDecimal.valueOf(399.95),
             OrderStatus.PAID,
-            orderDate);
+            orderDate,
+            List.of());
 
         final List<OrderDetailDto> orders = List.of(order);
 

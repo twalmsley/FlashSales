@@ -104,6 +104,33 @@ public final class SecurityUtils {
     }
 
     /**
+     * Get the current authenticated user's ID, or null if not authenticated.
+     * Use for audit logging where the actor may be absent (e.g. background jobs).
+     *
+     * @return user ID, or null
+     */
+    public static UUID getCurrentUserIdOrNull() {
+        try {
+            return getCurrentUserId();
+        } catch (final IllegalStateException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get the current authenticated user's username, or null if not authenticated.
+     *
+     * @return username, or null
+     */
+    public static String getCurrentUsernameOrNull() {
+        try {
+            return getCurrentUsername();
+        } catch (final IllegalStateException e) {
+            return null;
+        }
+    }
+
+    /**
      * Check if the current user is authenticated.
      *
      * @return true if authenticated

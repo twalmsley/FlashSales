@@ -3,6 +3,7 @@ package uk.co.aosd.flash.dto;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -39,6 +40,8 @@ public record OrderDetailDto(
     @Schema(description = "Current order status.")
     OrderStatus status,
     @Schema(description = "Order creation timestamp (ISO-8601).", example = "2026-01-24T10:15:30Z")
-    OffsetDateTime createdAt)
+    OffsetDateTime createdAt,
+    @Schema(description = "Status change history (oldest first).")
+    List<OrderStatusHistoryDto> statusHistory)
     implements Serializable {
 }

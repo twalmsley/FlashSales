@@ -42,6 +42,8 @@ public class FlashSalesService {
 
     private final ProductRepository products;
 
+    private final AuditLogService auditLogService;
+
     @Value("${app.settings.min-sale-duration-minutes}")
     private float minSaleDuration = 10; // Default to 10 minutes.
 
@@ -103,6 +105,8 @@ public class FlashSalesService {
                     } else {
                         final var item = new FlashSaleItem(null, saved, p, sp.reservedCount(), 0, p.getBasePrice());
                         items.save(item);
+                        auditLogService.recordAdminAction(AuditLogService.ACTION_ADD_FLASH_SALE_ITEM,
+                            AuditLogService.ENTITY_FLASH_SALE_ITEM, item.getId());
                         final int allocatedStock = sp.reservedCount() + p.getReservedCount();
                         p.setReservedCount(allocatedStock);
                         products.save(p);
@@ -122,6 +126,7 @@ public class FlashSalesService {
                 throw new InsufficientResourcesException(
                     ids);
             }
+            auditLogService.recordAdminAction(AuditLogService.ACTION_CREATE_FLASH_SALE, AuditLogService.ENTITY_FLASH_SALE, saved.getId());
             log.info("Created Flash Sale: " + saved);
             return saved.getId();
         } catch (final DuplicateKeyException e) {
@@ -394,6 +399,7 @@ public class FlashSalesService {
         }
 
         final FlashSale saved = sales.save(sale);
+        auditLogService.recordAdminAction(AuditLogService.ACTION_UPDATE_FLASH_SALE, AuditLogService.ENTITY_FLASH_SALE, saved.getId());
         log.info("Updated FlashSale: {}", saved.getId());
 
         // Reload with items for response
@@ -443,6 +449,7 @@ public class FlashSalesService {
             }
         }
 
+        auditLogService.recordAdminAction(AuditLogService.ACTION_DELETE_FLASH_SALE, AuditLogService.ENTITY_FLASH_SALE, id);
         // Delete the flash sale (cascade will handle items)
         sales.delete(sale);
         log.info("Deleted FlashSale: {}", id);
@@ -508,6 +515,7 @@ public class FlashSalesService {
                 final BigDecimal salePrice = itemDto.salePrice() != null ? itemDto.salePrice() : p.getBasePrice();
                 final var flashSaleItem = new FlashSaleItem(null, sale, p, itemDto.allocatedStock(), 0, salePrice);
                 this.items.save(flashSaleItem);
+                auditLogService.recordAdminAction(AuditLogService.ACTION_ADD_FLASH_SALE_ITEM, AuditLogService.ENTITY_FLASH_SALE_ITEM, flashSaleItem.getId());
 
                 // Update product reserved count
                 final int newReservedCount = p.getReservedCount() + itemDto.allocatedStock();
@@ -633,6 +641,7 @@ public class FlashSalesService {
 
         if (updated) {
             items.save(item);
+            auditLogService.recordAdminAction(AuditLogService.ACTION_UPDATE_FLASH_SALE_ITEM, AuditLogService.ENTITY_FLASH_SALE_ITEM, itemId);
             log.info("Updated FlashSaleItem: {} in sale {}", itemId, saleId);
         }
 
@@ -696,6 +705,7 @@ public class FlashSalesService {
                 stockToRelease, product.getId(), saleId);
         }
 
+        auditLogService.recordAdminAction(AuditLogService.ACTION_REMOVE_FLASH_SALE_ITEM, AuditLogService.ENTITY_FLASH_SALE_ITEM, itemId);
         // Remove from parent collection so JPA orphanRemoval deletes the row
         sale.getItems().remove(item);
         sales.save(sale);

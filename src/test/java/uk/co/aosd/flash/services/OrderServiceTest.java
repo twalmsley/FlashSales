@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 
 import java.math.BigDecimal;
@@ -20,6 +21,7 @@ import org.mockito.Mockito;
 import uk.co.aosd.flash.domain.FlashSale;
 import uk.co.aosd.flash.domain.FlashSaleItem;
 import uk.co.aosd.flash.domain.Order;
+import uk.co.aosd.flash.domain.OrderStatusHistory;
 import uk.co.aosd.flash.domain.OrderStatus;
 import uk.co.aosd.flash.domain.Product;
 import uk.co.aosd.flash.domain.SaleStatus;
@@ -33,6 +35,7 @@ import uk.co.aosd.flash.exc.OrderNotFoundException;
 import uk.co.aosd.flash.exc.SaleNotActiveException;
 import uk.co.aosd.flash.repository.FlashSaleItemRepository;
 import uk.co.aosd.flash.repository.OrderRepository;
+import uk.co.aosd.flash.repository.OrderStatusHistoryRepository;
 import uk.co.aosd.flash.repository.ProductRepository;
 
 /**
@@ -43,6 +46,8 @@ public class OrderServiceTest {
     private OrderRepository orderRepository;
     private FlashSaleItemRepository flashSaleItemRepository;
     private ProductRepository productRepository;
+    private OrderStatusHistoryRepository orderStatusHistoryRepository;
+    private AuditLogService auditLogService;
     private PaymentService paymentService;
     private NotificationService notificationService;
     private OrderService orderService;
@@ -60,6 +65,8 @@ public class OrderServiceTest {
         orderRepository = Mockito.mock(OrderRepository.class);
         flashSaleItemRepository = Mockito.mock(FlashSaleItemRepository.class);
         productRepository = Mockito.mock(ProductRepository.class);
+        orderStatusHistoryRepository = Mockito.mock(OrderStatusHistoryRepository.class);
+        auditLogService = Mockito.mock(AuditLogService.class);
         paymentService = Mockito.mock(PaymentService.class);
         notificationService = Mockito.mock(NotificationService.class);
 
@@ -67,8 +74,12 @@ public class OrderServiceTest {
             orderRepository,
             flashSaleItemRepository,
             productRepository,
+            orderStatusHistoryRepository,
+            auditLogService,
             paymentService,
             notificationService);
+
+        Mockito.when(orderStatusHistoryRepository.findByOrderIdOrderByChangedAtAsc(any())).thenReturn(List.of());
 
         userId = UUID.randomUUID();
         flashSaleItemId = UUID.randomUUID();
@@ -645,6 +656,9 @@ public class OrderServiceTest {
 
         assertEquals(OrderStatus.PAID, order.getStatus());
         Mockito.verify(orderRepository).save(order);
+        Mockito.verify(orderStatusHistoryRepository).save(argThat((OrderStatusHistory h) ->
+            orderId.equals(h.getOrderId()) && h.getFromStatus() == OrderStatus.PENDING && h.getToStatus() == OrderStatus.PAID));
+        Mockito.verify(auditLogService).recordAdminAction(eq(AuditLogService.ACTION_UPDATE_ORDER_STATUS), eq(AuditLogService.ENTITY_ORDER), eq(orderId), any());
     }
 
     @Test
