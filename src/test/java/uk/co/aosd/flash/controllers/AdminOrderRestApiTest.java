@@ -364,6 +364,7 @@ public class AdminOrderRestApiTest {
             soldQuantity,
             totalAmount,
             status,
-            createdAt);
+            createdAt,
+            List.of());
     }
 }

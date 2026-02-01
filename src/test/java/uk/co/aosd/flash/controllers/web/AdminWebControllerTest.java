@@ -453,7 +453,7 @@ class AdminWebControllerTest {
         final var orderId = UUID.randomUUID();
         final var order = new OrderDetailDto(orderId, UUID.randomUUID(), UUID.randomUUID(), "Product",
             UUID.randomUUID(), UUID.randomUUID(), "Sale", BigDecimal.TEN, 1, BigDecimal.TEN, OrderStatus.PENDING,
-            OffsetDateTime.now(ZoneOffset.UTC));
+            OffsetDateTime.now(ZoneOffset.UTC), List.of());
         when(orderService.getOrderByIdForAdmin(orderId)).thenReturn(order);
 
         mockMvc.perform(get("/admin/orders/" + orderId).with(user("admin").roles("ADMIN_USER")).with(csrf()))

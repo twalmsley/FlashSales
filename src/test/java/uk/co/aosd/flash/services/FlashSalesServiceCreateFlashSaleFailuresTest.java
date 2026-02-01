@@ -40,12 +40,15 @@ public class FlashSalesServiceCreateFlashSaleFailuresTest {
     /**
      * Set up the mocks and the service for testing.
      */
+    private static AuditLogService auditLogService;
+
     @BeforeAll
     public static void beforeAll() {
         sales = Mockito.mock(FlashSaleRepository.class);
         items = Mockito.mock(FlashSaleItemRepository.class);
         products = Mockito.mock(ProductRepository.class);
-        service = new FlashSalesService(sales, items, products);
+        auditLogService = Mockito.mock(AuditLogService.class);
+        service = new FlashSalesService(sales, items, products, auditLogService);
     }
 
     /**

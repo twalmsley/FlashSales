@@ -33,6 +33,7 @@ public class ProductsService {
     private static Logger log = LoggerFactory.getLogger(ProductsService.class.getName());
 
     private final ProductRepository repository;
+    private final AuditLogService auditLogService;
 
     private Function<Product, ProductDto> toProductDto = p -> {
         return new ProductDto(p.getId().toString(), p.getName(), p.getDescription(), p.getTotalPhysicalStock(), p.getBasePrice(), p.getReservedCount());
@@ -70,6 +71,7 @@ public class ProductsService {
 
         try {
             final var saved = repository.save(product);
+            auditLogService.recordAdminAction(AuditLogService.ACTION_CREATE_PRODUCT, AuditLogService.ENTITY_PRODUCT, saved.getId());
             return saved.getId();
         } catch (final DuplicateKeyException e) {
             log.error("Failed to create product: " + productDto);
@@ -140,6 +142,7 @@ public class ProductsService {
                 prod.setBasePrice(product.basePrice());
                 prod.setReservedCount(product.reservedCount());
                 repository.save(prod);
+                auditLogService.recordAdminAction(AuditLogService.ACTION_UPDATE_PRODUCT, AuditLogService.ENTITY_PRODUCT, prod.getId());
                 log.info("Product Updated: " + prod);
             });
         } catch (final IllegalArgumentException e) {
@@ -174,6 +177,7 @@ public class ProductsService {
                 log.warn("Product not found for deletion: " + id);
                 throw new ProductNotFoundException(id);
             }
+            auditLogService.recordAdminAction(AuditLogService.ACTION_DELETE_PRODUCT, AuditLogService.ENTITY_PRODUCT, uuid);
             repository.deleteById(uuid);
             log.info("Deleted product: " + id);
         } catch (final IllegalArgumentException e) {
