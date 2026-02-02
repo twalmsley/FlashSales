@@ -66,8 +66,8 @@ class UserServiceTest {
         final UpdateProfileDto dto = new UpdateProfileDto("newuser", "new@example.com", "CurrentPass123!");
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("CurrentPass123!", user.getPassword())).thenReturn(true);
-        when(userRepository.existsByUsernameAndIdNot(userId, "newuser")).thenReturn(false);
-        when(userRepository.existsByEmailAndIdNot(userId, "new@example.com")).thenReturn(false);
+        when(userRepository.existsByUsernameAndIdNot("newuser", userId)).thenReturn(false);
+        when(userRepository.existsByEmailAndIdNot("new@example.com", userId)).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(inv -> {
             final User u = inv.getArgument(0);
             u.setUsername("newuser");
@@ -98,7 +98,7 @@ class UserServiceTest {
         final UpdateProfileDto dto = new UpdateProfileDto("existinguser", "new@example.com", "CurrentPass123!");
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("CurrentPass123!", user.getPassword())).thenReturn(true);
-        when(userRepository.existsByUsernameAndIdNot(userId, "existinguser")).thenReturn(true);
+        when(userRepository.existsByUsernameAndIdNot("existinguser", userId)).thenReturn(true);
 
         final DuplicateEntityException ex = assertThrows(DuplicateEntityException.class,
             () -> userService.updateProfile(userId, dto));
@@ -112,8 +112,8 @@ class UserServiceTest {
         final UpdateProfileDto dto = new UpdateProfileDto("newuser", "existing@example.com", "CurrentPass123!");
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("CurrentPass123!", user.getPassword())).thenReturn(true);
-        when(userRepository.existsByUsernameAndIdNot(userId, "newuser")).thenReturn(false);
-        when(userRepository.existsByEmailAndIdNot(userId, "existing@example.com")).thenReturn(true);
+        when(userRepository.existsByUsernameAndIdNot("newuser", userId)).thenReturn(false);
+        when(userRepository.existsByEmailAndIdNot("existing@example.com", userId)).thenReturn(true);
 
         final DuplicateEntityException ex = assertThrows(DuplicateEntityException.class,
             () -> userService.updateProfile(userId, dto));
