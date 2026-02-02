@@ -188,7 +188,7 @@ public class UserService {
             if (trimmed.length() < 3 || trimmed.length() > 50) {
                 throw new IllegalArgumentException("Username must be between 3 and 50 characters");
             }
-            if (!trimmed.equals(user.getUsername()) && userRepository.existsByUsernameAndIdNot(userId, trimmed)) {
+            if (!trimmed.equals(user.getUsername()) && userRepository.existsByUsernameAndIdNot(trimmed, userId)) {
                 throw new DuplicateEntityException("username", trimmed);
             }
             user.setUsername(trimmed);
@@ -198,7 +198,7 @@ public class UserService {
             if (trimmed.length() > 100) {
                 throw new IllegalArgumentException("Email must not exceed 100 characters");
             }
-            if (!trimmed.equals(user.getEmail()) && userRepository.existsByEmailAndIdNot(userId, trimmed)) {
+            if (!trimmed.equals(user.getEmail()) && userRepository.existsByEmailAndIdNot(trimmed, userId)) {
                 throw new DuplicateEntityException("email", trimmed);
             }
             user.setEmail(trimmed);
