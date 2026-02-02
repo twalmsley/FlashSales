@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
+import uk.co.aosd.flash.exc.InvalidCurrentPasswordException;
 import uk.co.aosd.flash.exc.FlashSaleItemNotFoundException;
 import uk.co.aosd.flash.exc.FlashSaleNotFoundException;
 import uk.co.aosd.flash.exc.InsufficientResourcesException;
@@ -70,9 +71,30 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateEntityException.class)
     public ResponseEntity<Map<String, String>> handleDuplicateEntityException(final DuplicateEntityException e) {
         log.warn("Duplicate entity error: id={}, name={}", e.getId(), e.getName());
-        final String message = String.format("Entity with id '%s' and name '%s' already exists", e.getId(), e.getName());
+        final String message = friendlyDuplicateMessage(e.getId(), e.getName());
         return ResponseEntity.status(HttpStatus.CONFLICT)
             .body(errorMapper.createErrorMap(message));
+    }
+
+    private static String friendlyDuplicateMessage(final String id, final String name) {
+        if ("username".equals(id)) {
+            return "Username already taken";
+        }
+        if ("email".equals(id)) {
+            return "Email already in use";
+        }
+        return String.format("Entity with id '%s' and name '%s' already exists", id, name);
+    }
+
+    /**
+     * Handle invalid current password (e.g. when updating profile or changing password).
+     */
+    @ExceptionHandler(InvalidCurrentPasswordException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidCurrentPasswordException(
+        final InvalidCurrentPasswordException e) {
+        log.warn("Invalid current password: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(errorMapper.createErrorMap(e.getMessage() != null ? e.getMessage() : "Current password is incorrect"));
     }
 
     /**

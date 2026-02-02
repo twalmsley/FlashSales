@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{layout/base :: head(pageTitle='Profile')}"></head>
+
+<body>
+    <nav th:replace="~{layout/base :: nav}"></nav>
+
+    <main class="container mt-4">
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:text="${success}">Success message</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${error}">Error message</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <h1>Profile</h1>
+        <div th:if="${profile}" class="card">
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-3">Username</dt>
+                    <dd class="col-sm-9" th:text="${profile.username()}">—</dd>
+                    <dt class="col-sm-3">Email</dt>
+                    <dd class="col-sm-9" th:text="${profile.email()}">—</dd>
+                    <dt class="col-sm-3">Role</dt>
+                    <dd class="col-sm-9" th:text="${profile.role()}">—</dd>
+                    <dt class="col-sm-3">Member since</dt>
+                    <dd class="col-sm-9" th:text="${profile.createdAt() != null ? #temporals.format(profile.createdAt(), 'dd MMM yyyy') : '—'}">—</dd>
+                </dl>
+                <a th:href="@{/profile/edit}" class="btn btn-primary">Edit profile</a>
+                <a th:href="@{/profile/password}" class="btn btn-outline-secondary">Change password</a>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout/base :: footer}"></footer>
+    <script th:replace="~{layout/base :: scripts}"></script>
+</body>
+</html>

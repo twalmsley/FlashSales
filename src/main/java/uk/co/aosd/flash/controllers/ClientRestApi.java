@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -29,6 +30,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import uk.co.aosd.flash.domain.OrderStatus;
+import uk.co.aosd.flash.dto.ChangePasswordDto;
 import uk.co.aosd.flash.dto.ClientActiveSaleDto;
 import uk.co.aosd.flash.dto.ClientDraftSaleDto;
 import uk.co.aosd.flash.dto.ClientProductDto;
@@ -37,12 +39,15 @@ import uk.co.aosd.flash.dto.ErrorResponseDto;
 import uk.co.aosd.flash.dto.OrderDetailDto;
 import uk.co.aosd.flash.dto.OrderResponseDto;
 import uk.co.aosd.flash.dto.ProductDto;
+import uk.co.aosd.flash.dto.UpdateProfileDto;
+import uk.co.aosd.flash.dto.UserDto;
 import uk.co.aosd.flash.security.SecurityUtils;
 import uk.co.aosd.flash.services.ActiveSalesService;
 import uk.co.aosd.flash.services.DraftSalesService;
 import uk.co.aosd.flash.services.OrderMessageSender;
 import uk.co.aosd.flash.services.OrderService;
 import uk.co.aosd.flash.services.ProductsService;
+import uk.co.aosd.flash.services.UserService;
 
 /**
  * Client API.
@@ -67,6 +72,120 @@ public class ClientRestApi {
 
     private final OrderService orderService;
     private final OrderMessageSender orderMessageSender;
+    private final UserService userService;
+
+    /**
+     * Get current user profile (authenticated client).
+     *
+     * @return UserDto for the authenticated user
+     */
+    @GetMapping("/profile")
+    @Operation(
+        summary = "Get profile",
+        description = "Returns the authenticated user's profile."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Profile found.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized.",
+            content = @Content
+        )
+    })
+    public ResponseEntity<UserDto> getProfile() {
+        final UUID userId = SecurityUtils.getCurrentUserId();
+        log.info("Fetching profile for user {}", userId);
+        final UserDto profile = userService.findById(userId);
+        return ResponseEntity.ok(profile);
+    }
+
+    /**
+     * Update current user profile (username and/or email). Current password required.
+     *
+     * @param dto update profile request
+     * @return updated UserDto
+     */
+    @PutMapping("/profile")
+    @Operation(
+        summary = "Update profile",
+        description = "Updates the authenticated user's username and/or email. Current password is required."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Profile updated.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Wrong current password.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized.",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Username or email already in use.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Validation error.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
+    public ResponseEntity<UserDto> updateProfile(@Valid @RequestBody final UpdateProfileDto dto) {
+        final UUID userId = SecurityUtils.getCurrentUserId();
+        log.info("Updating profile for user {}", userId);
+        final UserDto updated = userService.updateProfile(userId, dto);
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * Change current user password. Current password required.
+     *
+     * @param dto change password request
+     * @return 200 on success
+     */
+    @PutMapping("/profile/password")
+    @Operation(
+        summary = "Change password",
+        description = "Changes the authenticated user's password. Current password is required."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Password changed."
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Wrong current password.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized.",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Validation error (e.g. weak new password).",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody final ChangePasswordDto dto) {
+        final UUID userId = SecurityUtils.getCurrentUserId();
+        log.info("Changing password for user {}", userId);
+        userService.changePassword(userId, dto);
+        return ResponseEntity.ok().build();
+    }
 
     /**
      * Get a client's view of a product.

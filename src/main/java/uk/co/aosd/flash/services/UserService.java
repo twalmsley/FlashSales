@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,10 +14,13 @@ import lombok.RequiredArgsConstructor;
 import uk.co.aosd.flash.domain.User;
 import uk.co.aosd.flash.domain.UserRole;
 import uk.co.aosd.flash.dto.AuthResponseDto;
+import uk.co.aosd.flash.dto.ChangePasswordDto;
 import uk.co.aosd.flash.dto.LoginDto;
 import uk.co.aosd.flash.dto.RegisterDto;
+import uk.co.aosd.flash.dto.UpdateProfileDto;
 import uk.co.aosd.flash.dto.UserDto;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
+import uk.co.aosd.flash.exc.InvalidCurrentPasswordException;
 import uk.co.aosd.flash.repository.UserRepository;
 
 /**
@@ -157,5 +161,80 @@ public class UserService {
     @Transactional(readOnly = true)
     public User findByUsername(final String username) {
         return userRepository.findByUsername(username).orElse(null);
+    }
+
+    /**
+     * Update profile (username and/or email) for the given user. Current password must match.
+     *
+     * @param userId user ID
+     * @param dto    update profile DTO (optional username/email, required currentPassword)
+     * @return updated user DTO
+     * @throws InvalidCurrentPasswordException if current password is wrong
+     * @throws DuplicateEntityException        if new username or email is already taken by another user
+     */
+    @CacheEvict(value = "users", allEntries = true)
+    @Transactional
+    public UserDto updateProfile(final UUID userId, final UpdateProfileDto dto) {
+        final User user = userRepository.findById(userId)
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("User not found: " + userId));
+
+        if (!passwordEncoder.matches(dto.currentPassword(), user.getPassword())) {
+            log.warn("Invalid current password for profile update: userId={}", userId);
+            throw new InvalidCurrentPasswordException();
+        }
+
+        if (dto.username() != null && !dto.username().isBlank()) {
+            final String trimmed = dto.username().trim();
+            if (trimmed.length() < 3 || trimmed.length() > 50) {
+                throw new IllegalArgumentException("Username must be between 3 and 50 characters");
+            }
+            if (!trimmed.equals(user.getUsername()) && userRepository.existsByUsernameAndIdNot(userId, trimmed)) {
+                throw new DuplicateEntityException("username", trimmed);
+            }
+            user.setUsername(trimmed);
+        }
+        if (dto.email() != null && !dto.email().isBlank()) {
+            final String trimmed = dto.email().trim();
+            if (trimmed.length() > 100) {
+                throw new IllegalArgumentException("Email must not exceed 100 characters");
+            }
+            if (!trimmed.equals(user.getEmail()) && userRepository.existsByEmailAndIdNot(userId, trimmed)) {
+                throw new DuplicateEntityException("email", trimmed);
+            }
+            user.setEmail(trimmed);
+        }
+
+        final User saved = userRepository.save(user);
+        log.info("Profile updated for user: {} (ID: {})", saved.getUsername(), saved.getId());
+        return new UserDto(
+            saved.getId(),
+            saved.getUsername(),
+            saved.getEmail(),
+            saved.getRoles(),
+            saved.getCreatedAt()
+        );
+    }
+
+    /**
+     * Change password for the given user. Current password must match.
+     *
+     * @param userId user ID
+     * @param dto    change password DTO (currentPassword, newPassword)
+     * @throws InvalidCurrentPasswordException if current password is wrong
+     */
+    @CacheEvict(value = "users", key = "#userId")
+    @Transactional
+    public void changePassword(final UUID userId, final ChangePasswordDto dto) {
+        final User user = userRepository.findById(userId)
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("User not found: " + userId));
+
+        if (!passwordEncoder.matches(dto.currentPassword(), user.getPassword())) {
+            log.warn("Invalid current password for password change: userId={}", userId);
+            throw new InvalidCurrentPasswordException();
+        }
+
+        user.setPassword(passwordEncoder.encode(dto.newPassword()));
+        userRepository.save(user);
+        log.info("Password changed for user: {} (ID: {})", user.getUsername(), userId);
     }
 }
