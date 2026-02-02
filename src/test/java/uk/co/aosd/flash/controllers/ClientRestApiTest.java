@@ -7,6 +7,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
@@ -34,9 +35,20 @@ import org.springframework.test.web.servlet.MockMvc;
 import uk.co.aosd.flash.config.TestSecurityConfig;
 import uk.co.aosd.flash.domain.OrderStatus;
 import uk.co.aosd.flash.domain.UserRole;
-import uk.co.aosd.flash.dto.*;
+import uk.co.aosd.flash.dto.ChangePasswordDto;
+import uk.co.aosd.flash.dto.ClientActiveSaleDto;
+import uk.co.aosd.flash.dto.ClientDraftSaleDto;
+import uk.co.aosd.flash.dto.ClientProductDto;
+import uk.co.aosd.flash.dto.CreateOrderDto;
+import uk.co.aosd.flash.dto.ErrorResponseDto;
+import uk.co.aosd.flash.dto.OrderDetailDto;
+import uk.co.aosd.flash.dto.OrderResponseDto;
+import uk.co.aosd.flash.dto.ProductDto;
+import uk.co.aosd.flash.dto.UpdateProfileDto;
+import uk.co.aosd.flash.dto.UserDto;
 import uk.co.aosd.flash.errorhandling.ErrorMapper;
 import uk.co.aosd.flash.errorhandling.GlobalExceptionHandler;
+import uk.co.aosd.flash.exc.InvalidCurrentPasswordException;
 import uk.co.aosd.flash.exc.OrderNotFoundException;
 import uk.co.aosd.flash.services.*;
 import uk.co.aosd.flash.util.TestJwtUtils;
@@ -73,6 +85,9 @@ public class ClientRestApiTest {
     @MockitoBean
     private OrderMessageSender orderMessageSender;
 
+    @MockitoBean
+    private UserService userService;
+
     @BeforeAll
     public static void beforeAll() {
         objectMapper = new ObjectMapper();
@@ -81,7 +96,7 @@ public class ClientRestApiTest {
 
     @BeforeEach
     public void beforeEach() {
-        Mockito.reset(productsService, activeSalesService, draftSalesService, orderService, orderMessageSender);
+        Mockito.reset(productsService, activeSalesService, draftSalesService, orderService, orderMessageSender, userService);
         TestJwtUtils.clearSecurityContext();
     }
 
@@ -760,6 +775,154 @@ public class ClientRestApiTest {
     @Test
     public void shouldReturnUnauthorizedWhenNotAuthenticated() throws Exception {
         mockMvc.perform(get("/api/v1/clients/orders")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isUnauthorized())
+            .andReturn();
+    }
+
+    // --- Profile endpoints ---
+
+    @Test
+    public void shouldGetProfileSuccessfully() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        final OffsetDateTime createdAt = OffsetDateTime.now();
+        final UserDto userDto = new UserDto(userId, "johndoe", "john@example.com", UserRole.USER, createdAt);
+
+        Mockito.when(userService.findById(userId)).thenReturn(userDto);
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
+        final var result = mockMvc.perform(get("/api/v1/clients/profile")
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final var response = objectMapper.readValue(result.getResponse().getContentAsString(), UserDto.class);
+        assertEquals(userId, response.id());
+        assertEquals("johndoe", response.username());
+        assertEquals("john@example.com", response.email());
+        assertEquals(UserRole.USER, response.role());
+    }
+
+    @Test
+    public void shouldReturn401WhenGetProfileUnauthenticated() throws Exception {
+        mockMvc.perform(get("/api/v1/clients/profile")
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isUnauthorized())
+            .andReturn();
+    }
+
+    @Test
+    public void shouldUpdateProfileSuccessfully() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        final OffsetDateTime createdAt = OffsetDateTime.now();
+        final UpdateProfileDto dto = new UpdateProfileDto("newuser", "new@example.com", "CurrentPass123!");
+        final UserDto updated = new UserDto(userId, "newuser", "new@example.com", UserRole.USER, createdAt);
+
+        Mockito.when(userService.updateProfile(userId, dto)).thenReturn(updated);
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
+        final String requestBody = objectMapper.writeValueAsString(dto);
+        final var result = mockMvc.perform(put("/api/v1/clients/profile")
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody)
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        final var response = objectMapper.readValue(result.getResponse().getContentAsString(), UserDto.class);
+        assertEquals("newuser", response.username());
+        assertEquals("new@example.com", response.email());
+    }
+
+    @Test
+    public void shouldReturn400WhenUpdateProfileWrongCurrentPassword() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        final UpdateProfileDto dto = new UpdateProfileDto("newuser", "new@example.com", "WrongPass123!");
+
+        Mockito.when(userService.updateProfile(userId, dto)).thenThrow(new InvalidCurrentPasswordException());
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
+        final String requestBody = objectMapper.writeValueAsString(dto);
+        mockMvc.perform(put("/api/v1/clients/profile")
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody)
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+    }
+
+    @Test
+    public void shouldReturn422WhenUpdateProfileValidationFails() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        final UpdateProfileDto dto = new UpdateProfileDto("ab", "bad-email", ""); // too short username, invalid email, blank currentPassword
+
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+        final String requestBody = objectMapper.writeValueAsString(dto);
+
+        mockMvc.perform(put("/api/v1/clients/profile")
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody)
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isUnprocessableEntity())
+            .andReturn();
+    }
+
+    @Test
+    public void shouldChangePasswordSuccessfully() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        final ChangePasswordDto dto = new ChangePasswordDto("CurrentPass123!", "NewSecurePass456!");
+
+        Mockito.doNothing().when(userService).changePassword(userId, dto);
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
+        final String requestBody = objectMapper.writeValueAsString(dto);
+        mockMvc.perform(put("/api/v1/clients/profile/password")
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody)
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        Mockito.verify(userService).changePassword(userId, dto);
+    }
+
+    @Test
+    public void shouldReturn400WhenChangePasswordWrongCurrentPassword() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        final ChangePasswordDto dto = new ChangePasswordDto("WrongPass123!", "NewSecurePass456!");
+
+        Mockito.doThrow(new InvalidCurrentPasswordException()).when(userService).changePassword(userId, dto);
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
+        final String requestBody = objectMapper.writeValueAsString(dto);
+        mockMvc.perform(put("/api/v1/clients/profile/password")
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody)
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+    }
+
+    @Test
+    public void shouldReturn401WhenChangePasswordUnauthenticated() throws Exception {
+        final ChangePasswordDto dto = new ChangePasswordDto("CurrentPass123!", "NewSecurePass456!");
+        final String requestBody = objectMapper.writeValueAsString(dto);
+
+        mockMvc.perform(put("/api/v1/clients/profile/password")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestBody)
             .accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isUnauthorized())
             .andReturn();

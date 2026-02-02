@@ -29,6 +29,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
+import uk.co.aosd.flash.exc.InvalidCurrentPasswordException;
 import uk.co.aosd.flash.exc.FlashSaleItemNotFoundException;
 import uk.co.aosd.flash.exc.FlashSaleNotFoundException;
 import uk.co.aosd.flash.exc.InsufficientResourcesException;
@@ -65,6 +66,37 @@ public class GlobalExceptionHandlerTest {
         assertTrue(response.getBody().containsKey("message"));
         assertTrue(response.getBody().get("message").contains("test-id"));
         assertTrue(response.getBody().get("message").contains("Test Product"));
+    }
+
+    @Test
+    public void shouldHandleDuplicateEntityException_username_returnsFriendlyMessage() {
+        final DuplicateEntityException ex = new DuplicateEntityException("username", "johndoe");
+        final ResponseEntity<Map<String, String>> response = handler.handleDuplicateEntityException(ex);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Username already taken", response.getBody().get("message"));
+    }
+
+    @Test
+    public void shouldHandleDuplicateEntityException_email_returnsFriendlyMessage() {
+        final DuplicateEntityException ex = new DuplicateEntityException("email", "john@example.com");
+        final ResponseEntity<Map<String, String>> response = handler.handleDuplicateEntityException(ex);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Email already in use", response.getBody().get("message"));
+    }
+
+    @Test
+    public void shouldHandleInvalidCurrentPasswordException() {
+        final InvalidCurrentPasswordException ex = new InvalidCurrentPasswordException();
+        final ResponseEntity<Map<String, String>> response = handler.handleInvalidCurrentPasswordException(ex);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().containsKey("message"));
+        assertTrue(response.getBody().get("message").contains("Current password"));
     }
 
     @Test
