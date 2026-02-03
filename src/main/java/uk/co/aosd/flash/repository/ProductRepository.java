@@ -90,9 +90,9 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
      */
     @Query(value = "SELECT p.id, p.name, p.description, p.base_price, p.total_physical_stock, p.reserved_count " +
         "FROM products p " +
-        "WHERE (:search IS NULL OR trim(cast(:search as text)) = '' OR p.search_vector @@ plainto_tsquery('english', :search)) " +
-        "AND (:minPrice IS NULL OR p.base_price >= :minPrice) " +
-        "AND (:maxPrice IS NULL OR p.base_price <= :maxPrice)",
+        "WHERE (CAST(:search AS TEXT) IS NULL OR trim(CAST(:search AS TEXT)) = '' OR p.search_vector @@ plainto_tsquery('english', COALESCE(trim(CAST(:search AS TEXT)), ''))) " +
+        "AND (CAST(:minPrice AS DECIMAL(12,2)) IS NULL OR p.base_price >= CAST(:minPrice AS DECIMAL(12,2))) " +
+        "AND (CAST(:maxPrice AS DECIMAL(12,2)) IS NULL OR p.base_price <= CAST(:maxPrice AS DECIMAL(12,2)))",
         nativeQuery = true)
     List<Product> findAllWithSearchAndPrice(
         @Param("search") String search,

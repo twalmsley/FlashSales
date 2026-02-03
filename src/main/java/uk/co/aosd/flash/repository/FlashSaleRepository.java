@@ -104,10 +104,10 @@ public interface FlashSaleRepository extends JpaRepository<FlashSale, UUID> {
      * @return list of flash sale IDs in start_time order
      */
     @Query(value = "SELECT id FROM flash_sales fs " +
-        "WHERE (cast(:status AS text) IS NULL OR fs.status::text = cast(:status AS text)) " +
+        "WHERE (CAST(:status AS text) IS NULL OR fs.status::text = CAST(:status AS text)) " +
         "AND fs.end_time >= COALESCE(:startDate, fs.end_time) " +
         "AND fs.start_time <= COALESCE(:endDate, fs.start_time) " +
-        "AND (:search IS NULL OR trim(cast(:search AS text)) = '' OR fs.search_vector @@ plainto_tsquery('english', :search)) " +
+        "AND (CAST(:search AS TEXT) IS NULL OR trim(CAST(:search AS TEXT)) = '' OR fs.search_vector @@ plainto_tsquery('english', COALESCE(trim(CAST(:search AS TEXT)), ''))) " +
         "ORDER BY fs.start_time ASC",
         nativeQuery = true)
     List<UUID> findFlashSaleIdsWithFiltersAndSearch(
