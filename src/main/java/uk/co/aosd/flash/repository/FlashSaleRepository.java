@@ -94,6 +94,39 @@ public interface FlashSaleRepository extends JpaRepository<FlashSale, UUID> {
         @Param("endDate") OffsetDateTime endDate);
 
     /**
+     * Find flash sale IDs with optional filters and optional title search (FTS).
+     * Used when search is non-blank; results are then loaded with findByIdInWithItems.
+     *
+     * @param status    optional status filter
+     * @param startDate optional filter window start
+     * @param endDate   optional filter window end
+     * @param search    optional search term for title (null or blank = no FTS)
+     * @return list of flash sale IDs in start_time order
+     */
+    @Query(value = "SELECT id FROM flash_sales fs " +
+        "WHERE (cast(:status AS text) IS NULL OR fs.status::text = cast(:status AS text)) " +
+        "AND fs.end_time >= COALESCE(:startDate, fs.end_time) " +
+        "AND fs.start_time <= COALESCE(:endDate, fs.start_time) " +
+        "AND (:search IS NULL OR trim(cast(:search AS text)) = '' OR fs.search_vector @@ plainto_tsquery('english', :search)) " +
+        "ORDER BY fs.start_time ASC",
+        nativeQuery = true)
+    List<UUID> findFlashSaleIdsWithFiltersAndSearch(
+        @Param("status") SaleStatus status,
+        @Param("startDate") OffsetDateTime startDate,
+        @Param("endDate") OffsetDateTime endDate,
+        @Param("search") String search);
+
+    /**
+     * Find flash sales by IDs with items and products eagerly loaded.
+     * Does not guarantee order; caller should sort by startTime if needed.
+     *
+     * @param ids list of flash sale IDs
+     * @return list of flash sales with items and products loaded
+     */
+    @Query("SELECT DISTINCT fs FROM FlashSale fs LEFT JOIN FETCH fs.items item LEFT JOIN FETCH item.product WHERE fs.id IN :ids")
+    List<FlashSale> findByIdInWithItems(@Param("ids") List<UUID> ids);
+
+    /**
      * Find a flash sale by ID with items and products eagerly loaded.
      * Uses JOIN FETCH to eagerly load items and products to avoid lazy loading
      * issues.

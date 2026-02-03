@@ -179,6 +179,40 @@ public class ProductsServiceTest {
 
 
     @Test
+    public void shouldReturnFilteredProductsWithSearchAndPrice() {
+        final Product p1 = new Product(UUID.fromString(uuid1), "Widget", "desc", 10, BigDecimal.valueOf(15.00), 0);
+        Mockito.when(repository.findAllWithSearchAndPrice(Mockito.eq("widget"), Mockito.eq(BigDecimal.TEN), Mockito.eq(BigDecimal.valueOf(20))))
+            .thenReturn(List.of(p1));
+
+        final var products = service.getAllProducts("widget", BigDecimal.TEN, BigDecimal.valueOf(20));
+
+        assertNotNull(products);
+        assertEquals(1, products.size());
+        assertEquals("Widget", products.get(0).name());
+        Mockito.verify(repository).findAllWithSearchAndPrice(Mockito.eq("widget"), Mockito.eq(BigDecimal.TEN), Mockito.eq(BigDecimal.valueOf(20)));
+    }
+
+    @Test
+    public void shouldThrowWhenMinPriceGreaterThanMaxPrice() {
+        assertThrows(IllegalArgumentException.class, () ->
+            service.getAllProducts(null, BigDecimal.valueOf(100), BigDecimal.TEN));
+    }
+
+    @Test
+    public void shouldDelegateToGetAllProductsWhenAllParamsNull() {
+        final List<Product> seed = List.of(
+            new Product(UUID.fromString(uuid1), "one", "desc1", 100, BigDecimal.valueOf(100.00), 0));
+        Mockito.when(repository.findAll()).thenReturn(seed);
+
+        final var products = service.getAllProducts(null, null, null);
+
+        assertNotNull(products);
+        assertEquals(1, products.size());
+        Mockito.verify(repository).findAll();
+        Mockito.verify(repository, Mockito.never()).findAllWithSearchAndPrice(Mockito.any(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
     public void shouldFailWithIllegalArgumentException() {
 
         Mockito.when(repository.findById(Mockito.any(UUID.class))).thenThrow(IllegalArgumentException.class);

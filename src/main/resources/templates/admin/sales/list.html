@@ -9,7 +9,28 @@
             <h1>Flash Sales</h1>
             <a th:href="@{/admin/sales/new}" class="btn btn-primary">New Flash Sale</a>
         </div>
-        
+
+        <form th:action="@{/admin/sales}" method="get" class="row g-3 mb-4">
+            <div class="col-auto">
+                <label for="search" class="form-label visually-hidden">Search title</label>
+                <input type="text" id="search" name="search" class="form-control" placeholder="Search by title"
+                    th:value="${search}" />
+            </div>
+            <div class="col-auto">
+                <label for="status" class="form-label visually-hidden">Status</label>
+                <select id="status" name="status" class="form-select">
+                    <option value="">All statuses</option>
+                    <option value="DRAFT" th:selected="${statusFilter == 'DRAFT'}">DRAFT</option>
+                    <option value="ACTIVE" th:selected="${statusFilter == 'ACTIVE'}">ACTIVE</option>
+                    <option value="COMPLETED" th:selected="${statusFilter == 'COMPLETED'}">COMPLETED</option>
+                    <option value="CANCELLED" th:selected="${statusFilter == 'CANCELLED'}">CANCELLED</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-secondary">Search</button>
+            </div>
+        </form>
+
         <div th:if="${sales != null and !sales.isEmpty()}">
             <table class="table table-striped">
                 <thead>
@@ -35,7 +56,8 @@
             </table>
         </div>
         <div th:if="${sales == null or sales.isEmpty()}" class="alert alert-info">
-            No flash sales found.
+            <span th:if="${search != null or (statusFilter != null and !statusFilter.isEmpty())}">No flash sales match your search or filters.</span>
+            <span th:if="${search == null and (statusFilter == null or statusFilter.isEmpty())}">No flash sales found.</span>
         </div>
     </main>
 

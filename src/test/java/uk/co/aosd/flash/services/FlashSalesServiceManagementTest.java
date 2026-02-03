@@ -76,7 +76,7 @@ public class FlashSalesServiceManagementTest {
 
         when(sales.findAllWithFilters(null, null, null)).thenReturn(allSales);
 
-        final List<FlashSaleResponseDto> result = service.getAllFlashSales(null, null, null);
+        final List<FlashSaleResponseDto> result = service.getAllFlashSales(null, null, null, null);
 
         assertEquals(2, result.size());
         verify(sales, times(1)).findAllWithFilters(null, null, null);
@@ -89,7 +89,7 @@ public class FlashSalesServiceManagementTest {
 
         when(sales.findAllWithFilters(SaleStatus.DRAFT, null, null)).thenReturn(draftSales);
 
-        final List<FlashSaleResponseDto> result = service.getAllFlashSales(SaleStatus.DRAFT, null, null);
+        final List<FlashSaleResponseDto> result = service.getAllFlashSales(SaleStatus.DRAFT, null, null, null);
 
         assertEquals(1, result.size());
         assertEquals(SaleStatus.DRAFT, result.get(0).status());
@@ -105,7 +105,7 @@ public class FlashSalesServiceManagementTest {
 
         when(sales.findAllWithFilters(null, startDate, endDate)).thenReturn(filteredSales);
 
-        final List<FlashSaleResponseDto> result = service.getAllFlashSales(null, startDate, endDate);
+        final List<FlashSaleResponseDto> result = service.getAllFlashSales(null, startDate, endDate, null);
 
         assertEquals(1, result.size());
         verify(sales, times(1)).findAllWithFilters(null, startDate, endDate);
@@ -120,7 +120,7 @@ public class FlashSalesServiceManagementTest {
 
         when(sales.findAllWithFilters(SaleStatus.DRAFT, startDate, endDate)).thenReturn(filteredSales);
 
-        final List<FlashSaleResponseDto> result = service.getAllFlashSales(SaleStatus.DRAFT, startDate, endDate);
+        final List<FlashSaleResponseDto> result = service.getAllFlashSales(SaleStatus.DRAFT, startDate, endDate, null);
 
         assertEquals(1, result.size());
         assertEquals(SaleStatus.DRAFT, result.get(0).status());
@@ -131,10 +131,27 @@ public class FlashSalesServiceManagementTest {
     public void shouldReturnEmptyListWhenNoMatches() {
         when(sales.findAllWithFilters(SaleStatus.COMPLETED, null, null)).thenReturn(List.of());
 
-        final List<FlashSaleResponseDto> result = service.getAllFlashSales(SaleStatus.COMPLETED, null, null);
+        final List<FlashSaleResponseDto> result = service.getAllFlashSales(SaleStatus.COMPLETED, null, null, null);
 
         assertTrue(result.isEmpty());
         verify(sales, times(1)).findAllWithFilters(SaleStatus.COMPLETED, null, null);
+    }
+
+    @Test
+    public void shouldReturnSalesFilteredBySearchWhenSearchProvided() {
+        final UUID id1 = UUID.randomUUID();
+        final var sale1 = createTestSale(id1, "Summer Sale", SaleStatus.DRAFT);
+        when(sales.findFlashSaleIdsWithFiltersAndSearch(null, null, null, "Summer")).thenReturn(List.of(id1));
+        when(sales.findByIdInWithItems(List.of(id1))).thenReturn(List.of(sale1));
+
+        final List<FlashSaleResponseDto> result = service.getAllFlashSales(null, null, null, "Summer");
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Summer Sale", result.get(0).title());
+        verify(sales, times(1)).findFlashSaleIdsWithFiltersAndSearch(null, null, null, "Summer");
+        verify(sales, times(1)).findByIdInWithItems(List.of(id1));
+        verify(sales, never()).findAllWithFilters(any(), any(), any());
     }
 
     // getFlashSaleById tests

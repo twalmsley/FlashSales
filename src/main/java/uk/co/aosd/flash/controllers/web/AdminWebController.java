@@ -64,8 +64,22 @@ public class AdminWebController {
 
     // Products Management
     @GetMapping("/products")
-    public String listProducts(final Model model) {
-        model.addAttribute("products", productsService.getAllProducts());
+    public String listProducts(
+        @RequestParam(required = false) final String search,
+        @RequestParam(required = false) final BigDecimal minPrice,
+        @RequestParam(required = false) final BigDecimal maxPrice,
+        final Model model) {
+        try {
+            final List<ProductDto> products = productsService.getAllProducts(search, minPrice, maxPrice);
+            model.addAttribute("products", products);
+            model.addAttribute("search", search);
+            model.addAttribute("minPrice", minPrice);
+            model.addAttribute("maxPrice", maxPrice);
+        } catch (final IllegalArgumentException e) {
+            log.warn("Invalid product list params: {}", e.getMessage());
+            model.addAttribute("products", List.of());
+            model.addAttribute("error", e.getMessage());
+        }
         return "admin/products/list";
     }
 
@@ -117,12 +131,21 @@ public class AdminWebController {
         @RequestParam(required = false) final String status,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime startDate,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime endDate,
+        @RequestParam(required = false) final String search,
         final Model model) {
 
-        final SaleStatus saleStatus = status != null ? SaleStatus.valueOf(status) : null;
-        final List<FlashSaleResponseDto> sales = flashSalesService.getAllFlashSales(saleStatus, startDate, endDate);
+        SaleStatus saleStatus = null;
+        if (status != null && !status.isEmpty()) {
+            try {
+                saleStatus = SaleStatus.valueOf(status);
+            } catch (final IllegalArgumentException e) {
+                saleStatus = null;
+            }
+        }
+        final List<FlashSaleResponseDto> sales = flashSalesService.getAllFlashSales(saleStatus, startDate, endDate, search);
         model.addAttribute("sales", sales);
         model.addAttribute("statusFilter", status);
+        model.addAttribute("search", search);
         return "admin/sales/list";
     }
 

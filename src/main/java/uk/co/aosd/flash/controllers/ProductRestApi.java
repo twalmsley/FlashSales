@@ -1,5 +1,6 @@
 package uk.co.aosd.flash.controllers;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
@@ -97,10 +98,10 @@ public class ProductRestApi {
     }
 
     /**
-     * API for getting all products.
+     * API for getting all products with optional search and price filters.
      */
     @GetMapping
-    @Operation(summary = "List products", description = "Returns all products.")
+    @Operation(summary = "List products", description = "Returns products. Optional search (name/description), minPrice, maxPrice.")
     @ApiResponse(
         responseCode = "200",
         description = "List of products.",
@@ -109,10 +110,25 @@ public class ProductRestApi {
             array = @ArraySchema(schema = @Schema(implementation = ProductDto.class))
         )
     )
-    public ResponseEntity<List<ProductDto>> getAllProducts() {
-        log.info("Returned a list of all products.");
-        // Logic to return all products
-        return ResponseEntity.ok(service.getAllProducts());
+    @ApiResponse(responseCode = "400", description = "Invalid params (e.g. minPrice > maxPrice).", content = @Content)
+    public ResponseEntity<?> getAllProducts(
+        @Parameter(description = "Optional search term (name and description).")
+        @RequestParam(required = false) final String search,
+        @Parameter(description = "Optional minimum base price (inclusive).")
+        @RequestParam(required = false) final BigDecimal minPrice,
+        @Parameter(description = "Optional maximum base price (inclusive).")
+        @RequestParam(required = false) final BigDecimal maxPrice) {
+        try {
+            if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+                return ResponseEntity.badRequest().build();
+            }
+            final List<ProductDto> products = service.getAllProducts(search, minPrice, maxPrice);
+            log.info("Returned {} product(s).", products.size());
+            return ResponseEntity.ok(products);
+        } catch (final IllegalArgumentException e) {
+            log.warn("Invalid product list params: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     /**

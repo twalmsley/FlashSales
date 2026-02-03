@@ -81,14 +81,14 @@ public class FlashSaleAdminRestApiManagementTest {
         final var sale2 = createTestResponseDto(UUID.randomUUID(), "Sale 2", SaleStatus.ACTIVE);
         final List<FlashSaleResponseDto> sales = List.of(sale1, sale2);
 
-        Mockito.when(salesService.getAllFlashSales(null, null, null)).thenReturn(sales);
+        Mockito.when(salesService.getAllFlashSales(null, null, null, null)).thenReturn(sales);
 
         mockMvc.perform(get("/api/v1/admin/flash_sale"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$.length()").value(2));
 
-        verify(salesService, times(1)).getAllFlashSales(null, null, null);
+        verify(salesService, times(1)).getAllFlashSales(null, null, null, null);
     }
 
     @Test
@@ -96,7 +96,7 @@ public class FlashSaleAdminRestApiManagementTest {
         final var sale1 = createTestResponseDto(UUID.randomUUID(), "Draft Sale", SaleStatus.DRAFT);
         final List<FlashSaleResponseDto> sales = List.of(sale1);
 
-        Mockito.when(salesService.getAllFlashSales(SaleStatus.DRAFT, null, null)).thenReturn(sales);
+        Mockito.when(salesService.getAllFlashSales(SaleStatus.DRAFT, null, null, null)).thenReturn(sales);
 
         mockMvc.perform(get("/api/v1/admin/flash_sale")
             .param("status", "DRAFT"))
@@ -105,7 +105,7 @@ public class FlashSaleAdminRestApiManagementTest {
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].status").value("DRAFT"));
 
-        verify(salesService, times(1)).getAllFlashSales(SaleStatus.DRAFT, null, null);
+        verify(salesService, times(1)).getAllFlashSales(SaleStatus.DRAFT, null, null, null);
     }
 
     @Test
@@ -115,7 +115,7 @@ public class FlashSaleAdminRestApiManagementTest {
         final var sale1 = createTestResponseDto(UUID.randomUUID(), "Sale 1", SaleStatus.DRAFT);
         final List<FlashSaleResponseDto> sales = List.of(sale1);
 
-        Mockito.when(salesService.getAllFlashSales(null, startDate, endDate)).thenReturn(sales);
+        Mockito.when(salesService.getAllFlashSales(null, startDate, endDate, null)).thenReturn(sales);
 
         mockMvc.perform(get("/api/v1/admin/flash_sale")
             .param("startDate", "2026-01-01T00:00:00Z")
@@ -124,7 +124,7 @@ public class FlashSaleAdminRestApiManagementTest {
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$.length()").value(1));
 
-        verify(salesService, times(1)).getAllFlashSales(null, startDate, endDate);
+        verify(salesService, times(1)).getAllFlashSales(null, startDate, endDate, null);
     }
 
     @Test
@@ -134,7 +134,7 @@ public class FlashSaleAdminRestApiManagementTest {
         final var sale1 = createTestResponseDto(UUID.randomUUID(), "Draft Sale", SaleStatus.DRAFT);
         final List<FlashSaleResponseDto> sales = List.of(sale1);
 
-        Mockito.when(salesService.getAllFlashSales(SaleStatus.DRAFT, startDate, endDate)).thenReturn(sales);
+        Mockito.when(salesService.getAllFlashSales(SaleStatus.DRAFT, startDate, endDate, null)).thenReturn(sales);
 
         mockMvc.perform(get("/api/v1/admin/flash_sale")
             .param("status", "DRAFT")
@@ -145,7 +145,7 @@ public class FlashSaleAdminRestApiManagementTest {
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0].status").value("DRAFT"));
 
-        verify(salesService, times(1)).getAllFlashSales(SaleStatus.DRAFT, startDate, endDate);
+        verify(salesService, times(1)).getAllFlashSales(SaleStatus.DRAFT, startDate, endDate, null);
     }
 
     @Test
@@ -154,7 +154,23 @@ public class FlashSaleAdminRestApiManagementTest {
             .param("status", "INVALID_STATUS"))
             .andExpect(status().isBadRequest());
 
-        verify(salesService, times(0)).getAllFlashSales(Mockito.any(), Mockito.any(), Mockito.any());
+        verify(salesService, times(0)).getAllFlashSales(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void shouldReturn200WithSearchParam() throws Exception {
+        final var sale1 = createTestResponseDto(UUID.randomUUID(), "Summer Sale", SaleStatus.DRAFT);
+        final List<FlashSaleResponseDto> sales = List.of(sale1);
+
+        Mockito.when(salesService.getAllFlashSales(null, null, null, "Summer")).thenReturn(sales);
+
+        mockMvc.perform(get("/api/v1/admin/flash_sale").param("search", "Summer"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].title").value("Summer Sale"));
+
+        verify(salesService, times(1)).getAllFlashSales(null, null, null, "Summer");
     }
 
     // GET /api/v1/admin/flash_sale/{id} tests

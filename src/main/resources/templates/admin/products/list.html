@@ -9,7 +9,30 @@
             <h1>Products</h1>
             <a th:href="@{/admin/products/new}" class="btn btn-primary">New Product</a>
         </div>
-        
+
+        <form th:action="@{/admin/products}" method="get" class="row g-3 mb-4">
+            <div class="col-auto">
+                <label for="search" class="form-label visually-hidden">Search</label>
+                <input type="text" id="search" name="search" class="form-control" placeholder="Search name or description"
+                    th:value="${search}" />
+            </div>
+            <div class="col-auto">
+                <label for="minPrice" class="form-label visually-hidden">Min price</label>
+                <input type="number" id="minPrice" name="minPrice" class="form-control" placeholder="Min price" step="0.01" min="0"
+                    th:value="${minPrice}" />
+            </div>
+            <div class="col-auto">
+                <label for="maxPrice" class="form-label visually-hidden">Max price</label>
+                <input type="number" id="maxPrice" name="maxPrice" class="form-control" placeholder="Max price" step="0.01" min="0"
+                    th:value="${maxPrice}" />
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-secondary">Search</button>
+            </div>
+        </form>
+
+        <div th:if="${error}" class="alert alert-warning" th:text="${error}">Error</div>
+
         <div th:if="${products != null and !products.isEmpty()}">
             <table class="table table-striped">
                 <thead>
@@ -35,7 +58,8 @@
             </table>
         </div>
         <div th:if="${products == null or products.isEmpty()}" class="alert alert-info">
-            No products found.
+            <span th:if="${search != null or minPrice != null or maxPrice != null}">No products match your search or filters.</span>
+            <span th:if="${search == null and minPrice == null and maxPrice == null}">No products found.</span>
         </div>
     </main>
 
