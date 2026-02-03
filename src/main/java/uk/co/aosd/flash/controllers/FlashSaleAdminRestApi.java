@@ -158,20 +158,21 @@ public class FlashSaleAdminRestApi {
     }
 
     /**
-     * List all flash sales with optional filters.
+     * List all flash sales with optional filters and optional title search.
      *
      * @param status optional status filter
      * @param startDate optional filter window start (ISO-8601 format). When provided, only sales whose time period
      *                  overlaps the specified window are returned.
      * @param endDate optional filter window end (ISO-8601 format). When provided, only sales whose time period
      *                overlaps the specified window are returned.
+     * @param search optional search term for title
      * @return ResponseEntity with list of flash sales
      */
     @PreAuthorize("hasRole('ADMIN_USER')")
     @GetMapping("/flash_sale")
     @Operation(
         summary = "List flash sales",
-        description = "Lists flash sales with optional status and date range filters."
+        description = "Lists flash sales with optional status, date range, and title search filters."
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -190,9 +191,11 @@ public class FlashSaleAdminRestApi {
         @Parameter(description = "Optional filter window start (ISO-8601). Returns sales whose time period overlaps the window.", example = "2026-01-01T00:00:00Z")
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime startDate,
         @Parameter(description = "Optional filter window end (ISO-8601). Returns sales whose time period overlaps the window.", example = "2026-12-31T23:59:59Z")
-        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime endDate) {
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) final OffsetDateTime endDate,
+        @Parameter(description = "Optional search term for sale title.")
+        @RequestParam(required = false) final String search) {
         
-        log.info("Getting all flash sales with filters: status={}, startDate={}, endDate={}", status, startDate, endDate);
+        log.info("Getting all flash sales with filters: status={}, startDate={}, endDate={}, search={}", status, startDate, endDate, search);
         
         SaleStatus saleStatus = null;
         if (status != null && !status.isEmpty()) {
@@ -204,7 +207,7 @@ public class FlashSaleAdminRestApi {
             }
         }
         
-        final List<FlashSaleResponseDto> sales = service.getAllFlashSales(saleStatus, startDate, endDate);
+        final List<FlashSaleResponseDto> sales = service.getAllFlashSales(saleStatus, startDate, endDate, search);
         log.info("Returned {} flash sale(s)", sales.size());
         return ResponseEntity.ok(sales);
     }

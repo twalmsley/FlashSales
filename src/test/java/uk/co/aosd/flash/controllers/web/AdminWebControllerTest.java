@@ -79,7 +79,7 @@ class AdminWebControllerTest {
 
     @Test
     void listProducts_returnsProductsList() throws Exception {
-        when(productsService.getAllProducts()).thenReturn(List.of(
+        when(productsService.getAllProducts(any(), any(), any())).thenReturn(List.of(
             new ProductDto("id1", "Product 1", "Desc", 10, BigDecimal.TEN, 0)));
 
         mockMvc.perform(get("/admin/products").with(user("admin").roles("ADMIN_USER")))
@@ -173,7 +173,7 @@ class AdminWebControllerTest {
     @Test
     void listSales_returnsSalesList() throws Exception {
         final var now = OffsetDateTime.now(ZoneOffset.UTC);
-        when(flashSalesService.getAllFlashSales(eq(null), eq(null), eq(null)))
+        when(flashSalesService.getAllFlashSales(eq(null), eq(null), eq(null), eq(null)))
             .thenReturn(List.of(new FlashSaleResponseDto("sale-1", "Sale", now, now.plusHours(1),
                 SaleStatus.DRAFT, Collections.emptyList())));
 

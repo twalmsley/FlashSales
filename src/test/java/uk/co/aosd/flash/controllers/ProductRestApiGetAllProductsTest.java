@@ -76,7 +76,7 @@ public class ProductRestApiGetAllProductsTest {
             BigDecimal.valueOf(101.99), 0);
         final List<ProductDto> testProducts = List.of(productDto1, productDto2, productDto3);
 
-        Mockito.when(productsService.getAllProducts()).thenReturn(testProducts);
+        Mockito.when(productsService.getAllProducts(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(testProducts);
 
         final MvcResult result = mockMvc.perform(
             get("/api/v1/products"))
@@ -91,6 +91,41 @@ public class ProductRestApiGetAllProductsTest {
             assertTrue(testProducts.contains(p));
         });
 
-        verify(productsService, times(1)).getAllProducts();
+        verify(productsService, times(1)).getAllProducts(Mockito.any(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void shouldReturnFilteredProductsWithSearch() throws Exception {
+        final ProductDto productDto = new ProductDto("id1", "Widget", "A useful widget", 10, BigDecimal.ONE, 0);
+        Mockito.when(productsService.getAllProducts(Mockito.eq("widget"), Mockito.any(), Mockito.any())).thenReturn(List.of(productDto));
+
+        mockMvc.perform(get("/api/v1/products").param("search", "widget"))
+            .andExpect(status().isOk());
+
+        verify(productsService, times(1)).getAllProducts(Mockito.eq("widget"), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void shouldReturnFilteredProductsWithPriceRange() throws Exception {
+        final List<ProductDto> filtered = List.of(
+            new ProductDto("id1", "P1", "D1", 5, BigDecimal.valueOf(5.00), 0));
+        Mockito.when(productsService.getAllProducts(Mockito.any(), Mockito.eq(BigDecimal.ONE), Mockito.eq(BigDecimal.TEN))).thenReturn(filtered);
+
+        mockMvc.perform(get("/api/v1/products")
+            .param("minPrice", "1")
+            .param("maxPrice", "10"))
+            .andExpect(status().isOk());
+
+        verify(productsService, times(1)).getAllProducts(Mockito.any(), Mockito.eq(BigDecimal.ONE), Mockito.eq(BigDecimal.TEN));
+    }
+
+    @Test
+    public void shouldReturn400WhenMinPriceGreaterThanMaxPrice() throws Exception {
+        mockMvc.perform(get("/api/v1/products")
+            .param("minPrice", "100")
+            .param("maxPrice", "10"))
+            .andExpect(status().isBadRequest());
+
+        verify(productsService, times(0)).getAllProducts(Mockito.any(), Mockito.any(), Mockito.any());
     }
 }

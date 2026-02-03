@@ -1,5 +1,6 @@
 package uk.co.aosd.flash.services;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -85,13 +86,38 @@ public class ProductsService {
     }
 
     /**
-     * Get all products.
+     * Get all products (no search or filters). Cached.
      */
     @Cacheable(value = "products", key = "'all'")
     @Transactional(readOnly = true)
     public List<ProductDto> getAllProducts() {
         log.info("Getting all products");
         return repository.findAll().stream().map(toProductDto).toList();
+    }
+
+    /**
+     * Get products with optional search (name + description) and optional price range.
+     * When search is null or blank and both price bounds are null, delegates to cached getAllProducts().
+     * Otherwise uses FTS and price filters; result is not cached.
+     *
+     * @param search  optional search term (null or blank = no search)
+     * @param minPrice optional minimum base price (inclusive)
+     * @param maxPrice optional maximum base price (inclusive)
+     * @return list of products
+     * @throws IllegalArgumentException if both minPrice and maxPrice are set and minPrice &gt; maxPrice
+     */
+    @Transactional(readOnly = true)
+    public List<ProductDto> getAllProducts(final String search, final BigDecimal minPrice, final BigDecimal maxPrice) {
+        final String normalizedSearch = (search == null || search.isBlank()) ? null : search.trim();
+        if (normalizedSearch == null && minPrice == null && maxPrice == null) {
+            return getAllProducts();
+        }
+        if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+            throw new IllegalArgumentException("minPrice cannot be greater than maxPrice");
+        }
+        log.info("Getting products with search={}, minPrice={}, maxPrice={}", normalizedSearch, minPrice, maxPrice);
+        final List<Product> products = repository.findAllWithSearchAndPrice(normalizedSearch, minPrice, maxPrice);
+        return products.stream().map(toProductDto).toList();
     }
 
     /**
