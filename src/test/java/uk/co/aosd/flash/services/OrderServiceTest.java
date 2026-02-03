@@ -229,6 +229,53 @@ public class OrderServiceTest {
     }
 
     @Test
+    public void shouldHandleCancelSuccessfully() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setFlashSaleItem(flashSaleItem);
+        order.setProduct(product);
+        order.setSoldPrice(BigDecimal.valueOf(79.99));
+        order.setSoldQuantity(5);
+        order.setStatus(OrderStatus.PENDING);
+
+        Mockito.when(orderRepository.findByIdWithFlashSaleItem(orderId)).thenReturn(Optional.of(order));
+        Mockito.when(flashSaleItemRepository.decrementSoldCount(flashSaleItemId, 5)).thenReturn(1);
+
+        orderService.handleCancel(orderId);
+
+        assertEquals(OrderStatus.CANCELLED, order.getStatus());
+        Mockito.verify(flashSaleItemRepository).decrementSoldCount(flashSaleItemId, 5);
+        Mockito.verify(notificationService).sendCancellationNotification(userId, orderId);
+    }
+
+    @Test
+    public void shouldFailCancelWhenOrderNotPending() {
+        final UUID orderId = UUID.randomUUID();
+        final Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setStatus(OrderStatus.PAID);
+
+        Mockito.when(orderRepository.findByIdWithFlashSaleItem(orderId)).thenReturn(Optional.of(order));
+
+        assertThrows(InvalidOrderStatusException.class, () -> {
+            orderService.handleCancel(orderId);
+        });
+    }
+
+    @Test
+    public void shouldFailCancelWhenOrderNotFound() {
+        final UUID orderId = UUID.randomUUID();
+        Mockito.when(orderRepository.findByIdWithFlashSaleItem(orderId)).thenReturn(Optional.empty());
+
+        assertThrows(OrderNotFoundException.class, () -> {
+            orderService.handleCancel(orderId);
+        });
+    }
+
+    @Test
     public void shouldProcessDispatchSuccessfully() {
         final UUID orderId = UUID.randomUUID();
         final Order order = new Order();

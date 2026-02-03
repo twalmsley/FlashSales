@@ -29,7 +29,7 @@
                         <strong>Order ID:</strong> <span th:text="${order.orderId()}">ID</span><br>
                         <strong>User ID:</strong> <span th:text="${order.userId()}">User ID</span><br>
                         <strong>Status:</strong> <span class="badge"
-                            th:classappend="${order.status().name() == 'PAID' ? 'bg-success' : (order.status().name() == 'PENDING' ? 'bg-warning' : 'bg-secondary')}"
+                            th:classappend="${order.status().name() == 'PAID' ? 'bg-success' : (order.status().name() == 'PENDING' ? 'bg-warning' : (order.status().name() == 'CANCELLED' ? 'bg-danger' : 'bg-secondary'))}"
                             th:text="${order.status()}">Status</span><br>
                         <strong>Price per Item:</strong> £<span
                             th:text="${#numbers.formatDecimal(order.soldPrice(), 1, 2)}">0.00</span><br>
@@ -56,6 +56,7 @@
                                 <option value="FAILED">FAILED</option>
                                 <option value="REFUNDED">REFUNDED</option>
                                 <option value="DISPATCHED">DISPATCHED</option>
+                                <option value="CANCELLED">CANCELLED</option>
                             </select>
                             <div th:if="${#fields.hasErrors('status')}" class="text-danger" th:errors="*{status}">Error
                             </div>

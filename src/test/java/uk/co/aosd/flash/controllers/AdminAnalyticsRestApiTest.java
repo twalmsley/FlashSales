@@ -251,7 +251,7 @@ public class AdminAnalyticsRestApiTest {
 
     private OrderStatisticsDto createTestOrderStatistics() {
         final OrderStatisticsDto.OrdersByStatus ordersByStatus = new OrderStatisticsDto.OrdersByStatus(
-            100L, 800L, 50L, 30L, 20L);
+            100L, 800L, 50L, 30L, 20L, 10L);
         return new OrderStatisticsDto(
             1000L,
             ordersByStatus,

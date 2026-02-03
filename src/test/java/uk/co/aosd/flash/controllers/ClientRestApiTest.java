@@ -437,6 +437,46 @@ public class ClientRestApiTest {
     }
 
     @Test
+    public void shouldCancelOrderSuccessfully() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        final UUID orderId = UUID.randomUUID();
+
+        Mockito.doNothing().when(orderService).handleCancel(orderId);
+        Mockito.when(orderService.getOrderById(orderId, userId)).thenReturn(
+            new OrderDetailDto(orderId, userId, UUID.randomUUID(), "Product", UUID.randomUUID(), UUID.randomUUID(), "Sale",
+                BigDecimal.valueOf(79.99), 5, BigDecimal.valueOf(399.95), OrderStatus.PENDING, OffsetDateTime.now(), List.of()));
+
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
+        final var result = mockMvc.perform(post("/api/v1/clients/orders/" + orderId + "/cancel")
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        Mockito.verify(orderService).getOrderById(orderId, userId);
+        Mockito.verify(orderService).handleCancel(orderId);
+        final var response = objectMapper.readValue(result.getResponse().getContentAsString(), OrderResponseDto.class);
+        assertEquals(orderId, response.orderId());
+        assertEquals(OrderStatus.CANCELLED, response.status());
+        assertEquals("Order cancelled successfully", response.message());
+    }
+
+    @Test
+    public void shouldReturnBadRequestForInvalidOrderIdOnCancel() throws Exception {
+        final UUID userId = UUID.randomUUID();
+        TestJwtUtils.setSecurityContext(userId, UserRole.USER);
+
+        mockMvc.perform(post("/api/v1/clients/orders/invalid-uuid/cancel")
+            .with(user(userId.toString()).roles("USER"))
+            .with(csrf())
+            .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+    }
+
+    @Test
     public void shouldGetOrderByIdSuccessfully() throws Exception {
         final UUID orderId = UUID.randomUUID();
         final UUID userId = UUID.randomUUID();

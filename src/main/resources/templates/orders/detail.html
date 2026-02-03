@@ -15,7 +15,7 @@
                     <p class="card-text">
                         <strong>Order ID:</strong> <span th:text="${order.orderId()}">ID</span><br>
                         <strong>Status:</strong> <span class="badge"
-                            th:classappend="${order.status().name() == 'PAID' ? 'bg-success' : (order.status().name() == 'PENDING' ? 'bg-warning' : 'bg-secondary')}"
+                            th:classappend="${order.status().name() == 'PAID' ? 'bg-success' : (order.status().name() == 'PENDING' ? 'bg-warning' : (order.status().name() == 'CANCELLED' ? 'bg-danger' : 'bg-secondary'))}"
                             th:text="${order.status()}">Status</span><br>
                         <strong>Price per Item:</strong> £<span
                             th:text="${#numbers.formatDecimal(order.soldPrice(), 1, 2)}">0.00</span><br>
@@ -26,6 +26,10 @@
                             th:text="${#temporals.format(order.createdAt(), 'yyyy-MM-dd HH:mm')}">Date</span>
                     </p>
                     <a th:href="@{/orders}" class="btn btn-secondary">Back to Orders</a>
+                    <form th:if="${order.status().name() == 'PENDING'}" th:action="@{/orders/{id}/cancel(id=${order.orderId()})}" method="post" class="d-inline ms-2">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <button type="submit" class="btn btn-outline-danger">Cancel order</button>
+                    </form>
                 </div>
             </div>
             <div class="card mt-3">

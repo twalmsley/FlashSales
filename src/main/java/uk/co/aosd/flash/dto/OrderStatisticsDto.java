@@ -25,7 +25,8 @@ public record OrderStatisticsDto(
         @Schema(description = "Number of PAID orders.", example = "800") Long paid,
         @Schema(description = "Number of FAILED orders.", example = "50") Long failed,
         @Schema(description = "Number of REFUNDED orders.", example = "30") Long refunded,
-        @Schema(description = "Number of DISPATCHED orders.", example = "20") Long dispatched)
+        @Schema(description = "Number of DISPATCHED orders.", example = "20") Long dispatched,
+        @Schema(description = "Number of CANCELLED orders.", example = "10") Long cancelled)
         implements Serializable {
     }
 }

@@ -216,6 +216,49 @@ public class OrderService {
     }
 
     /**
+     * Handle user-initiated cancel of a PENDING order.
+     * Decrements the flash sale item sold count, sets the order status to CANCELLED,
+     * records the status change, and sends a cancellation notification.
+     *
+     * @param orderId the order ID
+     */
+    @Transactional
+    @CacheEvict(value = {"orders", "orders:user"}, allEntries = true)
+    public void handleCancel(final UUID orderId) {
+        log.info("Handling cancel for order {}", orderId);
+
+        final Order order = orderRepository.findByIdWithFlashSaleItem(orderId)
+            .orElseThrow(() -> {
+                log.error("Order not found: {}", orderId);
+                return new OrderNotFoundException(orderId);
+            });
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            log.warn("Order {} is not in PENDING status. Current status: {}", orderId, order.getStatus());
+            throw new InvalidOrderStatusException(orderId, order.getStatus(), OrderStatus.PENDING, "cancel");
+        }
+
+        // Decrement sold count (release reserved stock)
+        final int updated = flashSaleItemRepository.decrementSoldCount(
+            order.getFlashSaleItem().getId(),
+            order.getSoldQuantity());
+
+        if (updated == 0) {
+            log.error("Failed to decrement sold count for flash sale item {}", order.getFlashSaleItem().getId());
+            throw new IllegalStateException("Failed to decrement sold count for cancel");
+        }
+
+        // Update order status to CANCELLED
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+        recordOrderStatusChange(orderId, OrderStatus.PENDING, OrderStatus.CANCELLED, null);
+        log.info("Order {} status updated to CANCELLED", orderId);
+
+        // Notify user
+        notificationService.sendCancellationNotification(order.getUserId(), orderId);
+    }
+
+    /**
      * Process failed payment queue.
      * Decreases the stock sold count for the sales item, changes the order status to FAILED,
      * and notifies the user.
@@ -566,6 +609,30 @@ public class OrderService {
             if (updated == 0) {
                 log.error("Failed to decrement sold count for flash sale item {}", order.getFlashSaleItem().getId());
                 throw new IllegalStateException("Failed to decrement sold count for failed order");
+            }
+            return;
+        }
+
+        // PENDING → CANCELLED: Decrement flash sale item soldCount (release reserved stock)
+        if (fromStatus == OrderStatus.PENDING && toStatus == OrderStatus.CANCELLED) {
+            log.debug("PENDING → CANCELLED: Decrementing flash sale item soldCount");
+            final int updated = flashSaleItemRepository.decrementSoldCount(
+                order.getFlashSaleItem().getId(), quantity);
+            if (updated == 0) {
+                log.error("Failed to decrement sold count for flash sale item {}", order.getFlashSaleItem().getId());
+                throw new IllegalStateException("Failed to decrement sold count for cancel");
+            }
+            return;
+        }
+
+        // CANCELLED → PENDING: Increment flash sale item soldCount (re-reserve stock)
+        if (fromStatus == OrderStatus.CANCELLED && toStatus == OrderStatus.PENDING) {
+            log.debug("CANCELLED → PENDING: Incrementing flash sale item soldCount (re-reserve stock)");
+            final int updated = flashSaleItemRepository.incrementSoldCountForAdmin(
+                order.getFlashSaleItem().getId(), quantity);
+            if (updated == 0) {
+                log.error("Failed to increment sold count for flash sale item {}", order.getFlashSaleItem().getId());
+                throw new IllegalStateException("Failed to increment sold count for re-reserve");
             }
             return;
         }

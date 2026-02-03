@@ -4,11 +4,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -67,7 +72,7 @@ class OrdersWebControllerTest {
             OffsetDateTime.now(ZoneOffset.UTC), List.of());
         when(orderService.getOrderById(eq(orderId), eq(userId))).thenReturn(order);
 
-        mockMvc.perform(get("/orders/" + orderId).with(user("user").roles("USER")))
+        mockMvc.perform(get("/orders/" + orderId).with(user("user").roles("USER")).with(csrf()))
             .andExpect(status().isOk())
             .andExpect(view().name("orders/detail"))
             .andExpect(model().attribute("order", order));
@@ -91,5 +96,56 @@ class OrdersWebControllerTest {
         mockMvc.perform(get("/orders/" + orderId).with(user("user").roles("USER")))
             .andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl("/orders?error=notfound"));
+    }
+
+    @Test
+    void cancelOrder_whenPendingAndOwned_redirectsToListWithSuccess() throws Exception {
+        final var userId = UUID.randomUUID();
+        final var orderId = UUID.randomUUID();
+        when(userDetailsService.getUserIdByUsername("user")).thenReturn(userId);
+        final var order = new OrderDetailDto(orderId, userId, UUID.randomUUID(), "Product",
+            UUID.randomUUID(), UUID.randomUUID(), "Sale", BigDecimal.TEN, 1, BigDecimal.TEN, OrderStatus.PENDING,
+            OffsetDateTime.now(ZoneOffset.UTC), List.of());
+        when(orderService.getOrderById(eq(orderId), eq(userId))).thenReturn(order);
+        doNothing().when(orderService).handleCancel(orderId);
+
+        mockMvc.perform(post("/orders/" + orderId + "/cancel").with(user("user").roles("USER")).with(csrf()))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/orders"))
+            .andExpect(flash().attribute("success", "Order cancelled successfully"));
+
+        org.mockito.Mockito.verify(orderService).handleCancel(orderId);
+    }
+
+    @Test
+    void cancelOrder_whenOrderNotFound_redirectsWithError() throws Exception {
+        final var userId = UUID.randomUUID();
+        final var orderId = UUID.randomUUID();
+        when(userDetailsService.getUserIdByUsername("user")).thenReturn(userId);
+        when(orderService.getOrderById(eq(orderId), eq(userId)))
+            .thenThrow(new uk.co.aosd.flash.exc.OrderNotFoundException(orderId));
+
+        mockMvc.perform(post("/orders/" + orderId + "/cancel").with(user("user").roles("USER")).with(csrf()))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/orders/" + orderId))
+            .andExpect(flash().attributeExists("error"));
+    }
+
+    @Test
+    void cancelOrder_whenNotPending_redirectsWithError() throws Exception {
+        final var userId = UUID.randomUUID();
+        final var orderId = UUID.randomUUID();
+        when(userDetailsService.getUserIdByUsername("user")).thenReturn(userId);
+        final var order = new OrderDetailDto(orderId, userId, UUID.randomUUID(), "Product",
+            UUID.randomUUID(), UUID.randomUUID(), "Sale", BigDecimal.TEN, 1, BigDecimal.TEN, OrderStatus.PAID,
+            OffsetDateTime.now(ZoneOffset.UTC), List.of());
+        when(orderService.getOrderById(eq(orderId), eq(userId))).thenReturn(order);
+        doThrow(new uk.co.aosd.flash.exc.InvalidOrderStatusException(orderId, OrderStatus.PAID, OrderStatus.PENDING, "cancel"))
+            .when(orderService).handleCancel(orderId);
+
+        mockMvc.perform(post("/orders/" + orderId + "/cancel").with(user("user").roles("USER")).with(csrf()))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/orders/" + orderId))
+            .andExpect(flash().attributeExists("error"));
     }
 }

@@ -68,7 +68,9 @@
                                 &nbsp;&nbsp;Refunded: <span
                                     th:text="${orderStatistics.ordersByStatus().refunded()}">0</span><br>
                                 &nbsp;&nbsp;Dispatched: <span
-                                    th:text="${orderStatistics.ordersByStatus().dispatched()}">0</span>
+                                    th:text="${orderStatistics.ordersByStatus().dispatched()}">0</span><br>
+                                &nbsp;&nbsp;Cancelled: <span
+                                    th:text="${orderStatistics.ordersByStatus().cancelled()}">0</span>
                             </span>
                         </p>
                     </div>

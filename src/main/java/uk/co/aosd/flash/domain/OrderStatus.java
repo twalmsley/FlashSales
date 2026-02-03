@@ -7,5 +7,5 @@ import io.swagger.v3.oas.annotations.media.Schema;
     description = "Lifecycle status of an order."
 )
 public enum OrderStatus {
-    PENDING, PAID, FAILED, REFUNDED, DISPATCHED
+    PENDING, PAID, FAILED, REFUNDED, DISPATCHED, CANCELLED
 }
