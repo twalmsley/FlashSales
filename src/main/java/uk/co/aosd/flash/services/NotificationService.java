@@ -56,4 +56,14 @@ public class NotificationService {
     public void sendDispatchNotification(final UUID userId, final UUID orderId) {
         log.info("EMAIL NOTIFICATION: Dispatch notification sent to user {} for order {}", userId, orderId);
     }
+
+    /**
+     * Send cancellation notification (user cancelled a PENDING order).
+     *
+     * @param userId  the user ID
+     * @param orderId the order ID
+     */
+    public void sendCancellationNotification(final UUID userId, final UUID orderId) {
+        log.info("EMAIL NOTIFICATION: Order cancelled notification sent to user {} for order {}", userId, orderId);
+    }
 }

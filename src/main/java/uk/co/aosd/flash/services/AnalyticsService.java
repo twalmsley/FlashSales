@@ -241,8 +241,9 @@ public class AnalyticsService {
         final Long failedCount = orderRepository.countOrdersByStatus(OrderStatus.FAILED, startDate, endDate);
         final Long refundedCount = orderRepository.countOrdersByStatus(OrderStatus.REFUNDED, startDate, endDate);
         final Long dispatchedCount = orderRepository.countOrdersByStatus(OrderStatus.DISPATCHED, startDate, endDate);
+        final Long cancelledCount = orderRepository.countOrdersByStatus(OrderStatus.CANCELLED, startDate, endDate);
 
-        final Long totalOrders = pendingCount + paidCount + failedCount + refundedCount + dispatchedCount;
+        final Long totalOrders = pendingCount + paidCount + failedCount + refundedCount + dispatchedCount + cancelledCount;
 
         // Calculate total order quantity
         final Long totalOrderQuantity = orderRepository.calculateTotalOrderQuantity(startDate, endDate);
@@ -260,7 +261,7 @@ public class AnalyticsService {
             : BigDecimal.ZERO;
 
         final OrderStatisticsDto.OrdersByStatus ordersByStatus = new OrderStatisticsDto.OrdersByStatus(
-            pendingCount, paidCount, failedCount, refundedCount, dispatchedCount);
+            pendingCount, paidCount, failedCount, refundedCount, dispatchedCount, cancelledCount);
 
         return new OrderStatisticsDto(
             totalOrders,

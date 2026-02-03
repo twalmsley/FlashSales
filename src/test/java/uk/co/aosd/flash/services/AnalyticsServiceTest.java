@@ -209,6 +209,8 @@ public class AnalyticsServiceTest {
             .thenReturn(30L);
         when(orderRepository.countOrdersByStatus(eq(OrderStatus.DISPATCHED), isNull(), isNull()))
             .thenReturn(20L);
+        when(orderRepository.countOrdersByStatus(eq(OrderStatus.CANCELLED), isNull(), isNull()))
+            .thenReturn(10L);
         when(orderRepository.calculateTotalOrderQuantity(isNull(), isNull())).thenReturn(2500L);
 
         // Execute
@@ -216,12 +218,13 @@ public class AnalyticsServiceTest {
 
         // Verify
         assertNotNull(statistics);
-        assertEquals(1000L, statistics.totalOrders());
+        assertEquals(1010L, statistics.totalOrders());
         assertEquals(100L, statistics.ordersByStatus().pending());
         assertEquals(800L, statistics.ordersByStatus().paid());
         assertEquals(50L, statistics.ordersByStatus().failed());
         assertEquals(30L, statistics.ordersByStatus().refunded());
         assertEquals(20L, statistics.ordersByStatus().dispatched());
+        assertEquals(10L, statistics.ordersByStatus().cancelled());
         assertEquals(2500L, statistics.totalOrderQuantity());
         assertEquals(800L, statistics.paidOrders());
         assertEquals(50L, statistics.failedOrders());

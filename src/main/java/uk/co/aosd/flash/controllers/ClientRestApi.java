@@ -547,4 +547,54 @@ public class ClientRestApi {
         }
     }
 
+    /**
+     * Cancel a PENDING order (user-initiated).
+     * Releases reserved stock and sets order status to CANCELLED.
+     *
+     * @param orderId the order ID
+     * @return ResponseEntity with success message
+     */
+    @PostMapping("/orders/{orderId}/cancel")
+    @Operation(
+        summary = "Cancel order",
+        description = "Cancels a PENDING order. Only allowed for PENDING orders owned by the authenticated user."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Order cancelled successfully.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = OrderResponseDto.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid order ID format or order not in PENDING status.",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Order not found or not owned by user.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponseDto.class))
+        )
+    })
+    public ResponseEntity<OrderResponseDto> cancelOrder(
+        @Parameter(description = "Order identifier (UUID).", example = "2b8efb9f-6f89-4b2d-8c73-4b2f9d4d2e1a")
+        @PathVariable final String orderId) {
+        final UUID userId = SecurityUtils.getCurrentUserId();
+        log.info("Processing cancel request for order {} by user {}", orderId, userId);
+        try {
+            final UUID orderUuid = UUID.fromString(orderId);
+            // Validate ownership before processing cancel
+            orderService.getOrderById(orderUuid, userId);
+            orderService.handleCancel(orderUuid);
+            log.info("Order cancelled successfully for order {}", orderId);
+            return ResponseEntity.ok(new OrderResponseDto(orderUuid, OrderStatus.CANCELLED, "Order cancelled successfully"));
+        } catch (final IllegalArgumentException e) {
+            log.error("Invalid order ID format: {}", orderId);
+            return ResponseEntity.badRequest().build();
+        } catch (final Exception e) {
+            log.error("Failed to cancel order {}", orderId, e);
+            throw e; // Let GlobalExceptionHandler handle it
+        }
+    }
+
 }
