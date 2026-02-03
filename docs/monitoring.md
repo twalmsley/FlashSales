@@ -6,7 +6,7 @@ The Flash Sales application exposes operational and business metrics via Spring 
 
 - **Endpoint**: `GET /actuator/prometheus`
 - **Port**: Management server runs on port **8081** (configurable via `management.server.port`).
-- **Security**: The Prometheus endpoint is protected by the same rules as other actuator endpoints: **ADMIN_USER** role is required. Unauthenticated and non-admin users receive 302 (redirect to login) or 403 (Forbidden).
+- **Security**: The Prometheus endpoint is **public** (no authentication) for internal scraping only; it is not intended to be exposed to the internet.
 - **Scrape config example** (Prometheus `prometheus.yml`):
 
 ```yaml
@@ -15,8 +15,6 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['localhost:8081']
-    # If your Prometheus cannot send auth, run behind a proxy that adds
-    # a header or use a dedicated scrape user with ADMIN_USER role.
 ```
 
 ## Metric Tags
@@ -63,5 +61,5 @@ With `micrometer-registry-prometheus` on the classpath you also get:
 ## Implementation Notes
 
 - **Metrics config**: Custom metrics (queue depth, business counters/timers) are registered in `MetricsConfig` and in the services/exception handler. Cache metrics are left to Spring Boot auto-configuration where supported.
-- **Security**: Keep `/actuator/prometheus` behind authentication (ADMIN_USER) or on an internal network; do not expose it publicly without auth.
+- **Security**: `/actuator/prometheus` is public for internal scraping; keep it on an internal network and do not expose it to the internet.
 - **Cardinality**: Avoid high-cardinality tags (e.g. order ID, user ID) to prevent metric explosion.

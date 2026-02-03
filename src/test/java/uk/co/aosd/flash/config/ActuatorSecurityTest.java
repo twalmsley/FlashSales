@@ -149,29 +149,13 @@ public class ActuatorSecurityTest {
     }
 
     @Test
-    public void shouldDenyUnauthenticatedAccessToPrometheusEndpoint() throws Exception {
-        // Prometheus endpoint should require authentication (same as other actuator endpoints)
-        mockMvc.perform(get("/actuator/prometheus"))
-            .andExpect(status().isFound()); // Redirects to login page (302)
-    }
-
-    @Test
-    public void shouldDenyNonAdminUserAccessToPrometheusEndpoint() throws Exception {
-        // Regular USER role should not have access to Prometheus scrape endpoint
-        mockMvc.perform(get("/actuator/prometheus")
-            .with(user("user").roles("USER")))
-            .andExpect(status().isForbidden()); // 403 Forbidden
-    }
-
-    @Test
-    public void shouldAllowAdminUserAccessToPrometheusEndpoint() throws Exception {
-        // ADMIN_USER role should have access to Prometheus endpoint when it is exposed on this server.
-        // When management.server.port is set (e.g. 8081), actuator is on a different port so we get 404 here.
-        final int status = mockMvc.perform(get("/actuator/prometheus")
-            .with(user("admin").roles("ADMIN_USER")))
+    public void shouldAllowUnauthenticatedAccessToPrometheusEndpoint() throws Exception {
+        // Prometheus endpoint is public for internal scraping (not exposed to internet)
+        // When management.server.port is set (e.g. 8081), actuator is on a different port so we may get 404 here
+        final int status = mockMvc.perform(get("/actuator/prometheus"))
             .andReturn()
             .getResponse()
             .getStatus();
-        assert status == 200 || status == 404 : "Admin should access prometheus (200) or 404 if management is on another port, got " + status;
+        assert status == 200 || status == 404 : "Prometheus should be accessible without auth (200 or 404), got " + status;
     }
 }
