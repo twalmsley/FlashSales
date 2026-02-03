@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -50,6 +51,7 @@ public class OrderServiceTest {
     private AuditLogService auditLogService;
     private PaymentService paymentService;
     private NotificationService notificationService;
+    private SimpleMeterRegistry meterRegistry;
     private OrderService orderService;
 
     private UUID userId;
@@ -69,6 +71,7 @@ public class OrderServiceTest {
         auditLogService = Mockito.mock(AuditLogService.class);
         paymentService = Mockito.mock(PaymentService.class);
         notificationService = Mockito.mock(NotificationService.class);
+        meterRegistry = new SimpleMeterRegistry();
 
         orderService = new OrderService(
             orderRepository,
@@ -77,7 +80,8 @@ public class OrderServiceTest {
             orderStatusHistoryRepository,
             auditLogService,
             paymentService,
-            notificationService);
+            notificationService,
+            meterRegistry);
 
         Mockito.when(orderStatusHistoryRepository.findByOrderIdOrderByChangedAtAsc(any())).thenReturn(List.of());
 
@@ -112,6 +116,7 @@ public class OrderServiceTest {
         assertNotNull(response.orderId());
         assertEquals(OrderStatus.PENDING, response.status());
         Mockito.verify(notificationService).sendOrderConfirmation(eq(userId), eq(response.orderId()));
+        assertEquals(1, meterRegistry.find("flash.orders.created").counter().count());
     }
 
     @Test
@@ -159,6 +164,7 @@ public class OrderServiceTest {
         assertTrue(result.success());
         assertEquals(orderId, result.orderId());
         assertEquals(OrderStatus.PAID, order.getStatus());
+        assertEquals(1, meterRegistry.find("flash.payments.success").counter().count());
     }
 
     @Test
@@ -182,6 +188,7 @@ public class OrderServiceTest {
         assertTrue(!result.success());
         assertEquals(orderId, result.orderId());
         assertEquals(OrderStatus.FAILED, order.getStatus());
+        assertEquals(1, meterRegistry.find("flash.payments.failure").counter().count());
     }
 
     @Test
