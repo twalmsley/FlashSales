@@ -3,6 +3,7 @@ package uk.co.aosd.flash.services;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -290,7 +291,7 @@ public class FlashSalesService {
     }
 
     /**
-     * Get all flash sales with optional filters.
+     * Get all flash sales with optional filters and optional title search.
      *
      * @param status
      *            optional status filter
@@ -302,12 +303,23 @@ public class FlashSalesService {
      *            optional filter window end (inclusive). When provided, only sales
      *            whose time period overlaps
      *            the specified window are returned.
+     * @param search
+     *            optional search term for title (null or blank = no search)
      * @return list of flash sales matching the filters
      */
-    @Cacheable(value = "flashSales", key = "(#status != null ? #status.toString() : 'null') + ':' + (#startDate != null ? #startDate.toString() : 'null') + ':' + (#endDate != null ? #endDate.toString() : 'null')")
-    public List<FlashSaleResponseDto> getAllFlashSales(final SaleStatus status, final OffsetDateTime startDate, final OffsetDateTime endDate) {
-        log.debug("Getting all flash sales with filters: status={}, startDate={}, endDate={}", status, startDate, endDate);
-        final List<FlashSale> flashSales = sales.findAllWithFilters(status, startDate, endDate);
+    @Cacheable(value = "flashSales", key = "(#status != null ? #status.toString() : 'null') + ':' + (#startDate != null ? #startDate.toString() : 'null') + ':' + (#endDate != null ? #endDate.toString() : 'null') + ':' + (#search != null ? #search : 'null')")
+    public List<FlashSaleResponseDto> getAllFlashSales(final SaleStatus status, final OffsetDateTime startDate, final OffsetDateTime endDate, final String search) {
+        final String normalizedSearch = (search == null || search.isBlank()) ? null : search.trim();
+        log.debug("Getting all flash sales with filters: status={}, startDate={}, endDate={}, search={}", status, startDate, endDate, normalizedSearch);
+        final List<FlashSale> flashSales;
+        if (normalizedSearch == null) {
+            flashSales = sales.findAllWithFilters(status, startDate, endDate);
+        } else {
+            final List<UUID> ids = sales.findFlashSaleIdsWithFiltersAndSearch(status, startDate, endDate, normalizedSearch);
+            flashSales = ids.isEmpty() ? List.of() : sales.findByIdInWithItems(ids).stream()
+                .sorted(Comparator.comparing(FlashSale::getStartTime))
+                .collect(Collectors.toList());
+        }
         final List<FlashSaleResponseDto> result = flashSales.stream()
             .map(this::mapToResponseDto)
             .collect(Collectors.toList());
