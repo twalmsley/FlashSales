@@ -123,6 +123,8 @@ public class SecurityConfig {
                 .requestMatchers("/", "/login", "/register", "/sales", "/sales/**", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                 // Health endpoint remains public for Kubernetes liveness/readiness probes
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                // Prometheus scrape endpoint public for internal monitoring (not exposed to internet)
+                .requestMatchers("/actuator/prometheus").permitAll()
                 // All other actuator endpoints require ADMIN_USER role for security
                 .requestMatchers("/actuator/**").hasRole("ADMIN_USER")
                 .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()

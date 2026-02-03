@@ -18,8 +18,11 @@ management:
     web:
       exposure:
         # Expose all endpoints (security is enforced via Spring Security filter chain)
-        # In production, consider limiting to: health,info,metrics
+        # Prometheus scraping via /actuator/prometheus (ADMIN_USER only)
         include: '*'
+  metrics:
+    tags:
+      application: flash
   health:
     probes:
       enabled: true

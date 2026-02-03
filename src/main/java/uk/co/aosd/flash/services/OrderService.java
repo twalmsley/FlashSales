@@ -32,6 +32,8 @@ import uk.co.aosd.flash.repository.FlashSaleItemRepository;
 import uk.co.aosd.flash.repository.OrderRepository;
 import uk.co.aosd.flash.repository.OrderStatusHistoryRepository;
 import uk.co.aosd.flash.repository.ProductRepository;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 /**
  * Service for managing orders.
@@ -49,6 +51,7 @@ public class OrderService {
     private final AuditLogService auditLogService;
     private final PaymentService paymentService;
     private final NotificationService notificationService;
+    private final MeterRegistry meterRegistry;
 
     /**
      * Create a new order for an active sale.
@@ -126,6 +129,8 @@ public class OrderService {
         final Order savedOrder = orderRepository.save(order);
         log.info("Created order: {}", savedOrder.getId());
 
+        meterRegistry.counter("flash.orders.created").increment();
+
         // Send order confirmation notification
         notificationService.sendOrderConfirmation(userId, savedOrder.getId());
 
@@ -156,15 +161,19 @@ public class OrderService {
         }
 
         final BigDecimal totalAmount = order.getSoldPrice().multiply(BigDecimal.valueOf(order.getSoldQuantity()));
+        final Timer.Sample sample = Timer.start(meterRegistry);
         final boolean paymentSuccess = paymentService.processPayment(orderId, totalAmount);
+        sample.stop(meterRegistry.timer("flash.payments.duration", "outcome", paymentSuccess ? "success" : "failure"));
 
         if (paymentSuccess) {
+            meterRegistry.counter("flash.payments.success").increment();
             order.setStatus(OrderStatus.PAID);
             orderRepository.save(order);
             recordOrderStatusChange(orderId, OrderStatus.PENDING, OrderStatus.PAID, null);
             log.info("Payment succeeded for order {}. Status updated to PAID", orderId);
             return new ProcessPaymentResult(true, orderId);
         }
+        meterRegistry.counter("flash.payments.failure").increment();
         order.setStatus(OrderStatus.FAILED);
         orderRepository.save(order);
         recordOrderStatusChange(orderId, OrderStatus.PENDING, OrderStatus.FAILED, null);

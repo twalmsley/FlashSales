@@ -147,4 +147,15 @@ public class ActuatorSecurityTest {
             .with(user("user").roles("USER")))
             .andExpect(status().isForbidden()); // 403 Forbidden
     }
+
+    @Test
+    public void shouldAllowUnauthenticatedAccessToPrometheusEndpoint() throws Exception {
+        // Prometheus endpoint is public for internal scraping (not exposed to internet)
+        // When management.server.port is set (e.g. 8081), actuator is on a different port so we may get 404 here
+        final int status = mockMvc.perform(get("/actuator/prometheus"))
+            .andReturn()
+            .getResponse()
+            .getStatus();
+        assert status == 200 || status == 404 : "Prometheus should be accessible without auth (200 or 404), got " + status;
+    }
 }

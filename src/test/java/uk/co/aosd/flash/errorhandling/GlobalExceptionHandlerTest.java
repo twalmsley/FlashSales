@@ -28,6 +28,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import uk.co.aosd.flash.exc.DuplicateEntityException;
 import uk.co.aosd.flash.exc.InvalidCurrentPasswordException;
 import uk.co.aosd.flash.exc.FlashSaleItemNotFoundException;
@@ -49,11 +51,14 @@ public class GlobalExceptionHandlerTest {
 
     private GlobalExceptionHandler handler;
     private ErrorMapper errorMapper;
+    private SimpleMeterRegistry meterRegistry;
 
     @BeforeEach
     public void setUp() {
         errorMapper = new ErrorMapper();
+        meterRegistry = new SimpleMeterRegistry();
         handler = new GlobalExceptionHandler(errorMapper);
+        handler.setMeterRegistry(meterRegistry);
     }
 
     @Test
@@ -66,6 +71,7 @@ public class GlobalExceptionHandlerTest {
         assertTrue(response.getBody().containsKey("message"));
         assertTrue(response.getBody().get("message").contains("test-id"));
         assertTrue(response.getBody().get("message").contains("Test Product"));
+        assertEquals(1, meterRegistry.get("flash.errors").tag("exception", "DuplicateEntityException").tag("status", "409").counter().count());
     }
 
     @Test
